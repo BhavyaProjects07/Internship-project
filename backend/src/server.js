@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const { clerkMiddleware } = require("@clerk/express");
 require("dotenv").config();
 
 const templateRoutes = require("./routes/template.route");
@@ -9,6 +10,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+
+
+
+app.use(clerkMiddleware());
 app.get("/api/health", (req, res) => {
   res.json({
     success: true,

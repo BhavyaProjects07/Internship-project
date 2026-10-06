@@ -1,8 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
 
 export async function createWebsite(formData) {
+  const { getToken } = await auth();
+  const token = await getToken();
+  
   const templateId = formData.get("templateId");
   const name = formData.get("name");
 
@@ -16,6 +20,7 @@ export async function createWebsite(formData) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
       },
       body: JSON.stringify({
         templateId,

@@ -1,25 +1,58 @@
 import React from 'react';
-
+import { getSectionStyle, getContentMaxWidth, getAlignmentClasses, getTypographyStyle } from "@/lib/sectionLayout";
 export default function LogoCloud({ content, config }) {
   const { heading, logos } = content || {};
-  const { backgroundColor = "#ffffff", textColor = "#6b7280" } = config || {};
+  const contentMaxWidth = getContentMaxWidth(config);
+  const { textClass } = getAlignmentClasses(config);
+  const defaultLogos = [
+    { name: "Acme Corp", symbol: "ACME" },
+    { name: "Global Systems", symbol: "GLOBAL" },
+    { name: "Nebula AI", symbol: "NEBULA" },
+    { name: "Quantum Labs", symbol: "QUANTUM" },
+    { name: "Horizon Media", symbol: "HORIZON" },
+    { name: "Vertex Capital", symbol: "VERTEX" }
+  ];
+
+  const clientLogos = logos && logos.length > 0 ? logos : defaultLogos;
 
   return (
-    <section className="py-16 px-6 md:px-12 border-b border-gray-100" style={{ backgroundColor }}>
-      <div className="mx-auto max-w-7xl text-center">
-        {heading && (
-          <p className="text-sm font-medium tracking-wide uppercase mb-10" style={{ color: textColor }}>
-            {heading}
-          </p>
-        )}
-        <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-          {logos?.map((logo, index) => (
-            <div key={index} className="flex items-center justify-center h-12">
-              {/* Fallback to text if no image URL, otherwise use img */}
+    <section
+      className="border-y border-neutral-200/70 w-full flex flex-col"
+      style={getSectionStyle(config, {
+        spacing: { padding: { top: 56, bottom: 56, left: 24, right: 24 } }
+      })}
+    >
+      <div className={`mx-auto w-full ${textClass}`} style={{ maxWidth: contentMaxWidth }}>
+        <p 
+          className="text-xs font-semibold tracking-widest uppercase mb-8"
+          style={{ color: config?.textColor || "#737373", ...getTypographyStyle(config, "heading") }}
+        >
+          {heading || "Trusted by ambitious teams at industry-defining brands"}
+        </p>
+
+        <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
+          {clientLogos.map((logo, index) => (
+            <div 
+              key={index} 
+              className="flex items-center justify-center h-10 px-3 opacity-60 hover:opacity-100 transition-opacity duration-300 group cursor-default"
+            >
               {logo.imageUrl ? (
-                <img src={logo.imageUrl} alt={logo.name || `Logo ${index + 1}`} className="max-h-8 object-contain" />
+                <img 
+                  src={logo.imageUrl} 
+                  alt={logo.name || `Partner logo ${index + 1}`} 
+                  className="max-h-7 object-contain grayscale group-hover:grayscale-0 transition-all duration-300"
+                  referrerPolicy="no-referrer"
+                />
               ) : (
-                <span className="text-xl font-bold tracking-tight text-gray-400">{logo.name}</span>
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-sm bg-neutral-900 group-hover:bg-neutral-600 transition-colors" />
+                  <span
+                    className="text-sm md:text-base font-bold tracking-tight text-neutral-800 font-mono"
+                    style={getTypographyStyle(config, "logos")}
+                  >
+                    {logo.name || logo.symbol}
+                  </span>
+                </div>
               )}
             </div>
           ))}

@@ -44,6 +44,81 @@ export async function updateWebsiteSections(sections) {
   }
 }
 
+export async function createWebsiteSection({
+  pageId,
+  type,
+  content,
+  config,
+}) {
+  try {
+    const response = await fetch(
+      `${process.env.API_URL}websites/pages/${pageId}/sections`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type,
+          content,
+          config,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+
+      throw new Error(
+        `Failed to create section: ${errorText}`
+      );
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(
+      "Create website section error:",
+      error
+    );
+
+    return {
+      success: false,
+      message: "Failed to create website section",
+    };
+  }
+}
+
+export async function deleteWebsiteSection(sectionId) {
+  try {
+    const response = await fetch(
+      `${process.env.API_URL}websites/sections/${sectionId}`,
+      {
+        method: "DELETE",
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+
+      throw new Error(
+        `Failed to delete section: ${errorText}`
+      );
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(
+      "Delete website section error:",
+      error
+    );
+
+    return {
+      success: false,
+      message: "Failed to delete website section",
+    };
+  }
+}
+
 export async function reorderWebsiteSections({
   pageId,
   sections,
@@ -80,6 +155,34 @@ export async function reorderWebsiteSections({
     return {
       success: false,
       message: "Failed to reorder website sections",
+    };
+  }
+}
+
+export async function updateWebsiteAction(websiteId, data) {
+  try {
+    const response = await fetch(
+      `${process.env.API_URL}websites/${websiteId}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to update website: ${errorText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Update website error:", error);
+    return {
+      success: false,
+      message: "Failed to update website",
     };
   }
 }

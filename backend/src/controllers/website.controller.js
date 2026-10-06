@@ -1,9 +1,19 @@
 const websiteService = require("../services/website.service");
+const { getAuth } = require("@clerk/express");
 
-
+// Create website from template
 // Create website from template
 const createWebsite = async (req, res) => {
   try {
+    const { userId } = getAuth(req);
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
     const { templateId, name } = req.body;
 
     if (!templateId || !name) {
@@ -16,6 +26,7 @@ const createWebsite = async (req, res) => {
     const website = await websiteService.createWebsiteFromTemplate({
       templateId,
       name,
+      userId,
     });
 
     res.status(201).json({
@@ -39,7 +50,6 @@ const createWebsite = async (req, res) => {
     });
   }
 };
-
 
 // Get website by ID
 const getWebsite = async (req, res) => {
@@ -66,6 +76,30 @@ const getWebsite = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch website",
+    });
+  }
+};
+
+const updateWebsite = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { theme, name } = req.body;
+
+    const data = {};
+    if (theme !== undefined) data.theme = theme;
+    if (name !== undefined) data.name = name;
+
+    const website = await websiteService.updateWebsite(id, data);
+
+    res.json({
+      success: true,
+      data: website,
+    });
+  } catch (error) {
+    console.error("Update website error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update website",
     });
   }
 };
@@ -97,6 +131,81 @@ const updateWebsiteSection = async (req, res) => {
     });
   }
 };
+
+const deleteWebsiteSection = async (req, res) => {
+  try {
+    const { sectionId } = req.params;
+
+    const result = await websiteService.deleteWebsiteSection(
+      sectionId
+    );
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    console.error(
+      "Delete website section error:",
+      error
+    );
+
+    if (error.message === "Website section not found") {
+      return res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete website section",
+    });
+  }
+};
+
+const createWebsiteSection = async (req, res) => {
+  try {
+    const { pageId } = req.params;
+    const { type, content, config } = req.body;
+
+    if (!type) {
+      return res.status(400).json({
+        success: false,
+        message: "Section type is required",
+      });
+    }
+
+    const section = await websiteService.createWebsiteSection(
+      pageId,
+      {
+        type,
+        content,
+        config,
+      }
+    );
+
+    res.status(201).json({
+      success: true,
+      data: section,
+    });
+  } catch (error) {
+    console.error("Create website section error:", error);
+
+    if (error.message === "Website page not found") {
+      return res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to create website section",
+    });
+  }
+};
+
 
 const reorderSections = async (req, res) => {
   try {
@@ -142,5 +251,7 @@ module.exports = {
   getWebsite,
   updateWebsiteSection,
   reorderSections,
-
+  createWebsiteSection,
+  deleteWebsiteSection,
+  updateWebsite,
 };

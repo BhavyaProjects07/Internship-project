@@ -1,9 +1,17 @@
 const { PrismaClient } = require("@prisma/client");
+const seedNovaStudio = require("./seedNova");
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const template = await prisma.template.create({
+  const existingModernAgency = await prisma.template.findFirst({
+    where: { name: "Modern Agency" }
+  });
+
+  if (existingModernAgency) {
+    console.log("Template Modern Agency already exists, skipping...");
+  } else {
+    const template = await prisma.template.create({
     data: {
       name: "Modern Agency",
       description: "A clean and modern agency website template.",
@@ -73,15 +81,54 @@ async function main() {
                   }
                 },
                 {
-                  type: "about",
-                  order: 4,
-                  content: {
-                    eyebrow: "Who We Are",
-                    heading: "We turn complex ideas into simple digital experiences.",
-                    description: "We are an independent digital agency that brings together strategic design and technical excellence. Our mission is to create distinctive products that people love to use.",
-                    highlightText: "Good design is good business. We help you achieve both."
-                  }
-                },
+  type: "about",
+  order: 4,
+  content: {
+    eyebrow: "Who We Are",
+
+    heading:
+      "We turn complex ideas into simple digital experiences.",
+
+    description:
+      "We are an independent digital agency that brings together strategic design and technical excellence. Our mission is to create distinctive products that people love to use.",
+
+    highlightText:
+      "Good design is good business. We help you achieve both.",
+
+    metadata: [
+      {
+        label: "Independent Digital Agency",
+      },
+      {
+        label: "Based in SF & Berlin",
+      },
+      {
+        label: "Est. 2018",
+      },
+    ],
+
+    pillars: [
+      {
+        number: "01",
+        title: "Commercial Rigor",
+        description:
+          "Every design choice is anchored in business economics and conversion fundamentals.",
+      },
+      {
+        number: "02",
+        title: "Architectural Craft",
+        description:
+          "Obsessive typographic discipline, sub-second latency, and scalable frontend architectures.",
+      },
+      {
+        number: "03",
+        title: "Direct Access",
+        description:
+          "Work directly with senior leads — no account managers, bureaucracy, or translation loss.",
+      },
+    ],
+  },
+},
                 {
                   type: "services",
                   order: 5,
@@ -359,7 +406,11 @@ async function main() {
     }
   });
 
-  console.log(`Created template: ${template.name}`);
+    console.log(`Created template: ${template.name}`);
+  }
+
+  // Seed Nova Studio
+  await seedNovaStudio(prisma);
 }
 
 main()
