@@ -132,11 +132,11 @@ const sectionRegistry = {
     defaultContent: {
       heading: "TRUSTED BY AMBITIOUS TEAMS AT",
       logos: [
-        { name: "Acme Corp" },
-        { name: "Global" },
-        { name: "Nebula" },
-        { name: "Quantum" },
-        { name: "Horizon" },
+        { name: "Acme Corp", imageUrl: "https://tailwindui.com/plus/img/logos/158x48/transistor-logo-gray-900.svg" },
+        { name: "Global", imageUrl: "https://tailwindui.com/plus/img/logos/158x48/reform-logo-gray-900.svg" },
+        { name: "Nebula", imageUrl: "https://tailwindui.com/plus/img/logos/158x48/tuple-logo-gray-900.svg" },
+        { name: "Quantum", imageUrl: "https://tailwindui.com/plus/img/logos/158x48/savvycal-logo-gray-900.svg" },
+        { name: "Horizon", imageUrl: "https://tailwindui.com/plus/img/logos/158x48/statamic-logo-gray-900.svg" },
       ],
     },
 
@@ -233,7 +233,23 @@ const sectionRegistry = {
       serviceLabel: "Service Domain",
       deliverablesLabel: "Key Deliverables",
       buttonText: "Explore Capability",
-      services: [],
+      services: [
+        {
+          id: "service-1",
+          title: "Strategy & Positioning",
+          description: "We help brands define their purpose and position in the market."
+        },
+        {
+          id: "service-2",
+          title: "Digital Product Design",
+          description: "End-to-end design for web, mobile, and spatial platforms."
+        },
+        {
+          id: "service-3",
+          title: "Engineering & Architecture",
+          description: "Robust scalable systems built for modern performance standards."
+        }
+      ],
     },
 
     defaultConfig: {
@@ -322,7 +338,23 @@ const sectionRegistry = {
       heading: "A collection of our work.",
       description:
         "Showcase your projects, products, spaces, or other visual content.",
-      images: [],
+      images: [
+        {
+          id: "img-1",
+          url: "https://images.unsplash.com/photo-1497215842964-222b430dc094?auto=format&fit=crop&q=80&w=800",
+          alt: "Office Space"
+        },
+        {
+          id: "img-2",
+          url: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800",
+          alt: "Architecture"
+        },
+        {
+          id: "img-3",
+          url: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=800",
+          alt: "Team Collaboration"
+        }
+      ],
     },
 
     defaultConfig: {
@@ -406,7 +438,24 @@ const sectionRegistry = {
 
     defaultContent: {
       heading: "What our partners say",
-      testimonials: [],
+      testimonials: [
+        {
+          id: "test-1",
+          name: "Sarah Jenkins",
+          role: "CEO",
+          company: "TechNova",
+          quote: "This agency transformed our product completely.",
+          avatarUrl: "https://i.pravatar.cc/150?u=sarah"
+        },
+        {
+          id: "test-2",
+          name: "Michael Ross",
+          role: "Director of Marketing",
+          company: "Quantum",
+          quote: "The best design partner we have ever worked with.",
+          avatarUrl: "https://i.pravatar.cc/150?u=michael"
+        }
+      ],
     },
 
     defaultConfig: {

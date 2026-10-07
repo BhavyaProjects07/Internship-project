@@ -1,13 +1,11 @@
 import React from 'react';
-import { getSectionStyle, getContentMaxWidth, getAlignmentClasses, getTypographyStyle } from "@/lib/sectionLayout";
+import { getSectionStyle, getContentMaxWidth, getAlignmentClasses, getTypographyStyle, getButtonStyle } from "@/lib/sectionLayout";
 export default function CTA({ content, config }) {
-  const { heading, description, buttonText, buttonLink } = content || {};
+  const { heading, description, buttonText: ctaButtonText, buttonLink: ctaButtonLink, buttonTarget: ctaButtonTarget = "_self" } = content || {};
   const contentMaxWidth = getContentMaxWidth(config);
   const { textClass } = getAlignmentClasses(config);
   const ctaHeading = heading || "Let's build something remarkable together.";
   const ctaDesc = description || "Ready to transform your digital presence or engineer your next flagship product? Schedule a discovery call with our partners.";
-  const ctaButtonText = buttonText || "Start a Conversation";
-  const ctaButtonLink = buttonLink || "#contact";
 
   return (
     <section 
@@ -45,10 +43,18 @@ export default function CTA({ content, config }) {
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          {(() => {
+            const btnStyleProps = getButtonStyle(config, "button");
+            return (
           <a
             href={ctaButtonLink}
-            className="group inline-flex items-center justify-center rounded-xl bg-white px-8 py-4 text-sm font-semibold text-neutral-950 transition-all duration-200 hover:bg-neutral-100 hover:shadow-xl hover:shadow-white/10 active:scale-[0.99] whitespace-nowrap"
-            style={getTypographyStyle(config, "button")}
+            target={ctaButtonTarget}
+            rel={ctaButtonTarget === "_blank" ? "noopener noreferrer" : undefined}
+            className={`group inline-flex items-center justify-center rounded-xl bg-white px-8 py-4 text-sm font-semibold text-neutral-950 transition-all duration-200 hover:bg-neutral-100 hover:shadow-xl hover:shadow-white/10 active:scale-[0.99] whitespace-nowrap ${btnStyleProps.className || ''}`}
+            style={{
+              ...getTypographyStyle(config, "button"),
+              ...btnStyleProps.style
+            }}
           >
             <span>{ctaButtonText}</span>
             <svg 
@@ -60,6 +66,8 @@ export default function CTA({ content, config }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
             </svg>
           </a>
+            );
+          })()}
 
           <a
             href="mailto:contact@modernagency.studio"

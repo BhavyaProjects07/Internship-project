@@ -73,6 +73,7 @@ const elementSchemas = {
       label: "CTA Button",
       contentPath: "buttonText",
       linkPath: "buttonLink",
+      targetPath: "buttonTarget",
     },
   ],
 
@@ -101,6 +102,7 @@ const elementSchemas = {
       label: "Primary Button",
       contentPath: "primaryButtonText",
       linkPath: "primaryButtonLink",
+      targetPath: "primaryButtonTarget",
     },
     {
       elementId: "secondary-button",
@@ -108,6 +110,7 @@ const elementSchemas = {
       label: "Secondary Button",
       contentPath: "secondaryButtonText",
       linkPath: "secondaryButtonLink",
+      targetPath: "secondaryButtonTarget",
     },
   ],
 
@@ -346,6 +349,7 @@ const elementSchemas = {
         { field: "role", type: ELEMENT_TYPES.PARAGRAPH, label: "Role" },
         { field: "company", type: ELEMENT_TYPES.PARAGRAPH, label: "Company" },
         { field: "quote", type: ELEMENT_TYPES.PARAGRAPH, label: "Quote" },
+        { field: "avatarUrl", type: ELEMENT_TYPES.IMAGE, label: "Avatar Image" },
       ],
     },
   ],
@@ -369,6 +373,7 @@ const elementSchemas = {
       label: "CTA Button",
       contentPath: "buttonText",
       linkPath: "buttonLink",
+      targetPath: "buttonTarget",
     },
   ],
 
@@ -415,6 +420,7 @@ const elementSchemas = {
       label: "CTA Button",
       contentPath: "buttonText",
       linkPath: "buttonLink",
+      targetPath: "buttonTarget",
     },
   ],
 

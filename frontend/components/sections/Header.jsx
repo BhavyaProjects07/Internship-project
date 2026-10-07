@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState } from 'react';
-import { getContentMaxWidth, getTypographyStyle } from "@/lib/sectionLayout";
+import Link from 'next/link';
+import { getContentMaxWidth, getTypographyStyle, getButtonStyle } from "@/lib/sectionLayout";
 export default function Header({ content, config }) {
-  const { logo, navigation, buttonText, buttonLink } = content || {};
+  const { logo, navigation, buttonText, buttonLink, buttonTarget = "_self" } = content || {};
   const { backgroundColor = "transparent", textColor = "#111827", sticky = true } = config || {};
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const contentMaxWidth = getContentMaxWidth(config);
@@ -33,13 +34,13 @@ export default function Header({ content, config }) {
       <div className="mx-auto flex items-center justify-between w-full" style={{ maxWidth: contentMaxWidth }}>
         {/* Zone 1: Single Text Element Brand Wordmark */}
         <div className="flex-shrink-0">
-          <a
+          <Link
             href="/"
             className="text-lg md:text-xl font-bold tracking-tight text-neutral-950 hover:opacity-85 transition-opacity"
             style={getTypographyStyle(config, "logo")}
           >
             {logo || "Modern Agency"}
-          </a>
+          </Link>
         </div>
 
         {/* Zone 2: Clean Text Navigation Links */}
@@ -49,7 +50,7 @@ export default function Header({ content, config }) {
               key={index}
               href={item.link || "#"}
               className="relative py-1 hover:text-neutral-950 transition-colors after:absolute after:bottom-0 after:left-0 after:h-[1.5px] after:w-0 after:bg-neutral-950 after:transition-all after:duration-200 hover:after:w-full whitespace-nowrap"
-              style={getTypographyStyle(config, "navigation")}
+              style={getTypographyStyle(config, "navigation", index, "label")}
             >
               {item.label}
             </a>
@@ -58,25 +59,45 @@ export default function Header({ content, config }) {
 
         {/* Zone 3: 1 Primary Action */}
         <div className="hidden md:flex items-center gap-4 flex-shrink-0">
+          {(() => {
+            const btnStyleProps = getButtonStyle(config, "cta-button");
+            return (
           <a
             href={ctaLink}
-            className="inline-flex items-center justify-center rounded-lg bg-theme-primary px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-white transition-all duration-200 hover:opacity-90 hover:shadow-sm whitespace-nowrap"
-            style={getTypographyStyle(config, "cta-button")}
+            target={buttonTarget}
+            rel={buttonTarget === "_blank" ? "noopener noreferrer" : undefined}
+            className={`inline-flex items-center justify-center rounded-lg bg-theme-primary px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-white transition-all duration-200 hover:opacity-90 hover:shadow-sm whitespace-nowrap ${btnStyleProps.className || ''}`}
+            style={{
+              ...getTypographyStyle(config, "cta-button"),
+              ...btnStyleProps.style
+            }}
           >
             {ctaText}
             <span className="ml-2 inline-block transition-transform duration-200 group-hover:translate-x-0.5">→</span>
           </a>
+            );
+          })()}
         </div>
 
         {/* Mobile menu button */}
         <div className="flex md:hidden items-center gap-2">
+          {(() => {
+            const btnStyleProps = getButtonStyle(config, "cta-button");
+            return (
           <a
             href={ctaLink}
-            className="rounded-lg bg-theme-primary px-3.5 py-1.5 text-xs font-semibold text-white whitespace-nowrap"
-            style={getTypographyStyle(config, "cta-button")}
+            target={buttonTarget}
+            rel={buttonTarget === "_blank" ? "noopener noreferrer" : undefined}
+            className={`rounded-lg bg-theme-primary px-3.5 py-1.5 text-xs font-semibold text-white whitespace-nowrap ${btnStyleProps.className || ''}`}
+            style={{
+              ...getTypographyStyle(config, "cta-button"),
+              ...btnStyleProps.style
+            }}
           >
             {ctaText}
           </a>
+            );
+          })()}
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -106,7 +127,7 @@ export default function Header({ content, config }) {
                 href={item.link || "#"}
                 onClick={() => setMobileMenuOpen(false)}
                 className="py-2 px-3 text-sm font-medium text-neutral-800 hover:bg-neutral-50 rounded-lg transition-colors"
-                style={getTypographyStyle(config, "navigation")}
+                style={getTypographyStyle(config, "navigation", index, "label")}
               >
                 {item.label}
               </a>

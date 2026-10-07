@@ -62,7 +62,13 @@ export default function Gallery({ content = {}, config = {} }) {
                   <img
                     src={image.url}
                     alt={image.alt || ""}
-                    className="aspect-[4/3] h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    className="aspect-[4/3] transition duration-500 group-hover:scale-105"
+                    style={{
+                      objectFit: image.objectFit || "cover",
+                      objectPosition: image.objectPosition || "center",
+                      width: image.width || "100%",
+                      height: image.height || "100%"
+                    }}
                   />
                 ) : (
                   <div className="flex aspect-[4/3] items-center justify-center text-sm text-neutral-400">

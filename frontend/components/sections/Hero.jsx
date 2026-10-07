@@ -1,5 +1,5 @@
 import React from "react";
-import { getSectionStyle, getContentMaxWidth, getAlignmentClasses, getGridColumnsClass, getTypographyStyle } from "@/lib/sectionLayout";
+import { getSectionStyle, getContentMaxWidth, getAlignmentClasses, getGridColumnsClass, getTypographyStyle, getButtonStyle } from "@/lib/sectionLayout";
 export default function Hero({ content, config }) {
   const {
     eyebrow,
@@ -7,10 +7,12 @@ export default function Hero({ content, config }) {
     description,
     buttonText,
     buttonLink,
-    primaryButtonText,
-    primaryButtonLink,
-    secondaryButtonText,
-    secondaryButtonLink,
+    primaryButtonText: btn1Text,
+    primaryButtonLink: btn1Link,
+    primaryButtonTarget: btn1Target = "_self",
+    secondaryButtonText: btn2Text,
+    secondaryButtonLink: btn2Link,
+    secondaryButtonTarget: btn2Target = "_self",
   } = content || {};
 
   // =========================================================
@@ -26,23 +28,7 @@ export default function Hero({ content, config }) {
   // BUTTONS
   // =========================================================
 
-  const btn1Text =
-    primaryButtonText ||
-    buttonText ||
-    "Start a Project";
 
-  const btn1Link =
-    primaryButtonLink ||
-    buttonLink ||
-    "#contact";
-
-  const btn2Text =
-    secondaryButtonText ||
-    "View Selected Work";
-
-  const btn2Link =
-    secondaryButtonLink ||
-    "#portfolio";
 
   return (
     <section
@@ -126,11 +112,18 @@ export default function Hero({ content, config }) {
         <div
           className={`mt-10 flex flex-wrap items-center gap-4 ${justifyClass}`}
         >
-          {btn1Text && (
+          {btn1Text && (() => {
+            const btn1StyleProps = getButtonStyle(config, "primary-button");
+            return (
             <a
               href={btn1Link}
-              className="group inline-flex items-center justify-center rounded-xl bg-theme-primary px-7 py-3.5 text-sm font-semibold text-white transition-all duration-200 hover:opacity-90 hover:shadow-lg hover:shadow-neutral-950/10 active:scale-[0.99] whitespace-nowrap"
-              style={getTypographyStyle(config, "primary-button")}
+              target={btn1Target}
+              rel={btn1Target === "_blank" ? "noopener noreferrer" : undefined}
+              className={`group inline-flex items-center justify-center rounded-xl bg-theme-primary px-7 py-3.5 text-sm font-semibold text-white transition-all duration-200 hover:opacity-90 hover:shadow-lg hover:shadow-neutral-950/10 active:scale-[0.99] whitespace-nowrap ${btn1StyleProps.className || ''}`}
+              style={{
+                ...getTypographyStyle(config, "primary-button"),
+                ...btn1StyleProps.style
+              }}
             >
               <span>{btn1Text}</span>
 
@@ -148,17 +141,26 @@ export default function Hero({ content, config }) {
                 />
               </svg>
             </a>
-          )}
+            );
+          })()}
 
-          {btn2Text && (
+          {btn2Text && (() => {
+            const btn2StyleProps = getButtonStyle(config, "secondary-button");
+            return (
             <a
               href={btn2Link}
-              className="inline-flex items-center justify-center rounded-xl border border-neutral-300/80 bg-white px-7 py-3.5 text-sm font-semibold text-neutral-800 transition-all duration-200 hover:bg-neutral-50 hover:border-neutral-400 whitespace-nowrap"
-              style={getTypographyStyle(config, "secondary-button")}
+              target={btn2Target}
+              rel={btn2Target === "_blank" ? "noopener noreferrer" : undefined}
+              className={`inline-flex items-center justify-center rounded-xl border border-neutral-300/80 bg-white px-7 py-3.5 text-sm font-semibold text-neutral-800 transition-all duration-200 hover:bg-neutral-50 hover:border-neutral-400 whitespace-nowrap ${btn2StyleProps.className || ''}`}
+              style={{
+                ...getTypographyStyle(config, "secondary-button"),
+                ...btn2StyleProps.style
+              }}
             >
               {btn2Text}
             </a>
-          )}
+            );
+          })()}
         </div>
 
         {/* =================================================

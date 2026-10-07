@@ -72,11 +72,11 @@ async function main() {
                   content: {
                     heading: "TRUSTED BY AMBITIOUS TEAMS AT",
                     logos: [
-                      { name: "Acme Corp" },
-                      { name: "Global" },
-                      { name: "Nebula" },
-                      { name: "Quantum" },
-                      { name: "Horizon" }
+                      { name: "Acme Corp", imageUrl: "https://tailwindui.com/plus/img/logos/158x48/transistor-logo-gray-900.svg" },
+                      { name: "Global", imageUrl: "https://tailwindui.com/plus/img/logos/158x48/reform-logo-gray-900.svg" },
+                      { name: "Nebula", imageUrl: "https://tailwindui.com/plus/img/logos/158x48/tuple-logo-gray-900.svg" },
+                      { name: "Quantum", imageUrl: "https://tailwindui.com/plus/img/logos/158x48/savvycal-logo-gray-900.svg" },
+                      { name: "Horizon", imageUrl: "https://tailwindui.com/plus/img/logos/158x48/statamic-logo-gray-900.svg" }
                     ]
                   }
                 },
@@ -218,21 +218,24 @@ async function main() {
                         role: "Product Manager",
                         company: "TechFlow",
                         quote: "The team delivered an exceptional product that exceeded our expectations. Their attention to detail is unmatched.",
-                        rating: 5
+                        rating: 5,
+                        avatarUrl: "https://i.pravatar.cc/150?u=sarah"
                       },
                       {
                         name: "Marcus Chen",
                         role: "Founder",
                         company: "Elevate",
                         quote: "Working with them was the best decision we made. They truly understand modern digital experiences.",
-                        rating: 5
+                        rating: 5,
+                        avatarUrl: "https://i.pravatar.cc/150?u=marcus"
                       },
                       {
                         name: "Elena Rodriguez",
                         role: "Marketing Director",
                         company: "Lumina",
                         quote: "They brought our vision to life faster and better than we thought possible. Highly recommended.",
-                        rating: 5
+                        rating: 5,
+                        avatarUrl: "https://i.pravatar.cc/150?u=elena"
                       }
                     ]
                   }

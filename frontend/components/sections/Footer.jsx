@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import Link from 'next/link';
 import { getSectionStyle, getContentMaxWidth, getAlignmentClasses, getTypographyStyle } from "@/lib/sectionLayout";
 export default function Footer({ content, config }) {
   const { logo, description, columns, social, copyright } = content || {};
@@ -64,13 +65,13 @@ export default function Footer({ content, config }) {
           {/* Brand Manifesto Column (5 cols) */}
           <div className="lg:col-span-5 flex flex-col justify-between">
             <div>
-              <a
+              <Link
                 href="/"
                 className="text-xl font-bold tracking-tight text-neutral-950 inline-block mb-4"
                 style={getTypographyStyle(config, "logo")}
               >
                 {logo || "Modern Agency"}
-              </a>
+              </Link>
               <p
                 className="text-sm text-neutral-600 leading-relaxed max-w-sm [text-wrap:balance]"
                 style={getTypographyStyle(config, "description")}
@@ -89,7 +90,10 @@ export default function Footer({ content, config }) {
           <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-8">
             {footerCols.map((col, idx) => (
               <div key={idx}>
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-neutral-900 mb-5">
+                <h4 
+                  className="text-xs font-semibold uppercase tracking-wider text-neutral-900 mb-5"
+                  style={getTypographyStyle(config, "columns", idx, "title")}
+                >
                   {col.title}
                 </h4>
                 <ul className="flex flex-col gap-3">
@@ -111,7 +115,7 @@ export default function Footer({ content, config }) {
 
         {/* Bottom Bar: Copyright, Socials, Back to Top */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
-          <div>
+          <div style={getTypographyStyle(config, "copyright")}>
             {copyright || `© ${new Date().getFullYear()} Modern Agency. All rights reserved.`}
           </div>
 

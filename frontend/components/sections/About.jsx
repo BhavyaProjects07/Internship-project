@@ -97,7 +97,7 @@ export default function About({ content, config }) {
                   className="font-serif text-xl italic leading-snug text-neutral-900 md:text-2xl"
                   style={getTypographyStyle(config, "highlight")}
                 >
-                  "{highlightText}"
+                  &quot;{highlightText}&quot;
                 </blockquote>
               </div>
             )}
@@ -236,7 +236,7 @@ export default function About({ content, config }) {
                     className="font-serif text-xl italic leading-snug text-neutral-900 md:text-2xl"
                     style={getTypographyStyle(config, "highlight")}
                   >
-                    "{highlightText}"
+                    &quot;{highlightText}&quot;
                   </blockquote>
                 </div>
               )}

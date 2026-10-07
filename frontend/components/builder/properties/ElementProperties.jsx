@@ -4,6 +4,8 @@ import React from "react";
 import { ELEMENT_TYPES, findElementDef } from "@/lib/elementSchema";
 import TypographyProperties from "./TypographyProperties";
 import ColorProperties from "./ColorProperties";
+import ImageProperties from "./ImageProperties";
+import ButtonProperties from "./ButtonProperties";
 
 /**
  * ============================================================
@@ -61,7 +63,7 @@ function ElementPropertiesInner({
     const arr = Array.isArray(content[arrayPath])
       ? [...content[arrayPath]]
       : [];
-    const uniqueId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(7);
+    const uniqueId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36);
     arr.push({ ...defaultItem, id: `item-${uniqueId}` });
     updateContentField(arrayPath, arr);
   };
@@ -72,6 +74,24 @@ function ElementPropertiesInner({
       : [];
     arr.splice(index, 1);
     updateContentField(arrayPath, arr);
+  };
+
+  const updateButtonConfig = (field, value) => {
+    const existingButtonConfig = section.config?.button || {};
+    const existingElementConfig = existingButtonConfig[elementId] || {};
+    
+    onChange(section.id, {
+      config: {
+        ...section.config,
+        button: {
+          ...existingButtonConfig,
+          [elementId]: {
+            ...existingElementConfig,
+            [field]: value
+          }
+        }
+      }
+    });
   };
 
   // ============================================================
@@ -123,20 +143,17 @@ function ElementPropertiesInner({
               {sub.label}
             </label>
             {sub.type === ELEMENT_TYPES.IMAGE ? (
-              <input
-                type="text"
-                value={item[sub.field] || ""}
-                onChange={(e) =>
-                  updateArrayItem(
-                    arrayPath,
-                    arrayIndex,
-                    sub.field,
-                    e.target.value
-                  )
-                }
-                placeholder="https://..."
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-xs text-neutral-900 outline-none focus:border-blue-600"
+              <ImageProperties
+                image={item}
+                srcField={sub.field}
+                onChange={(updatedItem) => {
+                  const arr = Array.isArray(content[arrayPath]) ? [...content[arrayPath]] : [];
+                  arr[arrayIndex] = updatedItem;
+                  updateContentField(arrayPath, arr);
+                }}
               />
+            ) : sub.type === ELEMENT_TYPES.PARAGRAPH && sub.field === 'alt' && elementDef.arrayItemSchema.some(s => s.type === ELEMENT_TYPES.IMAGE) ? (
+              null // Alt is handled by ImageProperties for images
             ) : sub.type === ELEMENT_TYPES.PARAGRAPH ? (
               <textarea
                 rows={2}
@@ -230,49 +247,22 @@ function ElementPropertiesInner({
 
   // BUTTON element
   if (elementType === ELEMENT_TYPES.BUTTON) {
-    const textValue =
-      getNestedValue(content, elementDef.contentPath) || "";
-    const linkValue = elementDef.linkPath
-      ? getNestedValue(content, elementDef.linkPath) || ""
-      : "";
+    const textValue = getNestedValue(content, elementDef.contentPath) || "";
+    const linkValue = elementDef.linkPath ? getNestedValue(content, elementDef.linkPath) || "" : "";
+    const targetValue = elementDef.targetPath ? getNestedValue(content, elementDef.targetPath) || "_self" : "_self";
 
     return (
-      <div className="p-5 space-y-4">
-        <span className="text-xs font-bold uppercase tracking-wider text-neutral-500 block">
-          {elementDef.label}
-        </span>
-
-        <div>
-          <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
-            Button Label
-          </label>
-          <input
-            type="text"
-            value={textValue}
-            onChange={(e) =>
-              updateContentField(elementDef.contentPath, e.target.value)
-            }
-            className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-xs text-neutral-900 outline-none focus:border-blue-600"
-          />
-        </div>
-
-        {elementDef.linkPath && (
-          <div>
-            <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
-              Link URL
-            </label>
-            <input
-              type="text"
-              value={linkValue}
-              onChange={(e) =>
-                updateContentField(elementDef.linkPath, e.target.value)
-              }
-              placeholder="#contact"
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-xs text-neutral-900 outline-none focus:border-blue-600"
-            />
-          </div>
-        )}
-      </div>
+      <ButtonProperties
+        elementDef={elementDef}
+        textValue={textValue}
+        linkValue={linkValue}
+        targetValue={targetValue}
+        buttonConfig={section.config?.button?.[elementId] || {}}
+        onTextChange={(val) => updateContentField(elementDef.contentPath, val)}
+        onLinkChange={(val) => elementDef.linkPath && updateContentField(elementDef.linkPath, val)}
+        onTargetChange={(val) => elementDef.targetPath && updateContentField(elementDef.targetPath, val)}
+        onStyleChange={updateButtonConfig}
+      />
     );
   }
 
@@ -324,34 +314,14 @@ function ElementPropertiesInner({
                 </button>
               </div>
 
-              <input
-                type="text"
-                value={img.url || ""}
-                onChange={(e) =>
-                  updateArrayItem(
-                    elementDef.contentPath,
-                    idx,
-                    "url",
-                    e.target.value
-                  )
-                }
-                placeholder="Image URL"
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-xs text-neutral-900 outline-none focus:border-blue-600"
-              />
-
-              <input
-                type="text"
-                value={img.alt || ""}
-                onChange={(e) =>
-                  updateArrayItem(
-                    elementDef.contentPath,
-                    idx,
-                    "alt",
-                    e.target.value
-                  )
-                }
-                placeholder="Alt text"
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-xs text-neutral-900 outline-none focus:border-blue-600"
+              <ImageProperties
+                image={img}
+                srcField="url"
+                onChange={(updatedImg) => {
+                  const arr = [...items];
+                  arr[idx] = updatedImg;
+                  updateContentField(elementDef.contentPath, arr);
+                }}
               />
             </div>
           ))}
@@ -425,7 +395,19 @@ function ElementPropertiesInner({
                 <label className="block text-[11px] text-neutral-500 mb-1">
                   {sub.label}
                 </label>
-                {sub.type === ELEMENT_TYPES.PARAGRAPH ? (
+                {sub.type === ELEMENT_TYPES.IMAGE ? (
+                  <ImageProperties
+                    image={item}
+                    srcField={sub.field}
+                    onChange={(updatedItem) => {
+                      const arr = [...items];
+                      arr[idx] = updatedItem;
+                      updateContentField(elementDef.contentPath, arr);
+                    }}
+                  />
+                ) : sub.type === ELEMENT_TYPES.PARAGRAPH && sub.field === 'alt' && elementDef.arrayItemSchema.some(s => s.type === ELEMENT_TYPES.IMAGE) ? (
+                  null // Alt is handled by ImageProperties for images
+                ) : sub.type === ELEMENT_TYPES.PARAGRAPH ? (
                   <textarea
                     rows={2}
                     value={item[sub.field] || ""}

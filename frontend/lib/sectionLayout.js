@@ -340,3 +340,78 @@ export function getTypographyStyle(config, elementId, index, field) {
     ...(resolvedColor ? { color: resolveColorVar(resolvedColor) } : {}),
   };
 }
+
+// ============================================================
+// BUTTON STYLE
+// ============================================================
+
+export function getButtonStyle(config, elementId) {
+  const btnConfig = config?.button?.[elementId] || {};
+  
+  const style = {};
+  const classes = [];
+  
+  if (btnConfig.backgroundColor) {
+    style.backgroundColor = resolveColorVar(btnConfig.backgroundColor);
+  }
+  
+  if (btnConfig.textColor) {
+    style.color = resolveColorVar(btnConfig.textColor);
+  }
+  
+  if (btnConfig.borderColor) {
+    style.borderColor = resolveColorVar(btnConfig.borderColor);
+    style.borderStyle = "solid";
+  }
+  
+  if (btnConfig.borderWidth !== undefined && btnConfig.borderWidth !== "") {
+    style.borderWidth = `${btnConfig.borderWidth}px`;
+  }
+  
+  if (btnConfig.borderRadius !== undefined && btnConfig.borderRadius !== "") {
+    style.borderRadius = `${btnConfig.borderRadius}px`;
+  }
+  
+  if (btnConfig.paddingTop !== undefined && btnConfig.paddingTop !== "") {
+    style.paddingTop = `${btnConfig.paddingTop}px`;
+  }
+  
+  if (btnConfig.paddingRight !== undefined && btnConfig.paddingRight !== "") {
+    style.paddingRight = `${btnConfig.paddingRight}px`;
+  }
+  
+  if (btnConfig.paddingBottom !== undefined && btnConfig.paddingBottom !== "") {
+    style.paddingBottom = `${btnConfig.paddingBottom}px`;
+  }
+  
+  if (btnConfig.paddingLeft !== undefined && btnConfig.paddingLeft !== "") {
+    style.paddingLeft = `${btnConfig.paddingLeft}px`;
+  }
+  
+  if (btnConfig.width === "full") {
+    style.width = "100%";
+  }
+
+  // Hover States (Phase 6D)
+  const hoverConfig = btnConfig.hover || {};
+  
+  if (hoverConfig.backgroundColor) {
+    style["--btn-hover-bg"] = resolveColorVar(hoverConfig.backgroundColor);
+    classes.push("hover-bg-override");
+  }
+
+  if (hoverConfig.textColor) {
+    style["--btn-hover-text"] = resolveColorVar(hoverConfig.textColor);
+    classes.push("hover-text-override");
+  }
+
+  if (hoverConfig.borderColor) {
+    style["--btn-hover-border"] = resolveColorVar(hoverConfig.borderColor);
+    classes.push("hover-border-override");
+  }
+  
+  return {
+    style,
+    className: classes.join(" ")
+  };
+}

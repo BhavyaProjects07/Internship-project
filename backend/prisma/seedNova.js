@@ -85,11 +85,11 @@ async function seedNovaStudio(prisma) {
                   content: {
                     heading: "PARTNERING WITH INDUSTRY LEADERS",
                     logos: [
-                      { name: "Vanguard" },
-                      { name: "Oasis" },
-                      { name: "Lumina" },
-                      { name: "Synergy" },
-                      { name: "Apex" }
+                      { name: "Vanguard", imageUrl: "https://tailwindui.com/plus/img/logos/158x48/transistor-logo-gray-900.svg" },
+                      { name: "Oasis", imageUrl: "https://tailwindui.com/plus/img/logos/158x48/reform-logo-gray-900.svg" },
+                      { name: "Lumina", imageUrl: "https://tailwindui.com/plus/img/logos/158x48/tuple-logo-gray-900.svg" },
+                      { name: "Synergy", imageUrl: "https://tailwindui.com/plus/img/logos/158x48/savvycal-logo-gray-900.svg" },
+                      { name: "Apex", imageUrl: "https://tailwindui.com/plus/img/logos/158x48/statamic-logo-gray-900.svg" }
                     ]
                   },
                   config: {
@@ -223,14 +223,16 @@ async function seedNovaStudio(prisma) {
                         role: "CEO",
                         company: "Aura Financial",
                         quote: "Nova Studio completely transformed our digital presence. Their ability to distill complex financial concepts into a seamless user experience was extraordinary.",
-                        rating: 5
+                        rating: 5,
+                        avatarUrl: "https://i.pravatar.cc/150?u=jonathan"
                       },
                       {
                         name: "Samantha Vance",
                         role: "VP of Product",
                         company: "Vertex Mobility",
                         quote: "The technical rigor and design precision the Nova team brought to our dashboard was unparalleled. They are true partners.",
-                        rating: 5
+                        rating: 5,
+                        avatarUrl: "https://i.pravatar.cc/150?u=samantha"
                       }
                     ]
                   },

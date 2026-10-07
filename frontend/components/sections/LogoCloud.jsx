@@ -24,8 +24,8 @@ export default function LogoCloud({ content, config }) {
     >
       <div className={`mx-auto w-full ${textClass}`} style={{ maxWidth: contentMaxWidth }}>
         <p 
-          className="text-xs font-semibold tracking-widest uppercase mb-8"
-          style={{ color: config?.textColor || "#737373", ...getTypographyStyle(config, "heading") }}
+          className="text-xs font-semibold tracking-widest uppercase mb-8 text-neutral-500"
+          style={getTypographyStyle(config, "heading")}
         >
           {heading || "Trusted by ambitious teams at industry-defining brands"}
         </p>
@@ -40,7 +40,14 @@ export default function LogoCloud({ content, config }) {
                 <img 
                   src={logo.imageUrl} 
                   alt={logo.name || `Partner logo ${index + 1}`} 
-                  className="max-h-7 object-contain grayscale group-hover:grayscale-0 transition-all duration-300"
+                  className="grayscale group-hover:grayscale-0 transition-all duration-300"
+                  style={{
+                    objectFit: logo.objectFit || "contain",
+                    objectPosition: logo.objectPosition || "center",
+                    width: logo.width || "auto",
+                    height: logo.height || "auto",
+                    maxHeight: "1.75rem"
+                  }}
                   referrerPolicy="no-referrer"
                 />
               ) : (
@@ -48,7 +55,7 @@ export default function LogoCloud({ content, config }) {
                   <span className="w-1.5 h-1.5 rounded-sm bg-neutral-900 group-hover:bg-neutral-600 transition-colors" />
                   <span
                     className="text-sm md:text-base font-bold tracking-tight text-neutral-800 font-mono"
-                    style={getTypographyStyle(config, "logos")}
+                    style={getTypographyStyle(config, "logos", index, "name")}
                   >
                     {logo.name || logo.symbol}
                   </span>

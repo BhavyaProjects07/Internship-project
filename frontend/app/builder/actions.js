@@ -1,7 +1,12 @@
 "use server";
 
+import { auth } from "@clerk/nextjs/server";
+
 export async function updateWebsiteSections(sections) {
   try {
+    const { getToken } = await auth();
+    const token = await getToken();
+
     const results = await Promise.all(
       sections.map(async (section) => {
         const response = await fetch(
@@ -10,6 +15,7 @@ export async function updateWebsiteSections(sections) {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
             },
             body: JSON.stringify({
               content: section.content,
@@ -51,12 +57,16 @@ export async function createWebsiteSection({
   config,
 }) {
   try {
+    const { getToken } = await auth();
+    const token = await getToken();
+
     const response = await fetch(
       `${process.env.API_URL}websites/pages/${pageId}/sections`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
           type,
@@ -90,10 +100,16 @@ export async function createWebsiteSection({
 
 export async function deleteWebsiteSection(sectionId) {
   try {
+    const { getToken } = await auth();
+    const token = await getToken();
+
     const response = await fetch(
       `${process.env.API_URL}websites/sections/${sectionId}`,
       {
         method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
       }
     );
 
@@ -124,12 +140,16 @@ export async function reorderWebsiteSections({
   sections,
 }) {
   try {
+    const { getToken } = await auth();
+    const token = await getToken();
+
     const response = await fetch(
       `${process.env.API_URL}websites/pages/${pageId}/sections/reorder`,
       {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
           sections,
@@ -161,12 +181,16 @@ export async function reorderWebsiteSections({
 
 export async function updateWebsiteAction(websiteId, data) {
   try {
+    const { getToken } = await auth();
+    const token = await getToken();
+
     const response = await fetch(
       `${process.env.API_URL}websites/${websiteId}`,
       {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify(data),
       }

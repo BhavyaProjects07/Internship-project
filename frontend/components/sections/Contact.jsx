@@ -1,5 +1,5 @@
 "use client";
-import { getSectionStyle, getContentMaxWidth, getAlignmentClasses, getTypographyStyle } from "@/lib/sectionLayout";
+import { getSectionStyle, getContentMaxWidth, getAlignmentClasses, getTypographyStyle, getButtonStyle } from "@/lib/sectionLayout";
 
 export default function Contact({ content = {}, config = {} }) {
   // Database JSON fields can be null.
@@ -15,6 +15,7 @@ export default function Contact({ content = {}, config = {} }) {
     address = "",
     buttonText = "Send a Message",
     buttonLink = "#",
+    buttonTarget = "_self",
   } = safeContent;
 
   const contentMaxWidth = getContentMaxWidth(safeConfig);
@@ -110,15 +111,23 @@ export default function Contact({ content = {}, config = {} }) {
 
           {/* CTA */}
           <div className="flex items-start lg:justify-end">
-            {buttonText && (
-              <a
-                href={buttonLink}
-                className="inline-flex items-center rounded-full bg-neutral-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800"
-                style={getTypographyStyle(safeConfig, "button")}
-              >
-                {buttonText}
-              </a>
-            )}
+            {buttonText && (() => {
+              const btnStyleProps = getButtonStyle(safeConfig, "button");
+              return (
+                <a
+                  href={buttonLink}
+                  target={buttonTarget}
+                  rel={buttonTarget === "_blank" ? "noopener noreferrer" : undefined}
+                  className={`inline-flex items-center rounded-full bg-neutral-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800 ${btnStyleProps.className || ''}`}
+                  style={{
+                  ...getTypographyStyle(safeConfig, "button"),
+                  ...btnStyleProps.style
+                }}
+                >
+                  {buttonText}
+                </a>
+              );
+            })()}
           </div>
         </div>
       </div>

@@ -96,3 +96,20 @@ model WebsiteSection {
 
   @@index([pageId])
 }
+
+model MediaAsset {
+  id        String   @id @default(cuid())
+  userId    String
+  url       String
+  filename  String
+  alt       String?
+  mimeType  String?
+  width      Int?
+  height     Int?
+  provider   String   @default("url")
+  providerId String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+}

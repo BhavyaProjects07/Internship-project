@@ -76,7 +76,7 @@ export default function Testimonials({ content, config }) {
                   className="text-base sm:text-lg text-neutral-800 leading-relaxed mb-6 font-normal"
                   style={getTypographyStyle(config, "testimonials", index, "quote")}
                 >
-                  "{item.quote || item.text}"
+                  &quot;{item.quote || item.text}&quot;
                 </blockquote>
 
                 {item.outcome && (
@@ -92,7 +92,13 @@ export default function Testimonials({ content, config }) {
                   <img 
                     src={item.avatarUrl} 
                     alt={item.name} 
-                    className="w-11 h-11 rounded-full object-cover border border-neutral-200" 
+                    className="rounded-full border border-neutral-200"
+                    style={{
+                      objectFit: item.objectFit || "cover",
+                      objectPosition: item.objectPosition || "center",
+                      width: item.width || "2.75rem",
+                      height: item.height || "2.75rem"
+                    }}
                     referrerPolicy="no-referrer"
                   />
                 ) : (

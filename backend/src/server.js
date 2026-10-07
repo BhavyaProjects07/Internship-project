@@ -5,6 +5,7 @@ require("dotenv").config();
 
 const templateRoutes = require("./routes/template.route");
 const websiteRoutes = require("./routes/website.route");
+const mediaRoutes = require("./routes/media.route");
 const app = express();
 
 app.use(cors());
@@ -22,6 +23,7 @@ app.get("/api/health", (req, res) => {
 });
 app.use("/api/websites", websiteRoutes);
 app.use("/api/templates", templateRoutes);
+app.use("/api/media", mediaRoutes);
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
