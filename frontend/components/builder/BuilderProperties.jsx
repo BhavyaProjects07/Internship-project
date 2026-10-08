@@ -37,7 +37,7 @@ export default function BuilderProperties({
 
   if (!selectedSection) {
     return (
-      <aside className="hidden w-80 shrink-0 border-l border-neutral-200 bg-white lg:flex lg:flex-col shadow-xs">
+      <aside className="flex w-80 shrink-0 flex-col border-l border-neutral-200 bg-white shadow-xs">
         {/* Top Header */}
         <div className="flex h-12 items-center justify-between border-b border-neutral-200 px-4">
           <div className="flex items-center gap-1">
@@ -200,7 +200,7 @@ export default function BuilderProperties({
    */
   if (selectedElement && selectedElement.sectionId === selectedSection.id) {
     return (
-      <aside className="hidden w-80 shrink-0 overflow-y-auto border-l border-neutral-200 bg-white lg:flex lg:flex-col shadow-xs divide-y divide-neutral-200">
+      <aside className="flex w-80 shrink-0 flex-col overflow-y-auto border-l border-neutral-200 bg-white shadow-xs divide-y divide-neutral-200">
         {/* Element Header */}
         <div className="p-5 bg-neutral-50/50">
           <div className="flex items-center justify-between mb-1">
@@ -245,7 +245,7 @@ export default function BuilderProperties({
    */
 
   return (
-    <aside className="hidden w-80 shrink-0 overflow-y-auto border-l border-neutral-200 bg-white lg:flex lg:flex-col shadow-xs divide-y divide-neutral-200">
+    <aside className="flex w-80 shrink-0 flex-col overflow-y-auto border-l border-neutral-200 bg-white shadow-xs divide-y divide-neutral-200">
       {/* ======================================================
           BLOCK HEADER
       ====================================================== */}

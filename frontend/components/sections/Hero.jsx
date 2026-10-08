@@ -90,7 +90,7 @@ export default function Hero({ content, config }) {
         {/* Heading */}
 
         <h1
-          className="text-4xl sm:text-6xl md:text-7xl lg:text-[4.75rem] font-bold tracking-tight leading-[1.08] text-neutral-950 max-w-4xl [text-wrap:balance]"
+          className="text-4xl @sm:text-6xl @md:text-7xl @lg:text-[4.75rem] font-bold tracking-tight leading-[1.08] text-neutral-950 max-w-4xl [text-wrap:balance]"
           style={getTypographyStyle(config, "heading")}
         >
           {heading ||
@@ -100,7 +100,7 @@ export default function Hero({ content, config }) {
         {/* Description */}
 
         <p
-          className="mt-8 max-w-2xl text-lg sm:text-xl text-neutral-600 leading-relaxed [text-wrap:balance]"
+          className="mt-8 max-w-2xl text-lg @sm:text-xl text-neutral-600 leading-relaxed [text-wrap:balance]"
           style={getTypographyStyle(config, "description")}
         >
           {description ||
@@ -191,7 +191,7 @@ export default function Hero({ content, config }) {
 
           {/* Showcase */}
 
-          <div className="relative aspect-[16/9] md:aspect-[21/9] w-full bg-neutral-950 rounded-xl overflow-hidden flex flex-col justify-between p-6 md:p-10 text-left border border-neutral-800">
+          <div className="relative aspect-[16/9] @md:aspect-[21/9] w-full bg-neutral-950 rounded-xl overflow-hidden flex flex-col justify-between p-6 @md:p-10 text-left border border-neutral-800">
             <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-indigo-500/15 via-blue-500/10 to-transparent blur-3xl pointer-events-none" />
 
             <div className="absolute bottom-0 left-10 w-72 h-72 bg-gradient-to-tr from-amber-500/10 to-transparent blur-2xl pointer-events-none" />
@@ -201,7 +201,7 @@ export default function Hero({ content, config }) {
                 Case Spotlight · Global FinTech Ecosystem
               </div>
 
-              <h3 className="text-2xl md:text-4xl font-bold text-white tracking-tight max-w-xl">
+              <h3 className="text-2xl @md:text-4xl font-bold text-white tracking-tight max-w-xl">
                 Redesigning institutional capital infrastructure for the next billion users.
               </h3>
             </div>
@@ -211,10 +211,10 @@ export default function Hero({ content, config }) {
             ================================================== */}
 
             <div
-              className={`relative z-10 pt-6 border-t border-neutral-800/80 grid ${gridColumns} gap-4 md:gap-8`}
+              className={`relative z-10 pt-6 border-t border-neutral-800/80 grid ${gridColumns} gap-4 @md:gap-8`}
             >
               <div>
-                <div className="text-xl md:text-3xl font-bold text-white font-mono tabular-nums tracking-tight">
+                <div className="text-xl @md:text-3xl font-bold text-white font-mono tabular-nums tracking-tight">
                   +184%
                 </div>
 
@@ -224,7 +224,7 @@ export default function Hero({ content, config }) {
               </div>
 
               <div>
-                <div className="text-xl md:text-3xl font-bold text-white font-mono tabular-nums tracking-tight">
+                <div className="text-xl @md:text-3xl font-bold text-white font-mono tabular-nums tracking-tight">
                   $450M+
                 </div>
 
@@ -234,7 +234,7 @@ export default function Hero({ content, config }) {
               </div>
 
               <div>
-                <div className="text-xl md:text-3xl font-bold text-white font-mono tabular-nums tracking-tight">
+                <div className="text-xl @md:text-3xl font-bold text-white font-mono tabular-nums tracking-tight">
                   0.38s
                 </div>
 
@@ -245,7 +245,7 @@ export default function Hero({ content, config }) {
 
               {columns >= 4 && (
                 <div>
-                  <div className="text-xl md:text-3xl font-bold text-white font-mono tabular-nums tracking-tight">
+                  <div className="text-xl @md:text-3xl font-bold text-white font-mono tabular-nums tracking-tight">
                     99.9%
                   </div>
 

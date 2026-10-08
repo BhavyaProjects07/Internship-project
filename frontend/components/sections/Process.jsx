@@ -47,7 +47,7 @@ export default function Process({ content, config }) {
       })}
     >
       <div className={`mx-auto w-full ${textClass} ${itemsClass}`} style={{ maxWidth: contentMaxWidth }}>
-        <div className="max-w-3xl mb-16 md:mb-20">
+        <div className="max-w-3xl mb-16 @md:mb-20">
           <div
             className="text-xs font-semibold tracking-widest text-neutral-500 uppercase mb-3"
             style={getTypographyStyle(config, "eyebrow")}
@@ -55,14 +55,14 @@ export default function Process({ content, config }) {
             {eyebrow || "Methodology"}
           </div>
           <h2
-            className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-neutral-950 [text-wrap:balance]"
+            className="text-3xl @sm:text-4xl @md:text-5xl font-bold tracking-tight text-neutral-950 [text-wrap:balance]"
             style={getTypographyStyle(config, "heading")}
           >
             {heading || "How we work together — From discovery to launch"}
           </h2>
         </div>
 
-        <div className={`grid gap-6 md:gap-4 relative w-full ${gridColumns}`}>
+        <div className={`grid gap-6 @md:gap-4 relative w-full ${gridColumns}`}>
           {stepItems.map((step, index) => (
             <div 
               key={index} 
@@ -86,7 +86,7 @@ export default function Process({ content, config }) {
               </h3>
 
               <p 
-                className="text-xs sm:text-sm text-neutral-600 leading-relaxed"
+                className="text-xs @sm:text-sm text-neutral-600 leading-relaxed"
                 style={getTypographyStyle(config, "steps", index, "description")}
               >
                 {step.description}

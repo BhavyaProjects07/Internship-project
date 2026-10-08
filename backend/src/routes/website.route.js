@@ -8,11 +8,22 @@ const {
   reorderSections,
   deleteWebsiteSection,
   updateWebsite,
+  saveWebsiteDraft,
+  getUserWebsites,
+  publishWebsite,
+  getPublicWebsite,
 } = require("../controllers/website.controller");
 
 const router = express.Router();
 
+// Public route must come before /:id to avoid treating "public" as an ID
+router.get("/public/:slug", getPublicWebsite);
+
+router.get("/", getUserWebsites);
 router.post("/", createWebsite);
+
+router.patch("/:id/draft", saveWebsiteDraft);
+router.post("/:id/publish", publishWebsite);
 
 router.get("/:id", getWebsite);
 router.patch("/:id", updateWebsite);

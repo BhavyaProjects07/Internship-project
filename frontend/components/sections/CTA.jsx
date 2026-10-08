@@ -29,20 +29,20 @@ export default function CTA({ content, config }) {
         </div>
 
         <h2
-          className="text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight mb-8 text-white [text-wrap:balance]"
+          className="text-4xl @sm:text-6xl @md:text-7xl font-bold tracking-tight mb-8 text-white [text-wrap:balance]"
           style={getTypographyStyle(config, "heading")}
         >
           {ctaHeading}
         </h2>
 
         <p
-          className="text-lg sm:text-xl text-neutral-400 max-w-2xl mx-auto mb-12 leading-relaxed [text-wrap:balance]"
+          className="text-lg @sm:text-xl text-neutral-400 max-w-2xl mx-auto mb-12 leading-relaxed [text-wrap:balance]"
           style={getTypographyStyle(config, "description")}
         >
           {ctaDesc}
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <div className="flex flex-col @sm:flex-row items-center justify-center gap-4">
           {(() => {
             const btnStyleProps = getButtonStyle(config, "button");
             return (

@@ -43,12 +43,12 @@ export default function Testimonials({ content, config }) {
       })}
     >
       <div className={`mx-auto w-full ${textClass} ${itemsClass}`} style={{ maxWidth: contentMaxWidth }}>
-        <div className="max-w-3xl mb-16 md:mb-20">
+        <div className="max-w-3xl mb-16 @md:mb-20">
           <div className="text-xs font-semibold tracking-widest text-neutral-500 uppercase mb-3">
             Client Proof
           </div>
           <h2
-            className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-neutral-950 [text-wrap:balance]"
+            className="text-3xl @sm:text-4xl @md:text-5xl font-bold tracking-tight text-neutral-950 [text-wrap:balance]"
             style={getTypographyStyle(config, "heading")}
           >
             {heading || "What our partners say about working with us"}
@@ -59,7 +59,7 @@ export default function Testimonials({ content, config }) {
           {testimonialList.map((item, index) => (
             <div 
               key={index} 
-              className="flex flex-col justify-between p-8 sm:p-10 rounded-2xl bg-white border border-neutral-200/90 shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:shadow-xl hover:shadow-neutral-950/5 hover:border-neutral-300 transition-all duration-300"
+              className="flex flex-col justify-between p-8 @sm:p-10 rounded-2xl bg-white border border-neutral-200/90 shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:shadow-xl hover:shadow-neutral-950/5 hover:border-neutral-300 transition-all duration-300"
             >
               <div>
                 {/* 5-star rating or verified stamp */}
@@ -73,7 +73,7 @@ export default function Testimonials({ content, config }) {
                 </div>
 
                 <blockquote
-                  className="text-base sm:text-lg text-neutral-800 leading-relaxed mb-6 font-normal"
+                  className="text-base @sm:text-lg text-neutral-800 leading-relaxed mb-6 font-normal"
                   style={getTypographyStyle(config, "testimonials", index, "quote")}
                 >
                   &quot;{item.quote || item.text}&quot;

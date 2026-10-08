@@ -54,14 +54,22 @@ const createWebsite = async (req, res) => {
 // Get website by ID
 const getWebsite = async (req, res) => {
   try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
     const { id } = req.params;
 
-    const website = await websiteService.getWebsiteById(id);
+    const website = await websiteService.getWebsiteById(id, userId);
 
     if (!website) {
       return res.status(404).json({
         success: false,
-        message: "Website not found",
+        message: "Website not found or unauthorized",
       });
     }
 
@@ -80,8 +88,44 @@ const getWebsite = async (req, res) => {
   }
 };
 
+// Get all websites for the authenticated user
+const getUserWebsites = async (req, res) => {
+  try {
+    const { userId } = getAuth(req);
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const websites = await websiteService.getUserWebsites(userId, page, limit);
+
+    res.json({
+      success: true,
+      data: websites.data,
+      pagination: websites.pagination,
+    });
+  } catch (error) {
+    console.error("Get user websites error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch websites",
+    });
+  }
+};
+
 const updateWebsite = async (req, res) => {
   try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Authentication required" });
+    }
+
     const { id } = req.params;
     const { theme, name } = req.body;
 
@@ -89,7 +133,7 @@ const updateWebsite = async (req, res) => {
     if (theme !== undefined) data.theme = theme;
     if (name !== undefined) data.name = name;
 
-    const website = await websiteService.updateWebsite(id, data);
+    const website = await websiteService.updateWebsite(id, data, userId);
 
     res.json({
       success: true,
@@ -106,6 +150,11 @@ const updateWebsite = async (req, res) => {
 
 const updateWebsiteSection = async (req, res) => {
   try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Authentication required" });
+    }
+
     const { sectionId } = req.params;
 
     const { content, config } = req.body;
@@ -115,7 +164,8 @@ const updateWebsiteSection = async (req, res) => {
       {
         ...(content !== undefined && { content }),
         ...(config !== undefined && { config }),
-      }
+      },
+      userId
     );
 
     res.json({
@@ -134,10 +184,16 @@ const updateWebsiteSection = async (req, res) => {
 
 const deleteWebsiteSection = async (req, res) => {
   try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Authentication required" });
+    }
+
     const { sectionId } = req.params;
 
     const result = await websiteService.deleteWebsiteSection(
-      sectionId
+      sectionId,
+      userId
     );
 
     res.json({
@@ -166,6 +222,11 @@ const deleteWebsiteSection = async (req, res) => {
 
 const createWebsiteSection = async (req, res) => {
   try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Authentication required" });
+    }
+
     const { pageId } = req.params;
     const { type, content, config } = req.body;
 
@@ -182,7 +243,8 @@ const createWebsiteSection = async (req, res) => {
         type,
         content,
         config,
-      }
+      },
+      userId
     );
 
     res.status(201).json({
@@ -209,6 +271,11 @@ const createWebsiteSection = async (req, res) => {
 
 const reorderSections = async (req, res) => {
   try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Authentication required" });
+    }
+
     const { pageId } = req.params;
     const { sections } = req.body;
 
@@ -223,6 +290,7 @@ const reorderSections = async (req, res) => {
       await websiteService.reorderWebsiteSections({
         pageId,
         sections,
+        userId,
       });
 
     res.json({
@@ -246,12 +314,102 @@ const reorderSections = async (req, res) => {
   }
 };
 
+const saveWebsiteDraft = async (req, res) => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Authentication required" });
+    }
+
+    const { id } = req.params;
+    const { pages, theme, name } = req.body;
+
+    if (!Array.isArray(pages)) {
+      return res.status(400).json({ success: false, message: "pages must be an array" });
+    }
+
+    const website = await websiteService.saveWebsiteDraft(id, pages, userId, theme, name);
+
+    res.json({
+      success: true,
+      websiteId: website.id,
+      updatedAt: website.updatedAt,
+      idMappings: website.idMappings,
+    });
+  } catch (error) {
+    console.error("Save draft error:", error);
+    
+    if (error.message === "Website not found or unauthorized") {
+      return res.status(404).json({ success: false, message: error.message });
+    }
+    if (error.message === "Invalid payload") {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+
+    res.status(500).json({ success: false, message: "Failed to save draft" });
+  }
+};
+
+const publishWebsite = async (req, res) => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Authentication required" });
+    }
+
+    const { id } = req.params;
+
+    const website = await websiteService.publishWebsite(id, userId);
+
+    res.json({
+      success: true,
+      websiteId: website.id,
+      slug: website.slug,
+      isPublished: website.isPublished,
+      publishedAt: website.publishedAt,
+      publicUrl: `/${website.slug}`, // Safe placeholder as requested
+    });
+  } catch (error) {
+    console.error("Publish website error:", error);
+    
+    if (error.message === "Website not found or unauthorized") {
+      return res.status(404).json({ success: false, message: error.message });
+    }
+
+    res.status(500).json({ success: false, message: "Failed to publish website" });
+  }
+};
+
+const getPublicWebsite = async (req, res) => {
+  try {
+    const { slug } = req.params;
+
+    const publishedWebsite = await websiteService.getPublishedWebsiteBySlug(slug);
+
+    if (!publishedWebsite) {
+      return res.status(404).json({ success: false, message: "Website not found" });
+    }
+
+    res.json({
+      success: true,
+      ...publishedWebsite
+    });
+  } catch (error) {
+    console.error("Get public website error:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch public website" });
+  }
+};
+
 module.exports = {
   createWebsite,
   getWebsite,
+  getUserWebsites,
   updateWebsiteSection,
   reorderSections,
   createWebsiteSection,
   deleteWebsiteSection,
   updateWebsite,
+  saveWebsiteDraft,
+  publishWebsite,
+  getPublicWebsite,
 };

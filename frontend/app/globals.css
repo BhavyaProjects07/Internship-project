@@ -22,6 +22,12 @@
   --color-theme-success: var(--color-success, #16a34a);
   --color-theme-warning: var(--color-warning, #f59e0b);
   --color-theme-error: var(--color-error, #dc2626);
+  
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+  --container-2xl: 1536px;
 }
 
 @media (prefers-color-scheme: dark) {

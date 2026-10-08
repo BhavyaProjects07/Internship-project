@@ -41,7 +41,7 @@ export default function Contact({ content = {}, config = {} }) {
           )}
 
           <h2
-            className="text-3xl font-bold tracking-tight sm:text-4xl"
+            className="text-3xl font-bold tracking-tight @sm:text-4xl"
             style={getTypographyStyle(safeConfig, "heading")}
           >
             {heading}
@@ -58,7 +58,7 @@ export default function Contact({ content = {}, config = {} }) {
         </div>
 
         {/* Contact Details + CTA */}
-        <div className="mt-12 grid gap-10 lg:grid-cols-2">
+        <div className="mt-12 grid gap-10 @lg:grid-cols-2">
           {/* Contact Information */}
           <div className="space-y-6">
             {email && (
@@ -110,7 +110,7 @@ export default function Contact({ content = {}, config = {} }) {
           </div>
 
           {/* CTA */}
-          <div className="flex items-start lg:justify-end">
+          <div className="flex items-start @lg:justify-end">
             {buttonText && (() => {
               const btnStyleProps = getButtonStyle(safeConfig, "button");
               return (

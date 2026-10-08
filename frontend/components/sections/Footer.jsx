@@ -61,9 +61,9 @@ export default function Footer({ content, config }) {
       })}
     >
       <div className={`mx-auto w-full ${textClass}`} style={{ maxWidth: contentMaxWidth }}>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 lg:gap-8 pb-16 border-b border-neutral-200/70">
+        <div className="grid grid-cols-1 @md:grid-cols-2 @lg:grid-cols-12 gap-12 @lg:gap-8 pb-16 border-b border-neutral-200/70">
           {/* Brand Manifesto Column (5 cols) */}
-          <div className="lg:col-span-5 flex flex-col justify-between">
+          <div className="@lg:col-span-5 flex flex-col justify-between">
             <div>
               <Link
                 href="/"
@@ -87,7 +87,7 @@ export default function Footer({ content, config }) {
           </div>
 
           {/* Links Columns (7 cols) */}
-          <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-8">
+          <div className="@lg:col-span-7 grid grid-cols-2 @sm:grid-cols-3 gap-8">
             {footerCols.map((col, idx) => (
               <div key={idx}>
                 <h4 
@@ -101,7 +101,7 @@ export default function Footer({ content, config }) {
                     <li key={linkIdx}>
                       <a 
                         href={link.link || link.url || "#"} 
-                        className="text-xs sm:text-sm text-neutral-500 hover:text-neutral-950 transition-colors"
+                        className="text-xs @sm:text-sm text-neutral-500 hover:text-neutral-950 transition-colors"
                       >
                         {link.label}
                       </a>
@@ -114,7 +114,7 @@ export default function Footer({ content, config }) {
         </div>
 
         {/* Bottom Bar: Copyright, Socials, Back to Top */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
+        <div className="pt-8 flex flex-col @sm:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
           <div style={getTypographyStyle(config, "copyright")}>
             {copyright || `© ${new Date().getFullYear()} Modern Agency. All rights reserved.`}
           </div>

@@ -2,6 +2,73 @@
 
 import { auth } from "@clerk/nextjs/server";
 
+export async function saveWebsiteDraftAction(websiteId, draftWebsite) {
+  try {
+    const { getToken } = await auth();
+    const token = await getToken();
+
+    const response = await fetch(
+      `${process.env.API_URL}websites/${websiteId}/draft`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          pages: draftWebsite.pages,
+          theme: draftWebsite.theme,
+          name: draftWebsite.name,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to save draft: ${errorText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Save website draft error:", error);
+    return {
+      success: false,
+      message: "Failed to save website draft",
+    };
+  }
+}
+
+export async function publishWebsiteAction(websiteId) {
+  try {
+    const { getToken } = await auth();
+    const token = await getToken();
+
+    const response = await fetch(
+      `${process.env.API_URL}websites/${websiteId}/publish`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to publish website: ${errorText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Publish website error:", error);
+    return {
+      success: false,
+      message: "Failed to publish website",
+    };
+  }
+}
+
 export async function updateWebsiteSections(sections) {
   try {
     const { getToken } = await auth();

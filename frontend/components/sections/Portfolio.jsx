@@ -48,7 +48,7 @@ export default function Portfolio({ content, config }) {
       })}
     >
       <div className={`mx-auto w-full ${textClass} ${itemsClass}`} style={{ maxWidth: contentMaxWidth }}>
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16 md:mb-20">
+        <div className="flex flex-col @md:flex-row @md:items-end justify-between gap-6 mb-16 @md:mb-20">
           <div>
             <div
               className="text-xs font-semibold tracking-widest text-neutral-500 uppercase mb-3"
@@ -57,7 +57,7 @@ export default function Portfolio({ content, config }) {
               {eyebrow || "Featured Case Studies"}
             </div>
             <h2
-              className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-neutral-950 [text-wrap:balance]"
+              className="text-3xl @sm:text-4xl @md:text-5xl font-bold tracking-tight text-neutral-950 [text-wrap:balance]"
               style={getTypographyStyle(config, "heading")}
             >
               {heading || "Selected projects that show what we can do."}

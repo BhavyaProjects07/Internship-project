@@ -30,7 +30,7 @@ export default function LogoCloud({ content, config }) {
           {heading || "Trusted by ambitious teams at industry-defining brands"}
         </p>
 
-        <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
+        <div className="flex flex-wrap items-center justify-center gap-8 @md:gap-16">
           {clientLogos.map((logo, index) => (
             <div 
               key={index} 
@@ -54,7 +54,7 @@ export default function LogoCloud({ content, config }) {
                 <div className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-sm bg-neutral-900 group-hover:bg-neutral-600 transition-colors" />
                   <span
-                    className="text-sm md:text-base font-bold tracking-tight text-neutral-800 font-mono"
+                    className="text-sm @md:text-base font-bold tracking-tight text-neutral-800 font-mono"
                     style={getTypographyStyle(config, "logos", index, "name")}
                   >
                     {logo.name || logo.symbol}

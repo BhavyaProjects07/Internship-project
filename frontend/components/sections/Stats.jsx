@@ -30,14 +30,14 @@ export default function Stats({ content, config }) {
       />
 
       <div className={`mx-auto w-full relative z-10 ${textClass}`} style={{ maxWidth: contentMaxWidth }}>
-        <div className={`grid gap-8 md:gap-12 divide-y md:divide-y-0 md:divide-x divide-neutral-800/80 ${gridColumns}`}>
+        <div className={`grid gap-8 @md:gap-12 divide-y @md:divide-y-0 @md:divide-x divide-neutral-800/80 ${gridColumns}`}>
           {statItems.map((stat, index) => (
             <div 
               key={index} 
-              className={`flex flex-col ${index !== 0 ? 'pt-8 md:pt-0 md:pl-10' : ''}`}
+              className={`flex flex-col ${index !== 0 ? 'pt-8 @md:pt-0 @md:pl-10' : ''}`}
             >
               <div
-                className="text-4xl sm:text-5xl md:text-6xl font-bold font-mono tabular-nums tracking-tight text-white mb-2"
+                className="text-4xl @sm:text-5xl @md:text-6xl font-bold font-mono tabular-nums tracking-tight text-white mb-2"
                 style={getTypographyStyle(config, "stats", index, "value")}
               >
                 {stat.value}

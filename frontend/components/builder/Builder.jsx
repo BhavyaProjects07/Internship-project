@@ -4,10 +4,9 @@ import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   createWebsiteSection,
-  updateWebsiteSections,
-  reorderWebsiteSections,
   deleteWebsiteSection,
-  updateWebsiteAction,
+  saveWebsiteDraftAction,
+  publishWebsiteAction,
 } from "@/app/builder/actions";
 import SectionRenderer from "@/components/sections/SectionRenderer";
 import BuilderProperties from "./BuilderProperties";
@@ -26,21 +25,76 @@ import {
 import sectionRegistry from "@/components/sections/sectionRegistry";
 import SortableSection from "./SortableSection";
 
+// --------------------------------
+// Deterministic Fingerprint Generation (Step 7F-2)
+// --------------------------------
+function canonicalize(obj) {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(canonicalize); // Preserve array order natively
+  }
+  const keys = Object.keys(obj).sort(); // Sort object keys deterministically
+  const result = {};
+  for (const key of keys) {
+    result[key] = canonicalize(obj[key]);
+  }
+  return result;
+}
+
+function generateFingerprint(draft) {
+  // Extract strictly what is persisted by the backend endpoint
+  const payload = {
+    name: draft.name,
+    theme: draft.theme,
+    pages: (draft.pages || []).map(page => ({
+      id: page.id,
+      sections: (page.sections || []).map(section => ({
+        id: section.id,
+        type: section.type,
+        order: section.order,
+        content: section.content || {},
+        config: section.config || {},
+      }))
+    }))
+  };
+
+  return JSON.stringify(canonicalize(payload));
+}
+
 export default function Builder({ website }) {
   // --------------------------------
   // State
   // --------------------------------
+  const lastSavedFingerprint = React.useRef(generateFingerprint(website));
+
   const [selectedPageId, setSelectedPageId] = useState(
     website.pages[0]?.id
   );
   const [showSectionLibrary, setShowSectionLibrary] = useState(false);
   const [selectedSectionId, setSelectedSectionId] = useState(null);
+  
   const [draftWebsite, setDraftWebsite] = useState(website);
+
+  // Track the most recent draftWebsite state for async comparisons
+  const latestDraftWebsiteRef = React.useRef(website);
+  React.useEffect(() => {
+    latestDraftWebsiteRef.current = draftWebsite;
+  }, [draftWebsite]);
+
   const [dirtySectionIds, setDirtySectionIds] = useState([]);
   const [dirtyPageIds, setDirtyPageIds] = useState([]);
   const [isWebsiteDirty, setIsWebsiteDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
+  
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishInfo, setPublishInfo] = useState({
+    isPublished: website.isPublished,
+    publishedAt: website.publishedAt,
+    publicUrl: website.isPublished ? `/${website.slug}` : null, // placeholder format
+  });
 
   // UI Panels & Viewport Mode
   const [leftTab, setLeftTab] = useState("layers"); // 'layers' | 'pages'
@@ -122,36 +176,25 @@ export default function Builder({ website }) {
     setSaveMessage("");
   }, []);
 
-  const handleDeleteSection = async (sectionId) => {
-  if (!sectionId) {
-    return;
-  }
+  const handleDeleteSection = (sectionId) => {
+    if (!sectionId) {
+      return;
+    }
 
-  const section = selectedPage?.sections?.find(
-    (item) => item.id === sectionId
-  );
+    const section = selectedPage?.sections?.find(
+      (item) => item.id === sectionId
+    );
 
-  if (!section) {
-    return;
-  }
+    if (!section) {
+      return;
+    }
 
-  const confirmed = window.confirm(
-    `Delete the ${section.type} section?`
-  );
+    const confirmed = window.confirm(
+      `Delete the ${section.type} section?`
+    );
 
-  if (!confirmed) {
-    return;
-  }
-
-  try {
-    setSaveMessage("Deleting section...");
-
-    const result = await deleteWebsiteSection(sectionId);
-
-    if (!result.success) {
-      throw new Error(
-        result.message || "Failed to delete section"
-      );
+    if (!confirmed) {
+      return;
     }
 
     /*
@@ -177,16 +220,10 @@ export default function Builder({ website }) {
     /*
      * Clear the selected section because it no longer exists.
      */
-    setSelectedSectionId(null);
-    setSelectedElement(null);
-
-    /*
-     * Make sure this deleted section is not still
-     * present in the dirty-section list.
-     */
-    setDirtySectionIds((currentIds) =>
-      currentIds.filter((id) => id !== sectionId)
-    );
+    if (selectedSectionId === sectionId) {
+      setSelectedSectionId(null);
+      setSelectedElement(null);
+    }
 
     /*
      * The page's section ordering has changed after deletion.
@@ -195,16 +232,11 @@ export default function Builder({ website }) {
       if (currentIds.includes(selectedPageId)) {
         return currentIds;
       }
-
       return [...currentIds, selectedPageId];
     });
 
-    setSaveMessage("Section deleted");
-  } catch (error) {
-    console.error("Delete section error:", error);
-    setSaveMessage("Failed to delete section");
-  }
-};
+    setSaveMessage("");
+  };
 
   // --------------------------------
   // Drag & Drop
@@ -246,26 +278,23 @@ export default function Builder({ website }) {
   };
 
 
-  const handleAddSection = async (type) => {
-  const definition = sectionRegistry[type];
+  const handleAddSection = (type) => {
+    const definition = sectionRegistry[type];
 
-  if (!definition) {
-    console.error(`Unknown section type: ${type}`);
-    return;
-  }
+    if (!definition) {
+      console.error(`Unknown section type: ${type}`);
+      return;
+    }
 
-  if (definition.canAdd === false) {
-    console.warn(`Section "${type}" cannot be added.`);
-    return;
-  }
+    if (definition.canAdd === false) {
+      console.warn(`Section "${type}" cannot be added.`);
+      return;
+    }
 
-  if (!selectedPage) {
-    console.warn("No page selected.");
-    return;
-  }
-
-  try {
-    setSaveMessage("Adding section...");
+    if (!selectedPage) {
+      console.warn("No page selected.");
+      return;
+    }
 
     const content = structuredClone(
       definition.defaultContent || {}
@@ -275,29 +304,21 @@ export default function Builder({ website }) {
       definition.defaultConfig || {}
     );
 
-    /*
-     * Create the section through the Server Action.
-     * The backend generates the real database ID
-     * and calculates the section order.
-     */
-    const result = await createWebsiteSection({
-      pageId: selectedPage.id,
+    // Generate a temporary local ID
+    const tempSectionId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const nextOrder = selectedPage.sections ? selectedPage.sections.length + 1 : 1;
+
+    const newSection = {
+      id: tempSectionId,
       type,
       content,
       config,
-    });
-
-    if (!result.success) {
-      throw new Error(
-        result.message || "Failed to create section"
-      );
-    }
-
-    const newSection = result.data;
+      order: nextOrder,
+      pageId: selectedPage.id,
+    };
 
     /*
-     * Add the real database section to the local
-     * builder state.
+     * Add the local section to the builder state.
      */
     setDraftWebsite((currentWebsite) => ({
       ...currentWebsite,
@@ -315,20 +336,20 @@ export default function Builder({ website }) {
     }));
 
     /*
-     * Select the newly created section so its
-     * properties appear in the inspector.
+     * Select the newly created section so its properties appear in the inspector.
      */
     setSelectedSectionId(newSection.id);
     setSelectedElement(null);
 
     setShowSectionLibrary(false);
 
-    setSaveMessage("Section added");
-  } catch (error) {
-    console.error("Add section error:", error);
-    setSaveMessage("Failed to add section");
-  }
-};
+    setDirtyPageIds((currentIds) => {
+      if (currentIds.includes(selectedPage.id)) return currentIds;
+      return [...currentIds, selectedPage.id];
+    });
+
+    setSaveMessage("");
+  };
 
 
   // --------------------------------
@@ -373,64 +394,172 @@ export default function Builder({ website }) {
   // Save changes
   // --------------------------------
   const saveChanges = async () => {
-    if (dirtySectionIds.length === 0 && dirtyPageIds.length === 0 && !isWebsiteDirty) {
+    if (isSaving) return;
+
+    // Capture the exact snapshot being sent
+    const saveSnapshot = draftWebsite;
+    const saveFingerprint = generateFingerprint(saveSnapshot);
+
+    if (saveFingerprint === lastSavedFingerprint.current) {
       setSaveMessage("All changes saved");
-      return;
+      setDirtySectionIds([]);
+      setDirtyPageIds([]);
+      setIsWebsiteDirty(false);
+      return true;
+    }
+
+    if (
+      dirtySectionIds.length === 0 &&
+      dirtyPageIds.length === 0 &&
+      !isWebsiteDirty
+    ) {
+      setSaveMessage("All changes saved");
+      return true;
     }
 
     try {
       setIsSaving(true);
-      setSaveMessage("");
+      setSaveMessage("Saving...");
 
-      // 1. Save changed sections
-      const sectionsToSave = [];
-      for (const page of draftWebsite.pages) {
-        for (const section of page.sections) {
-          if (dirtySectionIds.includes(section.id)) {
-            sectionsToSave.push(section);
-          }
+      const result = await saveWebsiteDraftAction(
+        saveSnapshot.id,
+        saveSnapshot
+      );
+
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+
+      let finalPersistedState = saveSnapshot;
+
+      // Apply temporary ID mappings if there are new sections
+      if (result.idMappings && result.idMappings.length > 0) {
+        const mappingDict = {};
+        result.idMappings.forEach((mapping) => {
+          mappingDict[mapping.clientId] = mapping.databaseId;
+        });
+
+        // Construct the explicitly saved payload with permanent IDs
+        finalPersistedState = {
+          ...saveSnapshot,
+          pages: saveSnapshot.pages.map((page) => ({
+            ...page,
+            sections: page.sections.map((section) => {
+              if (mappingDict[section.id]) {
+                return {
+                  ...section,
+                  id: mappingDict[section.id],
+                };
+              }
+              return section;
+            }),
+          })),
+        };
+
+        // Apply these mappings to the live React state without overwriting concurrent edits
+        setDraftWebsite((currentLiveState) => ({
+          ...currentLiveState,
+          pages: currentLiveState.pages.map((page) => ({
+            ...page,
+            sections: page.sections.map((section) => {
+              if (mappingDict[section.id]) {
+                return {
+                  ...section,
+                  id: mappingDict[section.id],
+                };
+              }
+              return section;
+            }),
+          })),
+        }));
+        
+        if (mappingDict[selectedSectionId]) {
+          setSelectedSectionId(mappingDict[selectedSectionId]);
         }
       }
 
-      if (sectionsToSave.length > 0) {
-        const result = await updateWebsiteSections(sectionsToSave);
-        if (!result.success) throw new Error(result.message);
+      // The invariant: this represents exactly what the backend just persisted
+      lastSavedFingerprint.current = generateFingerprint(finalPersistedState);
+
+      // Determine if the user made changes while the request was in flight
+      const currentLiveFingerprint = generateFingerprint(latestDraftWebsiteRef.current);
+      const hasInFlightEdits = currentLiveFingerprint !== saveFingerprint;
+
+      if (!hasInFlightEdits) {
+        // No changes occurred during the request
+        setDirtySectionIds([]);
+        setDirtyPageIds([]);
+        setIsWebsiteDirty(false);
+        setSaveMessage("Changes saved");
+      } else {
+        // User edited while saving. Do NOT clear dirty state.
+        setSaveMessage("Unsaved changes");
       }
-
-      // 2. Save changed section ordering
-      for (const pageId of dirtyPageIds) {
-        const page = draftWebsite.pages.find((p) => p.id === pageId);
-        if (!page) continue;
-
-        const result = await reorderWebsiteSections({
-          pageId: page.id,
-          sections: page.sections.map((section) => ({
-            id: section.id,
-            order: section.order,
-          })),
-        });
-
-        if (!result.success) throw new Error(result.message);
-      }
-
-      // 3. Save website-level changes (e.g. theme)
-      if (isWebsiteDirty) {
-        const result = await updateWebsiteAction(draftWebsite.id, {
-          theme: draftWebsite.theme,
-        });
-        if (!result.success) throw new Error(result.message);
-      }
-
-      // 4. Reset dirty state
-      setDirtySectionIds([]);
-      setDirtyPageIds([]);
-      setIsWebsiteDirty(false);
-      setSaveMessage("Changes saved");
+      return true;
     } catch (error) {
       console.error("Save error:", error);
       setSaveMessage("Failed to save");
+      return false;
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // --------------------------------
+  // Publish changes
+  // --------------------------------
+  const publishChanges = async () => {
+    if (isPublishing) return;
+
+    try {
+      setIsPublishing(true);
+      
+      const currentLiveFingerprint = generateFingerprint(draftWebsite);
+      const hasUnsavedChanges = currentLiveFingerprint !== lastSavedFingerprint.current;
+      
+      if (hasUnsavedChanges || isWebsiteDirty || dirtyPageIds.length > 0 || dirtySectionIds.length > 0) {
+        setSaveMessage("Saving before publish...");
+        const saveSuccess = await saveChanges();
+        
+        if (!saveSuccess) {
+          throw new Error("Failed to save draft before publishing");
+        }
+        
+        // Correctness Fix: Re-check fingerprint after save to ensure no in-flight edits occurred.
+        // If the live state changed while the save request was in flight, the persisted draft
+        // is now stale relative to the screen. Do NOT publish stale data.
+        const postSaveFingerprint = generateFingerprint(latestDraftWebsiteRef.current);
+        if (postSaveFingerprint !== lastSavedFingerprint.current) {
+          throw new Error("Publish cancelled: draft was modified during save. Please publish again.");
+        }
+      }
+
+      setSaveMessage("Publishing...");
+      
+      const result = await publishWebsiteAction(draftWebsite.id);
+      
+      if (!result.success) {
+        throw new Error(result.message || "Failed to publish");
+      }
+      
+      setPublishInfo({
+        isPublished: result.isPublished,
+        publishedAt: result.publishedAt,
+        publicUrl: result.publicUrl,
+      });
+      
+      setSaveMessage("Published successfully!");
+      
+      // Clear the success message after a bit
+      setTimeout(() => setSaveMessage(""), 3000);
+      
+    } catch (error) {
+      console.error("Publish error:", error);
+      setSaveMessage(error.message || "Failed to publish");
+      // Clear the error message after a bit so they know it's not permanently stuck
+      setTimeout(() => setSaveMessage(""), 4000);
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -460,6 +589,20 @@ export default function Builder({ website }) {
   }, [dirtySectionIds, dirtyPageIds, isWebsiteDirty, isPreviewMode, selectedElement, saveChanges]);
 
   const hasUnsavedChanges = dirtySectionIds.length > 0 || dirtyPageIds.length > 0 || isWebsiteDirty;
+
+  // --------------------------------
+  // Unsaved Navigation Protection
+  // --------------------------------
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (!hasUnsavedChanges) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   // Viewport Container Widths
   const getViewportWidth = () => {
@@ -503,6 +646,13 @@ export default function Builder({ website }) {
           <Link
             href="/templates"
             title="Back to Templates"
+            onClick={(e) => {
+              if (hasUnsavedChanges) {
+                if (!window.confirm("You have unsaved changes. Leave without saving?")) {
+                  e.preventDefault();
+                }
+              }
+            }}
             className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-200 hover:text-white transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -513,13 +663,25 @@ export default function Builder({ website }) {
           <div className="h-5 w-[1px] bg-neutral-800" />
 
           {/* Website Name & Badge */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-white tracking-tight truncate max-w-[140px] sm:max-w-xs">
-              {website.name}
-            </span>
-            <span className="hidden sm:inline-block rounded bg-neutral-800 px-1.5 py-0.5 text-[10px] font-mono uppercase text-neutral-400">
-              Draft
-            </span>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-white tracking-tight truncate max-w-[140px] sm:max-w-xs">
+                {website.name}
+              </span>
+              <span className={`hidden sm:inline-block rounded px-1.5 py-0.5 text-[10px] font-mono uppercase ${publishInfo.isPublished ? "bg-emerald-900/50 text-emerald-400" : "bg-neutral-800 text-neutral-400"}`}>
+                {publishInfo.isPublished ? "Published" : "Draft"}
+              </span>
+            </div>
+            {publishInfo.isPublished && (
+              <div className="flex items-center gap-2 text-[10px] text-neutral-400">
+                <span>{new Date(publishInfo.publishedAt).toLocaleString()}</span>
+                {publishInfo.publicUrl && (
+                  <a href={publishInfo.publicUrl} target="_blank" rel="noreferrer" className="text-blue-400 hover:text-blue-300">
+                    View Live ↗
+                  </a>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="h-5 w-[1px] bg-neutral-800 hidden sm:block" />
@@ -665,12 +827,12 @@ export default function Builder({ website }) {
             <span className="hidden sm:inline">Preview</span>
           </button>
 
-          {/* WordPress Blue Save / Publish Action */}
+          {/* WordPress Blue Save Action */}
           <button
             type="button"
             onClick={saveChanges}
-            disabled={isSaving}
-            className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-blue-500 active:scale-98 disabled:opacity-60 disabled:cursor-not-allowed"
+            disabled={isSaving || isPublishing}
+            className="flex items-center gap-1.5 rounded-lg bg-neutral-800 px-4 py-1.5 text-xs font-semibold text-neutral-200 shadow-xs transition hover:bg-neutral-700 active:scale-98 disabled:opacity-60 disabled:cursor-not-allowed border border-neutral-700"
           >
             {isSaving ? (
               <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -682,7 +844,27 @@ export default function Builder({ website }) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
               </svg>
             )}
-            <span>{isSaving ? "Saving..." : "Save"}</span>
+            <span>{isSaving ? "Saving..." : "Save Draft"}</span>
+          </button>
+          
+          {/* Publish Action */}
+          <button
+            type="button"
+            onClick={publishChanges}
+            disabled={isSaving || isPublishing}
+            className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-blue-500 active:scale-98 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isPublishing ? (
+              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            ) : (
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+            )}
+            <span>{isPublishing ? "Publishing..." : "Publish"}</span>
           </button>
         </div>
       </header>

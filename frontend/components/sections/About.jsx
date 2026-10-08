@@ -34,10 +34,10 @@ export default function About({ content, config }) {
     columns === 1
       ? "grid-cols-1"
       : columns === 3
-      ? "grid-cols-1 md:grid-cols-3"
+      ? "grid-cols-1 @md:grid-cols-3"
       : columns === 4
-      ? "grid-cols-1 md:grid-cols-4"
-      : "grid-cols-1 lg:grid-cols-12";
+      ? "grid-cols-1 @md:grid-cols-4"
+      : "grid-cols-1 @lg:grid-cols-12";
 
   return (
     <section
@@ -71,7 +71,7 @@ export default function About({ content, config }) {
             {/* Heading */}
 
             <h2
-              className="text-3xl font-bold leading-[1.12] tracking-tight text-neutral-950 sm:text-4xl md:text-5xl"
+              className="text-3xl font-bold leading-[1.12] tracking-tight text-neutral-950 @sm:text-4xl @md:text-5xl"
               style={getTypographyStyle(config, "heading")}
             >
               {heading ||
@@ -82,7 +82,7 @@ export default function About({ content, config }) {
 
             {description && (
               <p
-                className="mt-8 text-lg leading-relaxed text-neutral-600 md:text-xl"
+                className="mt-8 text-lg leading-relaxed text-neutral-600 @md:text-xl"
                 style={getTypographyStyle(config, "description")}
               >
                 {description}
@@ -94,7 +94,7 @@ export default function About({ content, config }) {
             {highlightText && (
               <div className="my-8 border-l-2 border-neutral-950 py-1 pl-6">
                 <blockquote
-                  className="font-serif text-xl italic leading-snug text-neutral-900 md:text-2xl"
+                  className="font-serif text-xl italic leading-snug text-neutral-900 @md:text-2xl"
                   style={getTypographyStyle(config, "highlight")}
                 >
                   &quot;{highlightText}&quot;
@@ -121,7 +121,7 @@ export default function About({ content, config }) {
             {/* Pillars */}
 
             {pillars.length > 0 && (
-              <div className="mt-8 grid grid-cols-1 gap-6 border-t border-neutral-200/80 pt-8 sm:grid-cols-3">
+              <div className="mt-8 grid grid-cols-1 gap-6 border-t border-neutral-200/80 pt-8 @sm:grid-cols-3">
                 {pillars.map((pillar, index) => (
                   <div
                     key={index}
@@ -173,7 +173,7 @@ export default function About({ content, config }) {
                 LEFT COLUMN
             ================================================== */}
 
-            <div className="lg:col-span-5">
+            <div className="@lg:col-span-5">
               {/* Eyebrow */}
 
               <div
@@ -186,7 +186,7 @@ export default function About({ content, config }) {
               {/* Heading */}
 
               <h2
-                className="text-3xl font-bold leading-[1.12] tracking-tight text-neutral-950 sm:text-4xl md:text-5xl"
+                className="text-3xl font-bold leading-[1.12] tracking-tight text-neutral-950 @sm:text-4xl @md:text-5xl"
                 style={getTypographyStyle(config, "heading")}
               >
                 {heading ||
@@ -216,12 +216,12 @@ export default function About({ content, config }) {
                 RIGHT COLUMN
             ================================================== */}
 
-            <div className="lg:col-span-7 flex flex-col">
+            <div className="@lg:col-span-7 flex flex-col">
               {/* Description */}
 
               {description && (
                 <p
-                  className="text-lg leading-relaxed text-neutral-600 md:text-xl"
+                  className="text-lg leading-relaxed text-neutral-600 @md:text-xl"
                   style={getTypographyStyle(config, "description")}
                 >
                   {description}
@@ -233,7 +233,7 @@ export default function About({ content, config }) {
               {highlightText && (
                 <div className="my-8 border-l-2 border-neutral-950 py-1 pl-6">
                   <blockquote
-                    className="font-serif text-xl italic leading-snug text-neutral-900 md:text-2xl"
+                    className="font-serif text-xl italic leading-snug text-neutral-900 @md:text-2xl"
                     style={getTypographyStyle(config, "highlight")}
                   >
                     &quot;{highlightText}&quot;
@@ -244,7 +244,7 @@ export default function About({ content, config }) {
               {/* Pillars */}
 
               {pillars.length > 0 && (
-                <div className="mt-8 grid grid-cols-1 gap-6 border-t border-neutral-200/80 pt-8 sm:grid-cols-3">
+                <div className="mt-8 grid grid-cols-1 gap-6 border-t border-neutral-200/80 pt-8 @sm:grid-cols-3">
                   {pillars.map((pillar, index) => (
                     <div
                       key={index}

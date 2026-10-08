@@ -29,7 +29,7 @@ export default function Services({ content, config }) {
       <div className={`mx-auto w-full ${textClass} ${itemsClass}`} style={{ maxWidth: contentMaxWidth }}>
 
         {/* SECTION HEADER */}
-        <div className="mb-16 max-w-3xl md:mb-20">
+        <div className="mb-16 max-w-3xl @md:mb-20">
           <div
             className="mb-3 text-xs font-semibold uppercase tracking-widest text-neutral-500"
             style={getTypographyStyle(config, "eyebrow")}
@@ -38,7 +38,7 @@ export default function Services({ content, config }) {
           </div>
 
           <h2
-            className="text-3xl font-bold tracking-tight text-neutral-950 [text-wrap:balance] sm:text-4xl md:text-5xl"
+            className="text-3xl font-bold tracking-tight text-neutral-950 [text-wrap:balance] @sm:text-4xl @md:text-5xl"
             style={getTypographyStyle(config, "heading")}
           >
             {heading}
@@ -55,7 +55,7 @@ export default function Services({ content, config }) {
             return (
               <div
                 key={index}
-                className="group relative flex flex-col justify-between rounded-2xl border border-neutral-200/90 bg-white p-8 shadow-[0_2px_8px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-1 hover:border-neutral-300 hover:shadow-xl hover:shadow-neutral-950/5 sm:p-10"
+                className="group relative flex flex-col justify-between rounded-2xl border border-neutral-200/90 bg-white p-8 shadow-[0_2px_8px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-1 hover:border-neutral-300 hover:shadow-xl hover:shadow-neutral-950/5 @sm:p-10"
               >
                 <div>
                   {/* SERVICE INDEX */}
@@ -71,7 +71,7 @@ export default function Services({ content, config }) {
 
                   {/* TITLE */}
                   <h3
-                    className="mb-4 text-xl font-bold tracking-tight text-neutral-950 sm:text-2xl"
+                    className="mb-4 text-xl font-bold tracking-tight text-neutral-950 @sm:text-2xl"
                     style={getTypographyStyle(config, "services", index, "title")}
                   >
                     {service.title}
@@ -80,7 +80,7 @@ export default function Services({ content, config }) {
                   {/* DESCRIPTION */}
                   {service.description && (
                     <p 
-                      className="mb-8 text-sm leading-relaxed text-neutral-600 sm:text-base"
+                      className="mb-8 text-sm leading-relaxed text-neutral-600 @sm:text-base"
                       style={getTypographyStyle(config, "services", index, "description")}
                     >
                       {service.description}
