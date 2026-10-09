@@ -5,14 +5,24 @@ const { getAuth } = require("@clerk/express");
 // Create website from template
 const createWebsite = async (req, res) => {
   try {
-    const { userId } = getAuth(req);
+    const { getAuth } = require("@clerk/express");
 
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Authentication required",
-      });
-    }
+const authState = getAuth(req);
+
+console.log("Backend Clerk diagnostic:", {
+  hasUserId: Boolean(authState.userId),
+  hasAuthorizationHeader: Boolean(req.headers.authorization),
+  authorizationScheme: req.headers.authorization
+    ? req.headers.authorization.split(" ")[0]
+    : null,
+});
+
+if (!authState.userId) {
+  return res.status(401).json({
+    success: false,
+    message: "Authentication required",
+  });
+}
 
     const { templateId, name } = req.body;
 
