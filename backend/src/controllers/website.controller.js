@@ -36,7 +36,7 @@ if (!authState.userId) {
     const website = await websiteService.createWebsiteFromTemplate({
       templateId,
       name,
-      userId,
+      userId: authState.userId,
     });
 
     res.status(201).json({
