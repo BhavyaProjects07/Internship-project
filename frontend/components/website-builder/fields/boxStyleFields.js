@@ -1,0 +1,83 @@
+import {
+  WIDTH_OPTIONS,
+  BORDER_STYLE_OPTIONS,
+  RADIUS_OPTIONS,
+  SHADOW_PRESETS,
+  HOVER_EFFECT_OPTIONS,
+  SPACING_OPTIONS,
+} from "../tokens/index.js";
+import { selectField, numberField, textField, radioField, colorField } from "./helpers.js";
+
+export const spacingFields = {
+  marginTop: selectField("Margin top", SPACING_OPTIONS),
+  marginRight: selectField("Margin right", SPACING_OPTIONS),
+  marginBottom: selectField("Margin bottom", SPACING_OPTIONS),
+  marginLeft: selectField("Margin left", SPACING_OPTIONS),
+  paddingTop: selectField("Padding top", SPACING_OPTIONS),
+  paddingRight: selectField("Padding right", SPACING_OPTIONS),
+  paddingBottom: selectField("Padding bottom", SPACING_OPTIONS),
+  paddingLeft: selectField("Padding left", SPACING_OPTIONS),
+};
+
+export const boxStyleFields = {
+  backgroundColor: colorField("Background color"),
+  backgroundGradient: radioField("Linear gradient background", [
+    { label: "Disabled", value: false },
+    { label: "Enabled", value: true },
+  ]),
+  gradientAngle: numberField("Gradient angle (deg)", 0, 360),
+  gradientFrom: colorField("Gradient start color"),
+  gradientTo: colorField("Gradient end color"),
+  backgroundImage: textField("Background image URL"),
+  backgroundSize: selectField("Background size", [
+    { label: "Cover", value: "cover" },
+    { label: "Contain", value: "contain" },
+    { label: "Auto", value: "auto" },
+  ]),
+  backgroundPosition: selectField("Background position", [
+    { label: "Center", value: "center" },
+    { label: "Top", value: "top" },
+    { label: "Bottom", value: "bottom" },
+    { label: "Left", value: "left" },
+    { label: "Right", value: "right" },
+  ]),
+  backdropBlur: numberField("Glassmorphism blur (px)", 0, 40),
+  width: selectField("Width", WIDTH_OPTIONS),
+  maxWidth: numberField("Maximum width (px)", 0, 3000),
+  minHeight: numberField("Minimum height (px)", 0, 2000),
+  borderStyle: selectField("Border style", BORDER_STYLE_OPTIONS),
+  borderColor: colorField("Border line color"),
+  borderWidth: numberField("Border width (px)", 0, 20),
+  borderRadius: selectField("Corner radius", RADIUS_OPTIONS),
+  boxShadow: selectField("Box shadow preset", SHADOW_PRESETS),
+  hoverEffect: selectField("Hover micro-animation", HOVER_EFFECT_OPTIONS),
+};
+
+export const commonDesignDefaults = {
+  marginTop: "0px",
+  marginRight: "0px",
+  marginBottom: "16px",
+  marginLeft: "0px",
+  paddingTop: "0px",
+  paddingRight: "0px",
+  paddingBottom: "0px",
+  paddingLeft: "0px",
+  backgroundColor: "transparent",
+  backgroundGradient: false,
+  gradientAngle: 135,
+  gradientFrom: "#4f46e5",
+  gradientTo: "#06b6d4",
+  backgroundImage: "",
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  backdropBlur: 0,
+  width: "100%",
+  maxWidth: 0,
+  minHeight: 0,
+  borderStyle: "none",
+  borderColor: "#e5e7eb",
+  borderWidth: 0,
+  borderRadius: 0,
+  boxShadow: "none",
+  hoverEffect: "none",
+};

@@ -111,18 +111,27 @@ const [pageActionError, setPageActionError] = useState("");
 
 const requestPageAction = useCallback(
   async (path, method, body) => {
-    const token = await getToken();
+    let token = null;
+    try {
+      token = await getToken();
+    } catch {
+      token = null;
+    }
 
-    if (!token) {
+    if (!token && process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
       throw new Error("Your session has expired. Please sign in again.");
+    }
+
+    const headers = {
+      ...(body ? { "Content-Type": "application/json" } : {}),
+    };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
     }
 
     const response = await fetch(`${API_URL}${path}`, {
       method,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        ...(body ? { "Content-Type": "application/json" } : {}),
-      },
+      headers,
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
 
@@ -173,18 +182,26 @@ const runPageAction = useCallback(
     setError("");
 
     try {
-      const token = await getToken();
+      let token = null;
+      try {
+        token = await getToken();
+      } catch {
+        token = null;
+      }
 
-      if (!token) {
+      if (!token && process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
         throw new Error("Your session has expired. Please sign in again.");
+      }
+
+      const headers = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
       }
 
       const response = await fetch(
         `${API_URL}/templates/admin/${encodeURIComponent(id)}`,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers,
           cache: "no-store",
         }
       );
@@ -234,7 +251,7 @@ const runPageAction = useCallback(
   useEffect(() => {
     if (!isLoaded) return;
 
-    if (!isSignedIn) {
+    if (!isSignedIn && process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
       setTemplate(null);
       setError("Please sign in to edit templates.");
       setLoading(false);

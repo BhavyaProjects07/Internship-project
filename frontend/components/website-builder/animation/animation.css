@@ -1,0 +1,296 @@
+/* ==========================================================================
+   Visual Website Builder - Declarative Animation System
+   Provides GPU-accelerated entrance, scroll, and looping animation keyframes
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Entrance Keyframes (GPU-accelerated using transform & opacity)
+   -------------------------------------------------------------------------- */
+
+@keyframes wb-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes wb-fade-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 32px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes wb-fade-down {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -32px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes wb-slide-left {
+  from {
+    opacity: 0;
+    transform: translate3d(-40px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes wb-slide-right {
+  from {
+    opacity: 0;
+    transform: translate3d(40px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes wb-scale-in {
+  from {
+    opacity: 0;
+    transform: scale3d(0.88, 0.88, 1);
+  }
+  to {
+    opacity: 1;
+    transform: scale3d(1, 1, 1);
+  }
+}
+
+@keyframes wb-zoom-in {
+  from {
+    opacity: 0;
+    transform: scale3d(1.12, 1.12, 1);
+  }
+  to {
+    opacity: 1;
+    transform: scale3d(1, 1, 1);
+  }
+}
+
+@keyframes wb-blur-clear {
+  from {
+    opacity: 0;
+    filter: blur(12px);
+    transform: translate3d(0, 16px, 0);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes wb-flip-in {
+  from {
+    opacity: 0;
+    transform: perspective(600px) rotateX(25deg);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(600px) rotateX(0deg);
+  }
+}
+
+@keyframes wb-tilt-in {
+  from {
+    opacity: 0;
+    transform: perspective(800px) rotateY(-15deg) scale3d(0.95, 0.95, 1);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(800px) rotateY(0deg) scale3d(1, 1, 1);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Looping & Ambient Keyframes
+   -------------------------------------------------------------------------- */
+
+@keyframes wb-float {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0);
+  }
+}
+
+@keyframes wb-pulse {
+  0%, 100% {
+    transform: scale3d(1, 1, 1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale3d(1.03, 1.03, 1);
+    opacity: 0.92;
+  }
+}
+
+@keyframes wb-glow-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.35));
+  }
+  50% {
+    filter: drop-shadow(0 0 25px rgba(59, 130, 246, 0.75));
+  }
+}
+
+@keyframes wb-spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes wb-marquee {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Animation Preset Class Selectors
+   -------------------------------------------------------------------------- */
+
+.wb-anim-fade-in { animation-name: wb-fade-in; }
+.wb-anim-fade-up { animation-name: wb-fade-up; }
+.wb-anim-fade-down { animation-name: wb-fade-down; }
+.wb-anim-slide-left { animation-name: wb-slide-left; }
+.wb-anim-slide-right { animation-name: wb-slide-right; }
+.wb-anim-scale-in { animation-name: wb-scale-in; }
+.wb-anim-zoom-in { animation-name: wb-zoom-in; }
+.wb-anim-blur-clear { animation-name: wb-blur-clear; }
+.wb-anim-flip-in { animation-name: wb-flip-in; }
+.wb-anim-tilt-in { animation-name: wb-tilt-in; }
+
+.wb-loop-float {
+  animation: wb-float 4s ease-in-out infinite;
+  will-change: transform;
+}
+
+.wb-loop-pulse {
+  animation: wb-pulse 3s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.wb-loop-glow-pulse {
+  animation: wb-glow-pulse 2.5s ease-in-out infinite;
+  will-change: filter;
+}
+
+.wb-loop-spin-slow {
+  animation: wb-spin-slow 16s linear infinite;
+  will-change: transform;
+}
+
+.wb-loop-marquee {
+  display: flex;
+  width: max-content;
+  animation: wb-marquee 25s linear infinite;
+  will-change: transform;
+}
+
+/* --------------------------------------------------------------------------
+   Hover Effects
+   -------------------------------------------------------------------------- */
+
+.hover-lift-sm {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+}
+.hover-lift-sm:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.12);
+}
+
+.hover-lift-md {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+}
+.hover-lift-md:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 16px 30px -6px rgba(0, 0, 0, 0.16);
+}
+
+.hover-scale-sm {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hover-scale-sm:hover {
+  transform: scale(1.025);
+}
+
+.hover-scale-md {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hover-scale-md:hover {
+  transform: scale(1.05);
+}
+
+.hover-glow {
+  transition: box-shadow 0.3s ease, filter 0.3s ease;
+}
+.hover-glow:hover {
+  box-shadow: 0 0 25px rgba(59, 130, 246, 0.45);
+}
+
+.hover-border-glow {
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.hover-border-glow:hover {
+  border-color: rgba(59, 130, 246, 0.8) !important;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.35);
+}
+
+/* --------------------------------------------------------------------------
+   Scroll Trigger Visibility State Handlers
+   -------------------------------------------------------------------------- */
+
+.wb-animated-target {
+  animation-fill-mode: both;
+}
+
+.wb-animated-target[data-animate-state="hidden"] {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+.wb-animated-target[data-animate-state="visible"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* --------------------------------------------------------------------------
+   Reduced Motion Accessibility (Mandatory)
+   -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .wb-animated-target,
+  .wb-loop-float,
+  .wb-loop-pulse,
+  .wb-loop-glow-pulse,
+  .wb-loop-spin-slow,
+  .wb-loop-marquee,
+  .hover-lift-sm,
+  .hover-lift-md,
+  .hover-scale-sm,
+  .hover-scale-md {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+}

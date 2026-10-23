@@ -16,7 +16,25 @@ export async function saveWebsiteDraftAction(websiteId, draftWebsite) {
           "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
-          pages: draftWebsite.pages,
+          pages: (draftWebsite.pages || []).map((page) => {
+            const pagePayload = {
+              id: page.id,
+              name: page.name,
+              slug: page.slug,
+              order: page.order,
+              sections: page.sections || [],
+            };
+            if (
+              page.editorData &&
+              typeof page.editorData === "object" &&
+              Array.isArray(page.editorData.content) &&
+              page.editorData.root &&
+              typeof page.editorData.root === "object"
+            ) {
+              pagePayload.editorData = page.editorData;
+            }
+            return pagePayload;
+          }),
           theme: draftWebsite.theme,
           name: draftWebsite.name,
         }),

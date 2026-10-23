@@ -27,6 +27,7 @@ import {
 } from "@dnd-kit/sortable";
 import sectionRegistry from "@/components/sections/sectionRegistry";
 import SortableSection from "./SortableSection";
+import PuckPublicRenderer from "@/components/website-builder/PuckPublicRenderer";
 
 // --------------------------------
 // Deterministic Fingerprint Generation (Step 7F-2)
@@ -126,9 +127,22 @@ export default function Builder({ website }) {
     (page) => page.id === selectedPageId
   );
 
-  const selectedSection = selectedPage?.sections.find(
+  const selectedSection = selectedPage?.sections?.find(
     (section) => section.id === selectedSectionId
   );
+
+  const hasPuckDocument = Boolean(
+    selectedPage?.editorData &&
+    typeof selectedPage.editorData === "object" &&
+    Array.isArray(selectedPage.editorData.content) &&
+    selectedPage.editorData.content.length > 0
+  );
+
+  const hasLegacySections = Boolean(
+    Array.isArray(selectedPage?.sections) && selectedPage.sections.length > 0
+  );
+
+  const globalLayout = website.template?.globalLayout || null;
 
   // --------------------------------
   // --------------------------------
@@ -1068,8 +1082,38 @@ export default function Builder({ website }) {
             {/* Tab 1: Section Layers (WordPress Document Outline) */}
             {leftTab === "layers" && (
               <div className="flex-1 overflow-y-auto p-3 space-y-1">
+                {hasPuckDocument && (
+                  <div className="mb-3 space-y-1">
+                    <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-neutral-400 flex items-center justify-between">
+                      <span>Template Blocks</span>
+                      <span className="font-mono text-neutral-500">{selectedPage.editorData.content.length}</span>
+                    </div>
+                    {selectedPage.editorData.content.map((block, idx) => (
+                      <div
+                        key={block.props?.id || idx}
+                        className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium bg-neutral-50 border border-neutral-200/60 text-neutral-700 hover:bg-neutral-100 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <span className="text-[10px] font-mono text-neutral-400 w-4">
+                            {String(idx + 1).padStart(2, "0")}
+                          </span>
+                          <span className="font-semibold text-neutral-800 truncate">{block.type}</span>
+                          {block.props?.heading && (
+                            <span className="text-neutral-400 truncate max-w-[80px] text-[11px]">
+                              · {block.props.heading}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-neutral-200/70 text-neutral-600 shrink-0">
+                          Template
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-neutral-400 flex items-center justify-between">
-                  <span>Sections on Canvas</span>
+                  <span>{hasPuckDocument ? "Custom Sections" : "Sections on Canvas"}</span>
                   <span className="font-mono text-neutral-500">{selectedPage?.sections?.length || 0}</span>
                 </div>
 
@@ -1296,36 +1340,133 @@ export default function Builder({ website }) {
               className={`transition-all duration-300 bg-white shadow-xl ${getViewportWidth()}`}
               style={themeVars}
             >
-              <DndContext
-                id="website-builder-dnd"
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={selectedPage?.sections.map((section) => section.id) || []}
-                  strategy={verticalListSortingStrategy}
+              {/* Optional Global Layout Header */}
+              {globalLayout?.header?.enabled && (
+                <header
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 16,
+                    flexWrap: "wrap",
+                    padding: "16px 24px",
+                    backgroundColor: globalLayout.header.backgroundColor || "#ffffff",
+                    color: globalLayout.header.textColor || "#111827",
+                    borderBottom: "1px solid #e5e7eb",
+                  }}
                 >
-                  {selectedPage?.sections.map((section, idx) => (
-                    <SortableSection
-                      key={section.id}
-                      section={section}
-                      isSelected={section.id === selectedSectionId && !isPreviewMode}
-                      isPreviewMode={isPreviewMode}
-                      onSelect={() => handleSectionSelect(section.id)}
-                      onElementSelect={handleElementSelect}
-                      selectedElement={
-                        selectedElement?.sectionId === section.id
-                          ? selectedElement
-                          : null
-                      }
-                      onMoveUp={() => moveSection(section.id, "up")}
-                      onMoveDown={() => moveSection(section.id, "down")}
-                      isFirst={idx === 0}
-                      isLast={idx === (selectedPage?.sections.length || 0) - 1}
+                  {globalLayout.header.logoUrl ? (
+                    <img
+                      src={globalLayout.header.logoUrl}
+                      alt={globalLayout.header.logoText || "Brand"}
+                      style={{ maxWidth: 160, maxHeight: 48, objectFit: "contain" }}
                     />
-                  ))}
-                </SortableContext>
-              </DndContext>
+                  ) : (
+                    <strong>{globalLayout.header.logoText || "Brand"}</strong>
+                  )}
+
+                  <nav style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                    {(globalLayout.header.links || []).map((link, index) => (
+                      <span
+                        key={`${link.href}-${index}`}
+                        style={{
+                          color: globalLayout.header.textColor || "#111827",
+                          fontSize: 14,
+                          fontWeight: 500,
+                        }}
+                      >
+                        {link.label}
+                      </span>
+                    ))}
+                  </nav>
+                </header>
+              )}
+
+              {/* Puck Template Content */}
+              {hasPuckDocument && (
+                <div className="puck-document-canvas">
+                  <PuckPublicRenderer data={selectedPage.editorData} />
+                </div>
+              )}
+
+              {/* Legacy / Custom Sections */}
+              {hasLegacySections && (
+                <DndContext
+                  id="website-builder-dnd"
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={selectedPage?.sections.map((section) => section.id) || []}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {selectedPage?.sections.map((section, idx) => (
+                      <SortableSection
+                        key={section.id}
+                        section={section}
+                        isSelected={section.id === selectedSectionId && !isPreviewMode}
+                        isPreviewMode={isPreviewMode}
+                        onSelect={() => handleSectionSelect(section.id)}
+                        onElementSelect={handleElementSelect}
+                        selectedElement={
+                          selectedElement?.sectionId === section.id
+                            ? selectedElement
+                            : null
+                        }
+                        onMoveUp={() => moveSection(section.id, "up")}
+                        onMoveDown={() => moveSection(section.id, "down")}
+                        isFirst={idx === 0}
+                        isLast={idx === (selectedPage?.sections.length || 0) - 1}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+              )}
+
+              {/* Empty Page State */}
+              {!hasPuckDocument && !hasLegacySections && (
+                <div className="py-24 text-center px-4">
+                  <div className="w-12 h-12 rounded-full bg-neutral-100 text-neutral-400 flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 4v16m8-8H4" />
+                    </svg>
+                  </div>
+                  <h3 className="text-sm font-semibold text-neutral-900">Page is empty</h3>
+                  <p className="text-xs text-neutral-500 mt-1 max-w-xs mx-auto">
+                    Click &quot;Add Section&quot; in the left sidebar to add components to this page.
+                  </p>
+                </div>
+              )}
+
+              {/* Optional Global Layout Footer */}
+              {globalLayout?.footer?.enabled && (
+                <footer
+                  style={{
+                    padding: "24px",
+                    backgroundColor: globalLayout.footer.backgroundColor || "#111827",
+                    color: globalLayout.footer.textColor || "#ffffff",
+                  }}
+                >
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <p style={{ margin: 0, fontSize: 14 }}>
+                      {globalLayout.footer.copyrightText || "© All rights reserved."}
+                    </p>
+                    <nav style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                      {(globalLayout.footer.links || []).map((link, index) => (
+                        <span
+                          key={`${link.href}-${index}`}
+                          style={{
+                            color: globalLayout.footer.textColor || "#ffffff",
+                            fontSize: 14,
+                          }}
+                        >
+                          {link.label}
+                        </span>
+                      ))}
+                    </nav>
+                  </div>
+                </footer>
+              )}
             </div>
           </div>
 

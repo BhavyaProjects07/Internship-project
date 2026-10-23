@@ -1,0 +1,2042 @@
+"use client";
+
+import React, { useState } from "react";
+import AnimationWrapper from "../animation/AnimationWrapper.jsx";
+import { animationFields, animationDefaults } from "../fields/animationFields.js";
+import { spacingFields, commonDesignDefaults } from "../fields/boxStyleFields.js";
+import { selectField, numberField, textField, textareaField, radioField, colorField } from "../fields/helpers.js";
+import { getHoverClass } from "../layout/styleBuilders.js";
+import { ALIGNMENT_OPTIONS, HOVER_EFFECT_OPTIONS, RADIUS_OPTIONS, SHADOW_PRESETS } from "../tokens/index.js";
+import { RenderIcon, ICON_PRESETS } from "./icons.jsx";
+
+export const marketingComponents = {
+  // ------------------------------------------------------------------------
+  // HERO SECTION (ADVANCED)
+  // ------------------------------------------------------------------------
+  Hero: {
+    label: "Hero Section (Advanced)",
+    fields: {
+      layout: selectField("Layout arrangement", [
+        { label: "Split (Content Left, Visual Right)", value: "split" },
+        { label: "Centered Hero", value: "centered" },
+        { label: "Full Background Visual", value: "background" },
+      ]),
+      eyebrow: textField("Eyebrow badge / category"),
+      title: textField("Main hero headline"),
+      description: textareaField("Supporting description"),
+      primaryButtonText: textField("Primary CTA button text"),
+      primaryButtonUrl: textField("Primary link URL"),
+      showSecondaryButton: radioField("Show secondary button", [
+        { label: "Yes", value: true },
+        { label: "No", value: false },
+      ]),
+      secondaryButtonText: textField("Secondary CTA label"),
+      secondaryButtonUrl: textField("Secondary link URL"),
+      showRatings: radioField("Show 5-star customer rating bar", [
+        { label: "Yes", value: true },
+        { label: "No", value: false },
+      ]),
+      ratingsText: textField("Rating label (e.g. 4.9/5 from 2,000+ reviews)"),
+      imageUrl: textField("Split visual / Hero image URL"),
+      imageAlt: textField("Image alt text"),
+      imageWidth: numberField("Split image width (%)", 30, 70),
+      backgroundColor: colorField("Background color"),
+      backgroundGradient: radioField("Enable gradient overlay", [
+        { label: "Disabled", value: false },
+        { label: "Enabled", value: true },
+      ]),
+      gradientFrom: colorField("Gradient color from"),
+      gradientTo: colorField("Gradient color to"),
+      backgroundImage: textField("Full background image URL"),
+      overlayOpacity: numberField("Background overlay opacity (%)", 0, 100),
+      textColor: colorField("Text color"),
+      accentColor: colorField("Accent highlight color"),
+      paddingY: numberField("Vertical padding (px)", 40, 240),
+      borderRadius: selectField("Corner radius", RADIUS_OPTIONS),
+      ...animationFields,
+    },
+    defaultProps: {
+      layout: "split",
+      eyebrow: "NEXT GENERATION WEB EXPERIENCES",
+      title: "Digital Products Built for Ambitious Brands",
+      description:
+        "We architect, design, and engineer high-performance platforms that transform industry standards and convert visitors into loyal advocates.",
+      primaryButtonText: "Explore Templates",
+      primaryButtonUrl: "#explore",
+      showSecondaryButton: true,
+      secondaryButtonText: "Book Discovery Call",
+      secondaryButtonUrl: "#contact",
+      showRatings: true,
+      ratingsText: "4.95 / 5 from 3,400+ satisfied builders",
+      imageUrl:
+        "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80",
+      imageAlt: "Digital platform dashboard",
+      imageWidth: 48,
+      backgroundColor: "#090d16",
+      backgroundGradient: true,
+      gradientFrom: "#090d16",
+      gradientTo: "#131b2e",
+      backgroundImage: "",
+      overlayOpacity: 40,
+      textColor: "#ffffff",
+      accentColor: "#6366f1",
+      paddingY: 96,
+      borderRadius: 0,
+      ...animationDefaults,
+    },
+    render: ({
+      layout = "split",
+      eyebrow,
+      title,
+      description,
+      primaryButtonText,
+      primaryButtonUrl,
+      showSecondaryButton,
+      secondaryButtonText,
+      secondaryButtonUrl,
+      showRatings,
+      ratingsText,
+      imageUrl,
+      imageAlt,
+      imageWidth = 48,
+      backgroundColor = "#090d16",
+      backgroundGradient,
+      gradientFrom,
+      gradientTo,
+      backgroundImage,
+      overlayOpacity = 40,
+      textColor = "#ffffff",
+      accentColor = "#6366f1",
+      paddingY = 96,
+      borderRadius = 0,
+      animTrigger,
+      animPreset,
+      animLoop,
+      animDuration,
+      animDelay,
+      animEasing,
+    }) => {
+      const isCentered = layout === "centered";
+      const isSplit = layout === "split";
+      const isBg = layout === "background";
+
+      let bgStyle = backgroundColor;
+      if (backgroundGradient) {
+        bgStyle = `linear-gradient(135deg, ${gradientFrom || "#090d16"}, ${gradientTo || "#131b2e"})`;
+      }
+      if (isBg && backgroundImage) {
+        bgStyle = `url("${backgroundImage}"), ${bgStyle}`;
+      }
+
+      return (
+        <AnimationWrapper
+          as="section"
+          trigger={animTrigger}
+          preset={animPreset}
+          loop={animLoop}
+          duration={animDuration}
+          delay={animDelay}
+          easing={animEasing}
+          style={{
+            position: "relative",
+            width: "100%",
+            boxSizing: "border-box",
+            background: bgStyle,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            color: textColor,
+            paddingTop: `${paddingY}px`,
+            paddingBottom: `${paddingY}px`,
+            borderRadius: `${borderRadius}px`,
+            overflow: "hidden",
+          }}
+        >
+          {isBg && overlayOpacity > 0 && (
+            <div
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                inset: 0,
+                backgroundColor: "#000000",
+                opacity: overlayOpacity / 100,
+                pointerEvents: "none",
+              }}
+            />
+          )}
+
+          <div
+            style={{
+              position: "relative",
+              zIndex: 1,
+              maxWidth: 1280,
+              margin: "0 auto",
+              padding: "0 24px",
+              display: "flex",
+              flexDirection: isSplit ? "row" : "column",
+              alignItems: "center",
+              justifyContent: "space-between",
+              textAlign: isCentered ? "center" : "left",
+              gap: 48,
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 300, maxWidth: isCentered ? 800 : 640 }}>
+              {eyebrow && (
+                <span
+                  style={{
+                    display: "inline-block",
+                    padding: "6px 14px",
+                    borderRadius: 999,
+                    backgroundColor: "rgba(99, 102, 241, 0.15)",
+                    border: "1px solid rgba(99, 102, 241, 0.3)",
+                    color: "#a5b4fc",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    letterSpacing: 1.5,
+                    textTransform: "uppercase",
+                    marginBottom: 20,
+                  }}
+                >
+                  {eyebrow}
+                </span>
+              )}
+              <h1
+                style={{
+                  fontSize: "clamp(32px, 5vw, 58px)",
+                  fontWeight: 800,
+                  lineHeight: 1.1,
+                  letterSpacing: -1,
+                  margin: "0 0 20px",
+                  color: textColor,
+                }}
+              >
+                {title}
+              </h1>
+              {description && (
+                <p
+                  style={{
+                    fontSize: "clamp(16px, 2vw, 19px)",
+                    lineHeight: 1.65,
+                    color: textColor,
+                    opacity: 0.85,
+                    margin: isCentered ? "0 auto 36px" : "0 0 36px",
+                    maxWidth: 600,
+                  }}
+                >
+                  {description}
+                </p>
+              )}
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  justifyContent: isCentered ? "center" : "flex-start",
+                  gap: 16,
+                  marginBottom: showRatings ? 32 : 0,
+                }}
+              >
+                {primaryButtonText && (
+                  <a
+                    href={primaryButtonUrl || "#"}
+                    className="hover-lift-sm"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "15px 32px",
+                      borderRadius: 12,
+                      backgroundColor: accentColor || "#6366f1",
+                      color: "#ffffff",
+                      fontSize: 15,
+                      fontWeight: 700,
+                      textDecoration: "none",
+                      boxShadow: "0 10px 25px -5px rgba(99, 102, 241, 0.4)",
+                    }}
+                  >
+                    {primaryButtonText}
+                  </a>
+                )}
+                {showSecondaryButton && secondaryButtonText && (
+                  <a
+                    href={secondaryButtonUrl || "#"}
+                    className="hover-lift-sm"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "15px 28px",
+                      borderRadius: 12,
+                      backgroundColor: "rgba(255, 255, 255, 0.08)",
+                      border: "1px solid rgba(255, 255, 255, 0.2)",
+                      color: "#ffffff",
+                      fontSize: 15,
+                      fontWeight: 600,
+                      textDecoration: "none",
+                    }}
+                  >
+                    {secondaryButtonText}
+                  </a>
+                )}
+              </div>
+              {showRatings && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: isCentered ? "center" : "flex-start",
+                    gap: 10,
+                    fontSize: 13,
+                    opacity: 0.85,
+                  }}
+                >
+                  <div style={{ display: "flex", gap: 2 }}>
+                    {[0, 1, 2, 3, 4].map((i) => (
+                      <RenderIcon key={`star-rating-${i}`} name="star" size={15} color="#f59e0b" />
+                    ))}
+                  </div>
+                  <span>{ratingsText}</span>
+                </div>
+              )}
+            </div>
+
+            {isSplit && imageUrl && (
+              <div style={{ width: `${imageWidth}%`, flexShrink: 0, minWidth: 280 }}>
+                <img
+                  src={imageUrl}
+                  alt={imageAlt || "Hero visual"}
+                  style={{
+                    width: "100%",
+                    borderRadius: 20,
+                    boxShadow: "0 25px 50px -12px rgba(0,0,0,0.45)",
+                    objectFit: "cover",
+                    display: "block",
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        </AnimationWrapper>
+      );
+    },
+  },
+
+  // ------------------------------------------------------------------------
+  // CALL TO ACTION (CTA BANNER)
+  // ------------------------------------------------------------------------
+  CallToAction: {
+    label: "Call to Action Banner",
+    fields: {
+      headline: textField("Call to action headline"),
+      description: textareaField("Supporting description"),
+      badgeText: textField("Small top tag (Optional)"),
+      primaryButtonText: textField("Primary CTA button text"),
+      primaryButtonUrl: textField("Primary link URL"),
+      secondaryButtonText: textField("Secondary CTA label (Optional)"),
+      secondaryButtonUrl: textField("Secondary link URL"),
+      backgroundColor: colorField("Banner background color"),
+      backgroundGradient: radioField("Enable gradient", [
+        { label: "Disabled", value: false },
+        { label: "Enabled", value: true },
+      ]),
+      gradientFrom: colorField("Gradient color 1"),
+      gradientTo: colorField("Gradient color 2"),
+      textColor: colorField("Text color"),
+      borderRadius: selectField("Corner radius", RADIUS_OPTIONS),
+      boxShadow: selectField("Shadow preset", SHADOW_PRESETS),
+      ...spacingFields,
+      ...animationFields,
+    },
+    defaultProps: {
+      headline: "Ready to Transform Your Digital Presence?",
+      description:
+        "Join 10,000+ top designers and engineering teams who build modern, hyper-optimized web applications with our visual platform.",
+      badgeText: "INSTANT ACCESS",
+      primaryButtonText: "Explore Templates Now",
+      primaryButtonUrl: "#templates",
+      secondaryButtonText: "Schedule Architecture Review",
+      secondaryButtonUrl: "#demo",
+      backgroundColor: "#0f172a",
+      backgroundGradient: true,
+      gradientFrom: "#1e1b4b",
+      gradientTo: "#0f172a",
+      textColor: "#ffffff",
+      borderRadius: 24,
+      boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)",
+      marginTop: "24px",
+      marginBottom: "32px",
+      ...animationDefaults,
+    },
+    render: ({
+      headline,
+      description,
+      badgeText,
+      primaryButtonText,
+      primaryButtonUrl,
+      secondaryButtonText,
+      secondaryButtonUrl,
+      backgroundColor,
+      backgroundGradient,
+      gradientFrom,
+      gradientTo,
+      textColor,
+      borderRadius,
+      boxShadow,
+      marginTop,
+      marginBottom,
+      animTrigger,
+      animPreset,
+      animLoop,
+      animDuration,
+      animDelay,
+      animEasing,
+    }) => {
+      const ctaBgColor = backgroundColor || "#0f172a";
+      const ctaBgImage = backgroundGradient
+        ? `linear-gradient(135deg, ${gradientFrom || "#1e1b4b"}, ${gradientTo || "#0f172a"})`
+        : undefined;
+
+      return (
+        <AnimationWrapper
+          trigger={animTrigger}
+          preset={animPreset}
+          loop={animLoop}
+          duration={animDuration}
+          delay={animDelay}
+          easing={animEasing}
+          style={{
+            width: "100%",
+            boxSizing: "border-box",
+            backgroundColor: ctaBgColor,
+            backgroundImage: ctaBgImage,
+            color: textColor || "#ffffff",
+            borderRadius: `${borderRadius}px`,
+            boxShadow: boxShadow === "none" ? undefined : boxShadow,
+            padding: "56px 40px",
+            textAlign: "center",
+            marginTop,
+            marginBottom,
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          {badgeText && (
+            <span
+              style={{
+                display: "inline-block",
+                padding: "6px 14px",
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: 1.5,
+                textTransform: "uppercase",
+                borderRadius: 999,
+                backgroundColor: "rgba(255, 255, 255, 0.12)",
+                backdropFilter: "blur(8px)",
+                marginBottom: 20,
+                border: "1px solid rgba(255, 255, 255, 0.2)",
+              }}
+            >
+              {badgeText}
+            </span>
+          )}
+          <h2
+            style={{
+              fontSize: "clamp(28px, 4vw, 44px)",
+              fontWeight: 800,
+              lineHeight: 1.2,
+              letterSpacing: -0.5,
+              margin: "0 0 16px",
+            }}
+          >
+            {headline}
+          </h2>
+          {description && (
+            <p
+              style={{
+                maxWidth: 640,
+                margin: "0 auto 32px",
+                fontSize: 18,
+                lineHeight: 1.7,
+                opacity: 0.9,
+              }}
+            >
+              {description}
+            </p>
+          )}
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 14 }}>
+            {primaryButtonText && (
+              <a
+                href={primaryButtonUrl || "#"}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "14px 28px",
+                  borderRadius: 12,
+                  backgroundColor: "#ffffff",
+                  color: "#0f172a",
+                  fontWeight: 700,
+                  fontSize: 15,
+                  textDecoration: "none",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+                }}
+              >
+                {primaryButtonText}
+              </a>
+            )}
+            {secondaryButtonText && (
+              <a
+                href={secondaryButtonUrl || "#"}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "14px 28px",
+                  borderRadius: 12,
+                  backgroundColor: "rgba(255, 255, 255, 0.1)",
+                  color: "#ffffff",
+                  fontWeight: 600,
+                  fontSize: 15,
+                  textDecoration: "none",
+                  border: "1px solid rgba(255, 255, 255, 0.25)",
+                  backdropFilter: "blur(8px)",
+                }}
+              >
+                {secondaryButtonText}
+              </a>
+            )}
+          </div>
+        </AnimationWrapper>
+      );
+    },
+  },
+
+  // ------------------------------------------------------------------------
+  // PRICING TABLE CARD
+  // ------------------------------------------------------------------------
+  PricingTable: {
+    label: "Pricing Plan Card",
+    fields: {
+      planName: textField("Tier title (e.g. Pro, Growth)"),
+      badge: textField("Featured badge text (e.g. MOST POPULAR)"),
+      isPopular: radioField("Highlight as Featured", [
+        { label: "Standard Plan", value: false },
+        { label: "Popular (Glowing Border)", value: true },
+      ]),
+      currency: textField("Currency symbol"),
+      price: textField("Price figure"),
+      period: textField("Billing interval (e.g. /month, /year)"),
+      description: textareaField("Tier summary description"),
+      features: {
+        type: "array",
+        label: "Included features",
+        arrayFields: {
+          text: textField("Feature description"),
+          included: radioField("Included in plan?", [
+            { label: "Yes (Checkmark)", value: true },
+            { label: "No (Excluded)", value: false },
+          ]),
+        },
+        defaultItemProps: { text: "Full API Access", included: true },
+        getItemSummary: (item) => item.text || "Feature item",
+      },
+      buttonText: textField("Button call to action"),
+      buttonUrl: textField("Button destination URL"),
+      backgroundColor: colorField("Card background"),
+      borderRadius: selectField("Corner radius", RADIUS_OPTIONS),
+      hoverEffect: selectField("Hover micro-animation", HOVER_EFFECT_OPTIONS),
+      ...spacingFields,
+      ...animationFields,
+    },
+    defaultProps: {
+      planName: "Professional",
+      badge: "MOST POPULAR",
+      isPopular: true,
+      currency: "$",
+      price: "79",
+      period: "/month",
+      description:
+        "Perfect for scaling businesses needing advanced visual capabilities and priority infrastructure.",
+      features: [
+        { text: "Unlimited templates and landing pages", included: true },
+        { text: "Full Puck visual block customizer", included: true },
+        { text: "Custom domain & SSL certificate", included: true },
+        { text: "Collaborative multi-user editing", included: true },
+        { text: "Dedicated account architect", included: false },
+      ],
+      buttonText: "Start 14-Day Free Trial",
+      buttonUrl: "#checkout",
+      backgroundColor: "#ffffff",
+      borderRadius: 20,
+      hoverEffect: "lift-md",
+      marginTop: "16px",
+      marginBottom: "24px",
+      ...animationDefaults,
+    },
+    render: ({
+      planName,
+      badge,
+      isPopular,
+      currency,
+      price,
+      period,
+      description,
+      features = [],
+      buttonText,
+      buttonUrl,
+      backgroundColor,
+      borderRadius,
+      hoverEffect,
+      marginTop,
+      marginBottom,
+      animTrigger,
+      animPreset,
+      animLoop,
+      animDuration,
+      animDelay,
+      animEasing,
+    }) => (
+      <AnimationWrapper
+        trigger={animTrigger}
+        preset={animPreset}
+        loop={animLoop}
+        duration={animDuration}
+        delay={animDelay}
+        easing={animEasing}
+        className={getHoverClass(hoverEffect)}
+        style={{
+          position: "relative",
+          width: "100%",
+          boxSizing: "border-box",
+          backgroundColor: backgroundColor || "#ffffff",
+          borderRadius: `${borderRadius}px`,
+          padding: "36px 32px",
+          border: isPopular ? "2px solid #4f46e5" : "1px solid #e2e8f0",
+          boxShadow: isPopular
+            ? "0 20px 25px -5px rgba(79, 70, 229, 0.15)"
+            : "0 4px 6px -1px rgba(0,0,0,0.05)",
+          marginTop,
+          marginBottom,
+        }}
+      >
+        {isPopular && badge && (
+          <div
+            style={{
+              position: "absolute",
+              top: -14,
+              left: "50%",
+              transform: "translateX(-50%)",
+              backgroundImage: "linear-gradient(135deg, #4f46e5, #06b6d4)",
+              color: "#ffffff",
+              fontSize: 11,
+              fontWeight: 800,
+              letterSpacing: 1.2,
+              textTransform: "uppercase",
+              padding: "4px 16px",
+              borderRadius: 999,
+              boxShadow: "0 4px 12px rgba(79, 70, 229, 0.4)",
+            }}
+          >
+            {badge}
+          </div>
+        )}
+        <h3 style={{ margin: "0 0 8px", fontSize: 22, fontWeight: 700, color: "#0f172a" }}>
+          {planName}
+        </h3>
+        {description && (
+          <p style={{ margin: "0 0 24px", fontSize: 14, color: "#64748b", lineHeight: 1.6 }}>
+            {description}
+          </p>
+        )}
+        <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 24 }}>
+          <span style={{ fontSize: 28, fontWeight: 700, color: "#0f172a" }}>{currency}</span>
+          <span style={{ fontSize: 48, fontWeight: 800, letterSpacing: -1, color: "#0f172a" }}>
+            {price}
+          </span>
+          <span style={{ fontSize: 15, color: "#64748b", fontWeight: 500 }}>{period}</span>
+        </div>
+        <ul style={{ listStyle: "none", padding: 0, margin: "0 0 32px", display: "grid", gap: 12 }}>
+          {features.map((feat, idx) => (
+            <li
+              key={`feat-${idx}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                fontSize: 14,
+                color: feat.included ? "#334155" : "#94a3b8",
+                textDecoration: feat.included ? "none" : "line-through",
+              }}
+            >
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  backgroundColor: feat.included ? "#ecfdf5" : "#f1f5f9",
+                  color: feat.included ? "#059669" : "#94a3b8",
+                  flexShrink: 0,
+                }}
+              >
+                <RenderIcon
+                  name={feat.included ? "check" : "none"}
+                  size={13}
+                  color={feat.included ? "#059669" : "#94a3b8"}
+                />
+              </span>
+              <span>{feat.text}</span>
+            </li>
+          ))}
+        </ul>
+        {buttonText && (
+          <a
+            href={buttonUrl || "#"}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "100%",
+              padding: "14px 20px",
+              borderRadius: 12,
+              backgroundColor: isPopular ? "#4f46e5" : "#0f172a",
+              color: "#ffffff",
+              fontSize: 15,
+              fontWeight: 700,
+              textDecoration: "none",
+              boxShadow: isPopular ? "0 8px 16px rgba(79, 70, 229, 0.3)" : "none",
+              transition: "all 150ms ease",
+            }}
+          >
+            {buttonText}
+          </a>
+        )}
+      </AnimationWrapper>
+    ),
+  },
+
+  // ------------------------------------------------------------------------
+  // COMPARISON TABLE
+  // ------------------------------------------------------------------------
+  ComparisonTable: {
+    label: "Feature Comparison Table",
+    fields: {
+      headline: textField("Comparison headline"),
+      plan1Name: textField("Tier 1 title"),
+      plan2Name: textField("Tier 2 title (e.g. Pro)"),
+      plan3Name: textField("Tier 3 title (e.g. Enterprise)"),
+      features: {
+        type: "array",
+        label: "Feature rows",
+        arrayFields: {
+          name: textField("Feature name"),
+          p1: textField("Tier 1 value (e.g. Yes, No, 5GB)"),
+          p2: textField("Tier 2 value (e.g. Yes, 50GB)"),
+          p3: textField("Tier 3 value (e.g. Unlimited)"),
+        },
+        defaultItemProps: { name: "Custom Domain", p1: "No", p2: "Yes", p3: "Unlimited" },
+        getItemSummary: (it) => it.name || "Feature",
+      },
+      ...spacingFields,
+      ...animationFields,
+    },
+    defaultProps: {
+      headline: "Detailed Feature Matrix",
+      plan1Name: "Starter",
+      plan2Name: "Professional",
+      plan3Name: "Enterprise",
+      features: [
+        { name: "Visual Block Canvas", p1: "Yes", p2: "Yes", p3: "Yes" },
+        { name: "Custom Domains", p1: "1 Domain", p2: "5 Domains", p3: "Unlimited" },
+        { name: "Animation Presets", p1: "Basic", p2: "Advanced", p3: "Full Engine" },
+        { name: "Team Members", p1: "1", p2: "5", p3: "Unlimited" },
+        { name: "Dedicated SLA", p1: "No", p2: "No", p3: "99.99%" },
+      ],
+      marginTop: "24px",
+      marginBottom: "32px",
+      ...animationDefaults,
+    },
+    render: ({
+      headline,
+      plan1Name,
+      plan2Name,
+      plan3Name,
+      features = [],
+      marginTop,
+      marginBottom,
+      animTrigger,
+      animPreset,
+      animLoop,
+      animDuration,
+      animDelay,
+      animEasing,
+    }) => (
+      <AnimationWrapper
+        trigger={animTrigger}
+        preset={animPreset}
+        loop={animLoop}
+        duration={animDuration}
+        delay={animDelay}
+        easing={animEasing}
+        style={{
+          width: "100%",
+          overflowX: "auto",
+          marginTop,
+          marginBottom,
+        }}
+      >
+        {headline && (
+          <h3 style={{ fontSize: 22, fontWeight: 700, color: "#0f172a", marginBottom: 16 }}>
+            {headline}
+          </h3>
+        )}
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            backgroundColor: "#ffffff",
+            borderRadius: 14,
+            overflow: "hidden",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+          }}
+        >
+          <thead>
+            <tr style={{ backgroundColor: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
+              <th style={{ padding: "16px 20px", textAlign: "left", fontSize: 14, fontWeight: 700, color: "#0f172a" }}>
+                Feature
+              </th>
+              <th style={{ padding: "16px 20px", textAlign: "center", fontSize: 14, fontWeight: 700, color: "#0f172a" }}>
+                {plan1Name}
+              </th>
+              <th style={{ padding: "16px 20px", textAlign: "center", fontSize: 14, fontWeight: 700, color: "#4f46e5" }}>
+                {plan2Name}
+              </th>
+              <th style={{ padding: "16px 20px", textAlign: "center", fontSize: 14, fontWeight: 700, color: "#0f172a" }}>
+                {plan3Name}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {features.map((row, idx) => (
+              <tr key={`comp-${idx}`} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                <td style={{ padding: "14px 20px", fontSize: 14, fontWeight: 600, color: "#334155" }}>
+                  {row.name}
+                </td>
+                <td style={{ padding: "14px 20px", textAlign: "center", fontSize: 14, color: "#64748b" }}>
+                  {row.p1}
+                </td>
+                <td style={{ padding: "14px 20px", textAlign: "center", fontSize: 14, fontWeight: 700, color: "#4f46e5" }}>
+                  {row.p2}
+                </td>
+                <td style={{ padding: "14px 20px", textAlign: "center", fontSize: 14, color: "#64748b" }}>
+                  {row.p3}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </AnimationWrapper>
+    ),
+  },
+
+  // ------------------------------------------------------------------------
+  // TESTIMONIAL CARD
+  // ------------------------------------------------------------------------
+  Testimonial: {
+    label: "Testimonial / Review",
+    fields: {
+      stars: numberField("Rating (1 - 5 stars)", 1, 5),
+      quote: textareaField("Review or testimony text"),
+      authorName: textField("Customer name"),
+      authorRole: textField("Title & Company"),
+      avatarUrl: textField("Avatar photo URL"),
+      verified: radioField("Show verified customer check", [
+        { label: "Yes", value: true },
+        { label: "No", value: false },
+      ]),
+      backgroundColor: colorField("Card background"),
+      borderRadius: selectField("Corner radius", RADIUS_OPTIONS),
+      hoverEffect: selectField("Hover micro-animation", HOVER_EFFECT_OPTIONS),
+      ...spacingFields,
+      ...animationFields,
+    },
+    defaultProps: {
+      stars: 5,
+      quote:
+        "This website builder surpassed our every expectation. The level of customization allowed us to deploy our company flagship in 3 days instead of 3 months.",
+      authorName: "Sophia Martinez",
+      authorRole: "Head of Product at Nexus Dynamics",
+      avatarUrl: "https://i.pravatar.cc/150?u=sophia",
+      verified: true,
+      backgroundColor: "#ffffff",
+      borderRadius: 18,
+      hoverEffect: "lift-sm",
+      marginTop: "16px",
+      marginBottom: "24px",
+      ...animationDefaults,
+    },
+    render: ({
+      stars = 5,
+      quote,
+      authorName,
+      authorRole,
+      avatarUrl,
+      verified,
+      backgroundColor,
+      borderRadius,
+      hoverEffect,
+      marginTop,
+      marginBottom,
+      animTrigger,
+      animPreset,
+      animLoop,
+      animDuration,
+      animDelay,
+      animEasing,
+    }) => {
+      const starCount = Math.min(5, Math.max(1, parseInt(stars, 10) || 5));
+
+      return (
+        <AnimationWrapper
+          as="article"
+          trigger={animTrigger}
+          preset={animPreset}
+          loop={animLoop}
+          duration={animDuration}
+          delay={animDelay}
+          easing={animEasing}
+          className={getHoverClass(hoverEffect)}
+          style={{
+            boxSizing: "border-box",
+            backgroundColor: backgroundColor || "#ffffff",
+            padding: "32px",
+            borderRadius: `${borderRadius}px`,
+            border: "1px solid #e2e8f0",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.04)",
+            marginTop,
+            marginBottom,
+          }}
+        >
+          <div style={{ display: "flex", gap: 3, marginBottom: 16 }}>
+            {Array.from({ length: starCount }).map((_, i) => (
+              <RenderIcon key={`star-${i}`} name="star" size={18} color="#f59e0b" />
+            ))}
+          </div>
+          <p
+            style={{
+              margin: "0 0 20px",
+              fontSize: 16,
+              color: "#334155",
+              lineHeight: 1.7,
+              fontStyle: "italic",
+            }}
+          >
+            &ldquo;{quote}&rdquo;
+          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {avatarUrl && (
+              <img
+                src={avatarUrl}
+                alt={authorName}
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: "50%",
+                  objectFit: "cover",
+                }}
+              />
+            )}
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <strong style={{ fontSize: 15, color: "#0f172a" }}>{authorName}</strong>
+                {verified && (
+                  <span
+                    title="Verified Client"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 16,
+                      height: 16,
+                      borderRadius: "50%",
+                      backgroundColor: "#10b981",
+                      color: "#ffffff",
+                    }}
+                  >
+                    <RenderIcon name="check" size={11} color="#ffffff" />
+                  </span>
+                )}
+              </div>
+              <p style={{ margin: "2px 0 0", fontSize: 13, color: "#64748b" }}>{authorRole}</p>
+            </div>
+          </div>
+        </AnimationWrapper>
+      );
+    },
+  },
+
+  // ------------------------------------------------------------------------
+  // FEATURE CARD
+  // ------------------------------------------------------------------------
+  FeatureCard: {
+    label: "Feature / Service Box",
+    fields: {
+      icon: selectField("Icon Symbol", ICON_PRESETS),
+      iconColor: colorField("Icon color"),
+      iconBg: colorField("Icon container background"),
+      badge: textField("Small badge text (Optional)"),
+      title: textField("Feature title"),
+      description: textareaField("Feature description"),
+      linkText: textField("Action link text (Optional)"),
+      linkUrl: textField("Action link URL"),
+      backgroundColor: colorField("Card background"),
+      borderRadius: selectField("Corner radius", RADIUS_OPTIONS),
+      hoverEffect: selectField("Hover micro-animation", HOVER_EFFECT_OPTIONS),
+      ...spacingFields,
+      ...animationFields,
+    },
+    defaultProps: {
+      icon: "rocket",
+      iconColor: "#4f46e5",
+      iconBg: "#eef2ff",
+      badge: "NEW",
+      title: "Sub-Second Deployment",
+      description:
+        "Built on high-performance edge infrastructure, delivering instantaneous load times and zero downtime transitions.",
+      linkText: "Learn more",
+      linkUrl: "#",
+      backgroundColor: "#ffffff",
+      borderRadius: 16,
+      hoverEffect: "lift-md",
+      marginTop: "16px",
+      marginBottom: "24px",
+      ...animationDefaults,
+    },
+    render: ({
+      icon,
+      iconColor,
+      iconBg,
+      badge,
+      title,
+      description,
+      linkText,
+      linkUrl,
+      backgroundColor,
+      borderRadius,
+      hoverEffect,
+      marginTop,
+      marginBottom,
+      animTrigger,
+      animPreset,
+      animLoop,
+      animDuration,
+      animDelay,
+      animEasing,
+    }) => (
+      <AnimationWrapper
+        trigger={animTrigger}
+        preset={animPreset}
+        loop={animLoop}
+        duration={animDuration}
+        delay={animDelay}
+        easing={animEasing}
+        className={getHoverClass(hoverEffect)}
+        style={{
+          boxSizing: "border-box",
+          backgroundColor: backgroundColor || "#ffffff",
+          borderRadius: `${borderRadius}px`,
+          padding: "32px",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
+          marginTop,
+          marginBottom,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 20,
+          }}
+        >
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 48,
+              height: 48,
+              borderRadius: 12,
+              backgroundColor: iconBg || "#eef2ff",
+            }}
+          >
+            <RenderIcon name={icon} size={24} color={iconColor || "#4f46e5"} />
+          </div>
+          {badge && (
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 800,
+                textTransform: "uppercase",
+                padding: "4px 10px",
+                borderRadius: 999,
+                backgroundColor: "#f1f5f9",
+                color: "#475569",
+                letterSpacing: 1,
+              }}
+            >
+              {badge}
+            </span>
+          )}
+        </div>
+        <h3 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 700, color: "#0f172a" }}>
+          {title}
+        </h3>
+        <p style={{ margin: "0 0 18px", fontSize: 15, color: "#64748b", lineHeight: 1.65 }}>
+          {description}
+        </p>
+        {linkText && (
+          <a
+            href={linkUrl || "#"}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 14,
+              fontWeight: 600,
+              color: iconColor || "#4f46e5",
+              textDecoration: "none",
+            }}
+          >
+            <span>{linkText}</span>
+            <span aria-hidden="true">&rarr;</span>
+          </a>
+        )}
+      </AnimationWrapper>
+    ),
+  },
+
+  // ------------------------------------------------------------------------
+  // STATS COUNTER / METRIC
+  // ------------------------------------------------------------------------
+  StatsCounter: {
+    label: "Metric / Stats Counter",
+    fields: {
+      number: textField("Big stat value (e.g. 99.9, 10M, 400k)"),
+      prefix: textField("Prefix symbol (e.g. $, +)"),
+      suffix: textField("Suffix symbol (e.g. %, +, K)"),
+      label: textField("Metric label"),
+      description: textField("Subtext / description (Optional)"),
+      trend: textField("Growth trend badge (e.g. +24% YoY)"),
+      color: colorField("Number highlight color"),
+      alignment: selectField("Alignment", ALIGNMENT_OPTIONS),
+      ...spacingFields,
+      ...animationFields,
+    },
+    defaultProps: {
+      number: "99.98",
+      prefix: "",
+      suffix: "%",
+      label: "Uptime SLA Guarantee",
+      description: "Enterprise reliability tested under peak concurrent load.",
+      trend: "+0.4% this quarter",
+      color: "#4f46e5",
+      alignment: "left",
+      marginTop: "16px",
+      marginBottom: "20px",
+      ...animationDefaults,
+    },
+    render: ({
+      number,
+      prefix,
+      suffix,
+      label,
+      description,
+      trend,
+      color,
+      alignment,
+      marginTop,
+      marginBottom,
+      animTrigger,
+      animPreset,
+      animLoop,
+      animDuration,
+      animDelay,
+      animEasing,
+    }) => (
+      <AnimationWrapper
+        trigger={animTrigger}
+        preset={animPreset}
+        loop={animLoop}
+        duration={animDuration}
+        delay={animDelay}
+        easing={animEasing}
+        style={{
+          width: "100%",
+          textAlign: alignment,
+          marginTop,
+          marginBottom,
+        }}
+      >
+        {trend && (
+          <span
+            style={{
+              display: "inline-block",
+              padding: "4px 10px",
+              fontSize: 11,
+              fontWeight: 700,
+              borderRadius: 999,
+              backgroundColor: "#ecfdf5",
+              color: "#059669",
+              marginBottom: 10,
+            }}
+          >
+            {trend}
+          </span>
+        )}
+        <div
+          style={{
+            fontSize: "clamp(36px, 5vw, 64px)",
+            fontWeight: 800,
+            lineHeight: 1,
+            letterSpacing: -1.5,
+            color: color || "#4f46e5",
+            marginBottom: 8,
+          }}
+        >
+          {prefix}
+          {number}
+          {suffix}
+        </div>
+        <h4 style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 700, color: "#0f172a" }}>
+          {label}
+        </h4>
+        {description && (
+          <p style={{ margin: 0, fontSize: 14, color: "#64748b", lineHeight: 1.6 }}>
+            {description}
+          </p>
+        )}
+      </AnimationWrapper>
+    ),
+  },
+
+  // ------------------------------------------------------------------------
+  // ACCORDION / FAQ
+  // ------------------------------------------------------------------------
+  Accordion: {
+    label: "Accordion / FAQ List",
+    fields: {
+      items: {
+        type: "array",
+        label: "Accordion items",
+        arrayFields: {
+          title: textField("Question / Heading"),
+          content: textareaField("Answer / Details content"),
+        },
+        defaultItemProps: {
+          title: "How does the template editor work?",
+          content:
+            "The visual editor gives you real-time drag-and-drop customization with WordPress-grade blocks and instantaneous preview.",
+        },
+        getItemSummary: (item) => item.title || "Accordion item",
+      },
+      accentColor: colorField("Active icon color"),
+      bordered: radioField("Card bordered items", [
+        { label: "Bordered cards", value: true },
+        { label: "Clean underline dividers", value: false },
+      ]),
+      ...spacingFields,
+      ...animationFields,
+    },
+    defaultProps: {
+      items: [
+        {
+          title: "Can I customize typography, colors, and layout from scratch?",
+          content:
+            "Yes! Every component supports full custom styling: font sizes, weights, line heights, linear gradients, custom shadows, and nested containers.",
+        },
+        {
+          title: "Does this support nested columns and layouts?",
+          content:
+            "Absolutely. Drop Columns, Containers, or Grids, and nest any elements inside them without limitation.",
+        },
+        {
+          title: "Are published pages mobile-responsive?",
+          content:
+            "All blocks are architected with modern flexbox and grid styling to adapt effortlessly to mobile, tablet, and desktop viewports.",
+        },
+      ],
+      accentColor: "#4f46e5",
+      bordered: true,
+      marginTop: "20px",
+      marginBottom: "28px",
+      ...animationDefaults,
+    },
+    render: function RenderAccordion({
+      items = [],
+      accentColor,
+      bordered,
+      marginTop,
+      marginBottom,
+      animTrigger,
+      animPreset,
+      animLoop,
+      animDuration,
+      animDelay,
+      animEasing,
+    }) {
+      const [openIndexes, setOpenIndexes] = useState([0]);
+
+      const toggle = (idx) => {
+        setOpenIndexes((prev) =>
+          prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]
+        );
+      };
+
+      return (
+        <AnimationWrapper
+          trigger={animTrigger}
+          preset={animPreset}
+          loop={animLoop}
+          duration={animDuration}
+          delay={animDelay}
+          easing={animEasing}
+          style={{
+            width: "100%",
+            marginTop,
+            marginBottom,
+            display: "grid",
+            gap: bordered ? 12 : 0,
+          }}
+        >
+          {items.map((item, idx) => {
+            const isOpen = openIndexes.includes(idx);
+            return (
+              <div
+                key={`faq-${idx}`}
+                style={{
+                  backgroundColor: bordered
+                    ? isOpen
+                      ? "#faf5ff"
+                      : "#ffffff"
+                    : "transparent",
+                  border: bordered
+                    ? `1px solid ${isOpen ? accentColor || "#4f46e5" : "#e2e8f0"}`
+                    : "none",
+                  borderBottom: !bordered ? "1px solid #e2e8f0" : undefined,
+                  borderRadius: bordered ? 12 : 0,
+                  overflow: "hidden",
+                  transition: "all 200ms ease",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => toggle(idx)}
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: bordered ? "18px 22px" : "18px 4px",
+                    backgroundColor: "transparent",
+                    border: "none",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    fontSize: 16,
+                    fontWeight: 700,
+                    color: isOpen ? accentColor || "#4f46e5" : "#0f172a",
+                  }}
+                >
+                  <span>{item.title}</span>
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 24,
+                      height: 24,
+                      borderRadius: "50%",
+                      backgroundColor: isOpen ? accentColor || "#4f46e5" : "#f1f5f9",
+                      color: isOpen ? "#ffffff" : "#64748b",
+                      fontSize: 16,
+                      fontWeight: 700,
+                      transform: isOpen ? "rotate(45deg)" : "none",
+                      transition: "transform 200ms ease",
+                      flexShrink: 0,
+                    }}
+                  >
+                    +
+                  </span>
+                </button>
+                {isOpen && (
+                  <div
+                    style={{
+                      padding: bordered ? "0 22px 20px" : "0 4px 18px",
+                      fontSize: 15,
+                      lineHeight: 1.7,
+                      color: "#475569",
+                    }}
+                  >
+                    {item.content}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </AnimationWrapper>
+      );
+    },
+  },
+
+  // ------------------------------------------------------------------------
+  // TABS COMPONENT
+  // ------------------------------------------------------------------------
+  Tabs: {
+    label: "Interactive Tabs",
+    fields: {
+      tabStyle: selectField("Tabs header style", [
+        { label: "Pills with background", value: "pills" },
+        { label: "Underlined border tabs", value: "underline" },
+      ]),
+      accentColor: colorField("Active tab accent color"),
+      tabs: {
+        type: "array",
+        label: "Tabs list",
+        arrayFields: {
+          title: textField("Tab label"),
+          headline: textField("Panel title"),
+          content: textareaField("Panel content"),
+        },
+        defaultItemProps: {
+          title: "Tab 1",
+          headline: "Powerful Engine",
+          content: "Customize all layout aspects with visual feedback.",
+        },
+        getItemSummary: (item) => item.title || "Tab",
+      },
+      ...spacingFields,
+      ...animationFields,
+    },
+    defaultProps: {
+      tabStyle: "pills",
+      accentColor: "#4f46e5",
+      tabs: [
+        {
+          title: "Performance",
+          headline: "Engineered for Sub-Second Speed",
+          content:
+            "Our rendering pipeline outputs optimized static HTML and lightweight CSS, ensuring your templates score 99+ on Google Lighthouse.",
+        },
+        {
+          title: "Customization",
+          headline: "Boundless Creative Freedom",
+          content:
+            "Granular controls for typography, linear gradients, corner curves, box shadows, and nested slots enable bespoke design implementations.",
+        },
+        {
+          title: "Integrations",
+          headline: "Connect With Your Modern Stack",
+          content:
+            "Seamlessly export clean JSON documents and connect directly with REST APIs, webhooks, and modern relational stores.",
+        },
+      ],
+      marginTop: "16px",
+      marginBottom: "24px",
+      ...animationDefaults,
+    },
+    render: function RenderTabs({
+      tabStyle,
+      accentColor,
+      tabs = [],
+      marginTop,
+      marginBottom,
+      animTrigger,
+      animPreset,
+      animLoop,
+      animDuration,
+      animDelay,
+      animEasing,
+    }) {
+      const [activeTab, setActiveTab] = useState(0);
+      const current = tabs[activeTab] || tabs[0] || {};
+
+      return (
+        <AnimationWrapper
+          trigger={animTrigger}
+          preset={animPreset}
+          loop={animLoop}
+          duration={animDuration}
+          delay={animDelay}
+          easing={animEasing}
+          style={{ width: "100%", marginTop, marginBottom }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: tabStyle === "pills" ? 8 : 24,
+              borderBottom: tabStyle === "underline" ? "1px solid #e2e8f0" : "none",
+              marginBottom: 24,
+            }}
+          >
+            {tabs.map((tab, idx) => {
+              const isActive = activeTab === idx;
+              return (
+                <button
+                  key={`tab-${idx}`}
+                  type="button"
+                  onClick={() => setActiveTab(idx)}
+                  style={{
+                    padding: tabStyle === "pills" ? "9px 18px" : "12px 4px",
+                    borderRadius: tabStyle === "pills" ? 10 : 0,
+                    border: "none",
+                    borderBottom:
+                      tabStyle === "underline" && isActive
+                        ? `2px solid ${accentColor || "#4f46e5"}`
+                        : "none",
+                    backgroundColor:
+                      tabStyle === "pills"
+                        ? isActive
+                          ? accentColor || "#4f46e5"
+                          : "#f1f5f9"
+                        : "transparent",
+                    color:
+                      tabStyle === "pills"
+                        ? isActive
+                          ? "#ffffff"
+                          : "#475569"
+                        : isActive
+                        ? accentColor || "#4f46e5"
+                        : "#64748b",
+                    fontWeight: 700,
+                    fontSize: 14,
+                    cursor: "pointer",
+                    transition: "all 150ms ease",
+                  }}
+                >
+                  {tab.title}
+                </button>
+              );
+            })}
+          </div>
+          <div
+            style={{
+              padding: "32px",
+              backgroundColor: "#f8fafc",
+              borderRadius: 16,
+              border: "1px solid #e2e8f0",
+            }}
+          >
+            <h3 style={{ margin: "0 0 12px", fontSize: 22, fontWeight: 700, color: "#0f172a" }}>
+              {current.headline || current.title}
+            </h3>
+            <p style={{ margin: 0, fontSize: 16, lineHeight: 1.7, color: "#475569" }}>
+              {current.content}
+            </p>
+          </div>
+        </AnimationWrapper>
+      );
+    },
+  },
+
+  // ------------------------------------------------------------------------
+  // LOGO CLOUD (PARTNERS)
+  // ------------------------------------------------------------------------
+  LogoCloud: {
+    label: "Logo Cloud / Partners",
+    fields: {
+      headline: textField("Section Eyebrow text"),
+      grayscale: radioField("Monochrome / Grayscale logos", [
+        { label: "Yes (Clean grayscale)", value: true },
+        { label: "No (Original colors)", value: false },
+      ]),
+      opacity: numberField("Logo opacity (%)", 10, 100),
+      logos: {
+        type: "array",
+        label: "Logos list",
+        arrayFields: {
+          name: textField("Company name"),
+          imageUrl: textField("Logo image URL (SVG/PNG)"),
+        },
+        defaultItemProps: {
+          name: "Partner",
+          imageUrl:
+            "https://tailwindui.com/plus/img/logos/158x48/transistor-logo-gray-900.svg",
+        },
+        getItemSummary: (item) => item.name || "Logo",
+      },
+      ...spacingFields,
+      ...animationFields,
+    },
+    defaultProps: {
+      headline: "TRUSTED BY INNOVATIVE TEAMS AT",
+      grayscale: true,
+      opacity: 75,
+      logos: [
+        {
+          name: "Transistor",
+          imageUrl:
+            "https://tailwindui.com/plus/img/logos/158x48/transistor-logo-gray-900.svg",
+        },
+        {
+          name: "Reform",
+          imageUrl:
+            "https://tailwindui.com/plus/img/logos/158x48/reform-logo-gray-900.svg",
+        },
+        {
+          name: "Tuple",
+          imageUrl:
+            "https://tailwindui.com/plus/img/logos/158x48/tuple-logo-gray-900.svg",
+        },
+        {
+          name: "SavvyCal",
+          imageUrl:
+            "https://tailwindui.com/plus/img/logos/158x48/savvycal-logo-gray-900.svg",
+        },
+        {
+          name: "Statamic",
+          imageUrl:
+            "https://tailwindui.com/plus/img/logos/158x48/statamic-logo-gray-900.svg",
+        },
+      ],
+      marginTop: "20px",
+      marginBottom: "28px",
+      ...animationDefaults,
+    },
+    render: ({
+      headline,
+      grayscale,
+      opacity = 75,
+      logos = [],
+      marginTop,
+      marginBottom,
+      animTrigger,
+      animPreset,
+      animLoop,
+      animDuration,
+      animDelay,
+      animEasing,
+    }) => (
+      <AnimationWrapper
+        trigger={animTrigger}
+        preset={animPreset}
+        loop={animLoop}
+        duration={animDuration}
+        delay={animDelay}
+        easing={animEasing}
+        style={{ width: "100%", textAlign: "center", marginTop, marginBottom }}
+      >
+        {headline && (
+          <p
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: 1.5,
+              textTransform: "uppercase",
+              color: "#64748b",
+              marginBottom: 24,
+            }}
+          >
+            {headline}
+          </p>
+        )}
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 40,
+          }}
+        >
+          {logos.map((logo, idx) => (
+            <img
+              key={`logo-${idx}`}
+              src={logo.imageUrl}
+              alt={logo.name || "Partner logo"}
+              style={{
+                height: 38,
+                maxWidth: 160,
+                objectFit: "contain",
+                filter: grayscale ? "grayscale(100%)" : "none",
+                opacity: opacity / 100,
+                transition: "opacity 200ms ease, filter 200ms ease",
+              }}
+              className="hover:!opacity-100 hover:!grayscale-0"
+            />
+          ))}
+        </div>
+      </AnimationWrapper>
+    ),
+  },
+
+  // ------------------------------------------------------------------------
+  // TIMELINE / PROCESS STEPS
+  // ------------------------------------------------------------------------
+  Timeline: {
+    label: "Process Steps / Timeline",
+    fields: {
+      steps: {
+        type: "array",
+        label: "Process steps list",
+        arrayFields: {
+          stepNumber: textField("Step number (e.g. 01)"),
+          title: textField("Step title"),
+          description: textareaField("Step explanation"),
+        },
+        defaultItemProps: {
+          stepNumber: "01",
+          title: "Discovery & Strategy",
+          description: "Deep dive into objectives and market landscape.",
+        },
+        getItemSummary: (item) => `${item.stepNumber}: ${item.title}`,
+      },
+      stepColor: colorField("Step pill background color"),
+      ...spacingFields,
+      ...animationFields,
+    },
+    defaultProps: {
+      steps: [
+        {
+          stepNumber: "01",
+          title: "Strategy & Architecture",
+          description: "Mapping core conversion funnels, data schemas, and user journeys.",
+        },
+        {
+          stepNumber: "02",
+          title: "High-Fidelity Design",
+          description:
+            "Crafting bespoke design systems, typographic hierarchies, and micro-interactions.",
+        },
+        {
+          stepNumber: "03",
+          title: "Visual Assembly",
+          description:
+            "Constructing modular pages using the visual builder engine with live preview.",
+        },
+        {
+          stepNumber: "04",
+          title: "Global Launch",
+          description: "Sub-second CDN propagation, performance validation, and domain activation.",
+        },
+      ],
+      stepColor: "#4f46e5",
+      marginTop: "24px",
+      marginBottom: "32px",
+      ...animationDefaults,
+    },
+    render: ({
+      steps = [],
+      stepColor,
+      marginTop,
+      marginBottom,
+      animTrigger,
+      animPreset,
+      animLoop,
+      animDuration,
+      animDelay,
+      animEasing,
+    }) => (
+      <AnimationWrapper
+        trigger={animTrigger}
+        preset={animPreset}
+        loop={animLoop}
+        duration={animDuration}
+        delay={animDelay}
+        easing={animEasing}
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(auto-fit, minmax(240px, 1fr))`,
+          gap: 28,
+          width: "100%",
+          marginTop,
+          marginBottom,
+        }}
+      >
+        {steps.map((st, idx) => (
+          <div
+            key={`step-${idx}`}
+            style={{
+              position: "relative",
+              padding: "28px 24px",
+              backgroundColor: "#f8fafc",
+              borderRadius: 16,
+              border: "1px solid #e2e8f0",
+            }}
+          >
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 38,
+                height: 38,
+                borderRadius: 10,
+                backgroundColor: stepColor || "#4f46e5",
+                color: "#ffffff",
+                fontSize: 14,
+                fontWeight: 800,
+                marginBottom: 16,
+              }}
+            >
+              {st.stepNumber || `0${idx + 1}`}
+            </div>
+            <h4 style={{ margin: "0 0 10px", fontSize: 18, fontWeight: 700, color: "#0f172a" }}>
+              {st.title}
+            </h4>
+            <p style={{ margin: 0, fontSize: 14, color: "#64748b", lineHeight: 1.6 }}>
+              {st.description}
+            </p>
+          </div>
+        ))}
+      </AnimationWrapper>
+    ),
+  },
+
+  // ------------------------------------------------------------------------
+  // TEAM MEMBER
+  // ------------------------------------------------------------------------
+  TeamMember: {
+    label: "Team Member Card",
+    fields: {
+      name: textField("Full name"),
+      role: textField("Designation / Role"),
+      bio: textareaField("Short bio"),
+      avatarUrl: textField("Photo URL"),
+      socialTwitter: textField("Twitter/X profile URL"),
+      socialLinkedIn: textField("LinkedIn profile URL"),
+      socialGitHub: textField("GitHub profile URL"),
+      backgroundColor: colorField("Card background"),
+      borderRadius: selectField("Corner radius", RADIUS_OPTIONS),
+      hoverEffect: selectField("Hover micro-animation", HOVER_EFFECT_OPTIONS),
+      ...spacingFields,
+      ...animationFields,
+    },
+    defaultProps: {
+      name: "Alex Rivera",
+      role: "Principal Product Architect",
+      bio: "Former design director at Vercel. Obsessed with sub-second interfaces and typographic rigor.",
+      avatarUrl:
+        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80",
+      socialTwitter: "https://twitter.com",
+      socialLinkedIn: "https://linkedin.com",
+      socialGitHub: "https://github.com",
+      backgroundColor: "#ffffff",
+      borderRadius: 18,
+      hoverEffect: "lift-md",
+      marginTop: "16px",
+      marginBottom: "24px",
+      ...animationDefaults,
+    },
+    render: ({
+      name,
+      role,
+      bio,
+      avatarUrl,
+      socialTwitter,
+      socialLinkedIn,
+      socialGitHub,
+      backgroundColor,
+      borderRadius,
+      hoverEffect,
+      marginTop,
+      marginBottom,
+      animTrigger,
+      animPreset,
+      animLoop,
+      animDuration,
+      animDelay,
+      animEasing,
+    }) => (
+      <AnimationWrapper
+        trigger={animTrigger}
+        preset={animPreset}
+        loop={animLoop}
+        duration={animDuration}
+        delay={animDelay}
+        easing={animEasing}
+        className={getHoverClass(hoverEffect)}
+        style={{
+          boxSizing: "border-box",
+          backgroundColor: backgroundColor || "#ffffff",
+          borderRadius: `${borderRadius}px`,
+          overflow: "hidden",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
+          marginTop,
+          marginBottom,
+        }}
+      >
+        {avatarUrl && (
+          <div style={{ width: "100%", aspectRatio: "1 / 1", overflow: "hidden" }}>
+            <img
+              src={avatarUrl}
+              alt={name}
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            />
+          </div>
+        )}
+        <div style={{ padding: 24 }}>
+          <h4 style={{ margin: "0 0 4px", fontSize: 19, fontWeight: 700, color: "#0f172a" }}>
+            {name}
+          </h4>
+          <p style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 600, color: "#4f46e5" }}>
+            {role}
+          </p>
+          {bio && (
+            <p style={{ margin: "0 0 16px", fontSize: 14, color: "#64748b", lineHeight: 1.6 }}>
+              {bio}
+            </p>
+          )}
+          <div style={{ display: "flex", gap: 12 }}>
+            {socialTwitter && (
+              <a
+                href={socialTwitter}
+                target="_blank"
+                rel="noreferrer"
+                style={{ color: "#64748b", fontSize: 13, textDecoration: "none" }}
+              >
+                Twitter
+              </a>
+            )}
+            {socialLinkedIn && (
+              <a
+                href={socialLinkedIn}
+                target="_blank"
+                rel="noreferrer"
+                style={{ color: "#64748b", fontSize: 13, textDecoration: "none" }}
+              >
+                LinkedIn
+              </a>
+            )}
+            {socialGitHub && (
+              <a
+                href={socialGitHub}
+                target="_blank"
+                rel="noreferrer"
+                style={{ color: "#64748b", fontSize: 13, textDecoration: "none" }}
+              >
+                GitHub
+              </a>
+            )}
+          </div>
+        </div>
+      </AnimationWrapper>
+    ),
+  },
+
+  // ------------------------------------------------------------------------
+  // COUNTDOWN TIMER
+  // ------------------------------------------------------------------------
+  Countdown: {
+    label: "Countdown Timer (Urgency)",
+    fields: {
+      headline: textField("Urgency title"),
+      targetDays: numberField("Days remaining", 0, 365),
+      targetHours: numberField("Hours remaining", 0, 23),
+      targetMinutes: numberField("Minutes remaining", 0, 59),
+      targetSeconds: numberField("Seconds remaining", 0, 59),
+      boxBg: colorField("Timer boxes background"),
+      boxColor: colorField("Timer digits color"),
+      ...spacingFields,
+      ...animationFields,
+    },
+    defaultProps: {
+      headline: "EXCLUSIVE EARLY ACCESS CLOSES IN:",
+      targetDays: 4,
+      targetHours: 18,
+      targetMinutes: 32,
+      targetSeconds: 45,
+      boxBg: "#0f172a",
+      boxColor: "#ffffff",
+      marginTop: "16px",
+      marginBottom: "24px",
+      ...animationDefaults,
+    },
+    render: ({
+      headline,
+      targetDays = 4,
+      targetHours = 18,
+      targetMinutes = 32,
+      targetSeconds = 45,
+      boxBg,
+      boxColor,
+      marginTop,
+      marginBottom,
+      animTrigger,
+      animPreset,
+      animLoop,
+      animDuration,
+      animDelay,
+      animEasing,
+    }) => {
+      const units = [
+        { val: targetDays, label: "Days" },
+        { val: targetHours, label: "Hours" },
+        { val: targetMinutes, label: "Mins" },
+        { val: targetSeconds, label: "Secs" },
+      ];
+
+      return (
+        <AnimationWrapper
+          trigger={animTrigger}
+          preset={animPreset}
+          loop={animLoop}
+          duration={animDuration}
+          delay={animDelay}
+          easing={animEasing}
+          style={{ width: "100%", textAlign: "center", marginTop, marginBottom }}
+        >
+          {headline && (
+            <p
+              style={{
+                fontSize: 12,
+                fontWeight: 800,
+                letterSpacing: 1.5,
+                textTransform: "uppercase",
+                color: "#64748b",
+                marginBottom: 16,
+              }}
+            >
+              {headline}
+            </p>
+          )}
+          <div style={{ display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap" }}>
+            {units.map((u, idx) => (
+              <div
+                key={`unit-${idx}`}
+                style={{
+                  minWidth: 72,
+                  padding: "16px 14px",
+                  borderRadius: 14,
+                  backgroundColor: boxBg || "#0f172a",
+                  color: boxColor || "#ffffff",
+                  boxShadow: "0 8px 20px -4px rgba(0,0,0,0.15)",
+                }}
+              >
+                <div style={{ fontSize: 32, fontWeight: 800, lineHeight: 1 }}>{u.val}</div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    textTransform: "uppercase",
+                    letterSpacing: 1,
+                    opacity: 0.7,
+                    marginTop: 6,
+                  }}
+                >
+                  {u.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        </AnimationWrapper>
+      );
+    },
+  },
+};
+
+// Aliases for backward compatibility with templates that might reference Features
+marketingComponents.Features = marketingComponents.FeatureCard;

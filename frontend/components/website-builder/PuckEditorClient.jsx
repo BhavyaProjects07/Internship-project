@@ -1,4 +1,4 @@
-﻿
+
 "use client";
 
 import {
@@ -238,10 +238,20 @@ useEffect(() => {
     setGlobalLayoutError("");
 
     try {
-      const token = await getToken();
+      let token = null;
+      try {
+        token = typeof getToken === "function" ? await getToken() : null;
+      } catch {
+        token = null;
+      }
 
-      if (!token) {
+      if (!token && process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
         throw new Error("Authentication token unavailable.");
+      }
+
+      const headers = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
       }
 
       const response = await fetch(
@@ -249,9 +259,7 @@ useEffect(() => {
           templateId
         )}/global-layout`,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers,
           cache: "no-store",
         }
       );
@@ -339,10 +347,20 @@ useEffect(() => {
       latestEditorSerializedRef.current = "";
 
       try {
-        const token = await getToken();
+        let token = null;
+        try {
+          token = typeof getToken === "function" ? await getToken() : null;
+        } catch {
+          token = null;
+        }
 
-        if (!token) {
+        if (!token && process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
           throw new Error("Authentication token unavailable.");
+        }
+
+        const headers = {};
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
         }
 
         const response = await fetch(
@@ -350,9 +368,7 @@ useEffect(() => {
             templateId
           )}/pages/${encodeURIComponent(pageId)}/editor-data`,
           {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            headers,
             cache: "no-store",
           }
         );
@@ -400,8 +416,16 @@ useEffect(() => {
     if (templateId && pageId && getToken) {
       void loadDocument();
     } else {
-      setData(null);
-      setError("Template ID, page ID, or authentication is missing.");
+      const timer = setTimeout(() => {
+        if (!cancelled) {
+          setData(null);
+          setError("Template ID, page ID, or authentication is missing.");
+        }
+      }, 0);
+      return () => {
+        cancelled = true;
+        clearTimeout(timer);
+      };
     }
 
     return () => {
@@ -475,10 +499,22 @@ useEffect(() => {
       setRetryDocument(null);
 
       try {
-        const token = await getToken();
+        let token = null;
+        try {
+          token = typeof getToken === "function" ? await getToken() : null;
+        } catch {
+          token = null;
+        }
 
-        if (!token) {
+        if (!token && process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
           throw new Error("Authentication token unavailable.");
+        }
+
+        const headers = {
+          "Content-Type": "application/json",
+        };
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
         }
 
         const response = await fetch(
@@ -487,10 +523,7 @@ useEffect(() => {
           )}/pages/${encodeURIComponent(pageId)}/editor-data`,
           {
             method: "PUT",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify({
               editorData: document,
             }),
@@ -614,10 +647,22 @@ const saveGlobalLayout = useCallback(async () => {
   setGlobalLayoutSaved(false);
 
   try {
-    const token = await getToken();
+    let token = null;
+    try {
+      token = typeof getToken === "function" ? await getToken() : null;
+    } catch {
+      token = null;
+    }
 
-    if (!token) {
+    if (!token && process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
       throw new Error("Authentication token unavailable.");
+    }
+
+    const headers = {
+      "Content-Type": "application/json",
+    };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
     }
 
     const response = await fetch(
@@ -626,10 +671,7 @@ const saveGlobalLayout = useCallback(async () => {
       )}/global-layout`,
       {
         method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({ globalLayout }),
       }
     );
@@ -828,7 +870,7 @@ const saveGlobalLayout = useCallback(async () => {
                 <div style={{ padding: 16, display: "grid", gap: 16 }}>
                   <div className="studio-panel-heading">
                     <h3>Global Header & Footer</h3>
-                    <p>These settings are shared across the template's pages.</p>
+                    <p>These settings are shared across the template&apos;s pages.</p>
                   </div>
 
                   {globalLayoutLoading ? (

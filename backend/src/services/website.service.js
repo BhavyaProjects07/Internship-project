@@ -286,46 +286,51 @@ const createWebsiteFromTemplate = async ({
     throw httpError("Template not found", 404);
   }
 
-  return prisma.$transaction(async (tx) => {
-    const slug = await makeUniqueWebsiteSlug(
-      name.trim(),
-      tx
-    );
+  
+  return prisma.$transaction(
+    async (tx) => {
+      const slug = await makeUniqueWebsiteSlug(
+        name.trim(),
+        tx
+      );
 
-    return tx.website.create({
-      data: {
-        name: name.trim(),
-        slug,
-        userId,
-        templateId: template.id,
-        theme: template.theme ?? undefined,
+      return tx.website.create({
+        data: {
+          name: name.trim(),
+          slug,
+          userId,
+          templateId: template.id,
+          theme: template.theme ?? undefined,
 
-        pages: {
-          create: template.pages.map((page, index) => ({
-            name: page.name,
-            slug:
-              page.slug ||
-              (index === 0 ? "home" : `page-${index + 1}`),
-            order: page.order ?? index,
+          pages: {
+            create: template.pages.map((page, index) => ({
+              name: page.name,
+              slug:
+                page.slug ||
+                (index === 0 ? "home" : `page-${index + 1}`),
+              order: page.order ?? index,
+              editorData: page.editorData ?? undefined,
 
-            editorData: page.editorData ?? undefined,
-
-            sections: {
-              create: (page.sections || []).map(
-                (section) => ({
+              sections: {
+                create: (page.sections || []).map((section) => ({
                   type: section.type,
                   order: section.order,
                   content: section.content,
                   config: section.config ?? undefined,
-                })
-              ),
-            },
-          })),
+                })),
+              },
+            })),
+          },
         },
-      },
-      include: websiteInclude,
-    });
-  });
+        include: websiteInclude,
+      });
+    },
+    {
+      maxWait: 10000,
+      timeout: 15000,
+    }
+  );
+
 };
 
 const getWebsiteById = async (id, userId) => {

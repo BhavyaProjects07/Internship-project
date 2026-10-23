@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import SectionRenderer from "@/components/sections/SectionRenderer";
 import { DEFAULT_THEME } from "@/lib/theme";
+import PuckPublicRenderer from "@/components/website-builder/PuckPublicRenderer";
 
 async function getPublishedWebsite(slug) {
   try {
@@ -110,18 +111,28 @@ export default async function PublicWebsitePage({ params }) {
     "--color-error": colors.error,
   };
 
+  const hasPuckDocument =
+    homePage.editorData &&
+    typeof homePage.editorData === "object" &&
+    Array.isArray(homePage.editorData.content) &&
+    homePage.editorData.content.length > 0;
+
   return (
     <div
       style={themeVars}
       className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)]"
     >
-      {sections.map((section) => (
-        <SectionRenderer
-          key={section.id}
-          section={section}
-          websiteSlug={slug}
-        />
-      ))}
+      {hasPuckDocument ? (
+        <PuckPublicRenderer data={homePage.editorData} />
+      ) : (
+        sections.map((section) => (
+          <SectionRenderer
+            key={section.id}
+            section={section}
+            websiteSlug={slug}
+          />
+        ))
+      )}
     </div>
   );
 }
