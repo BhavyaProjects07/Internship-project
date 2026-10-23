@@ -7,6 +7,9 @@ import {
   deleteWebsiteSection,
   saveWebsiteDraftAction,
   publishWebsiteAction,
+  createWebsitePageAction,
+  updateWebsitePageAction,
+  deleteWebsitePageAction,
 } from "@/app/builder/actions";
 import SectionRenderer from "@/components/sections/SectionRenderer";
 import BuilderProperties from "./BuilderProperties";
@@ -63,6 +66,13 @@ function generateFingerprint(draft) {
   return JSON.stringify(canonicalize(payload));
 }
 
+function generateUniqueId() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
+}
+
 export default function Builder({ website }) {
   // --------------------------------
   // State
@@ -88,7 +98,7 @@ export default function Builder({ website }) {
   const [isWebsiteDirty, setIsWebsiteDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
-  
+  const [isPageActionInProgress, setIsPageActionInProgress] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishInfo, setPublishInfo] = useState({
     isPublished: website.isPublished,
@@ -305,7 +315,7 @@ export default function Builder({ website }) {
     );
 
     // Generate a temporary local ID
-    const tempSectionId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const tempSectionId = `temp_${generateUniqueId()}`;
     const nextOrder = selectedPage.sections ? selectedPage.sections.length + 1 : 1;
 
     const newSection = {
@@ -562,6 +572,152 @@ export default function Builder({ website }) {
       setIsPublishing(false);
     }
   };
+
+  
+  const createPage = async () => {
+    if (isPageActionInProgress || isSaving || isPublishing) return;
+
+    const name = window.prompt("Enter the new page name:");
+    if (!name?.trim()) return;
+
+    try {
+      setIsPageActionInProgress(true);
+      setSaveMessage("Creating page...");
+
+      // Preserve pending edits before changing the page structure.
+      const hasUnsavedChanges =
+        generateFingerprint(latestDraftWebsiteRef.current) !==
+          lastSavedFingerprint.current ||
+        isWebsiteDirty ||
+        dirtyPageIds.length > 0 ||
+        dirtySectionIds.length > 0;
+
+      if (hasUnsavedChanges) {
+        const saved = await saveChanges();
+        if (!saved) throw new Error("Save your current changes before creating a page.");
+      }
+
+      const result = await createWebsitePageAction(draftWebsite.id, {
+        name: name.trim(),
+      });
+
+      if (!result.success) throw new Error(result.message);
+
+      const newPage = result.data;
+      if (!newPage?.id) throw new Error("The server did not return the created page.");
+
+      setDraftWebsite((current) => ({
+        ...current,
+        pages: [...current.pages, { ...newPage, sections: newPage.sections || [] }],
+      }));
+
+      setSelectedPageId(newPage.id);
+      setSelectedSectionId(null);
+      setSelectedElement(null);
+      setLeftTab("pages");
+      setSaveMessage("Page created successfully");
+    } catch (error) {
+      console.error("Create page error:", error);
+      setSaveMessage(error.message || "Failed to create page");
+    } finally {
+      setIsPageActionInProgress(false);
+    }
+  };
+
+  const renamePage = async (page) => {
+    if (isPageActionInProgress || isSaving || isPublishing) return;
+
+    const name = window.prompt("Enter the new page name:", page.name);
+    if (!name?.trim() || name.trim() === page.name) return;
+
+    try {
+      setIsPageActionInProgress(true);
+      setSaveMessage("Renaming page...");
+
+      const result = await updateWebsitePageAction(page.id, {
+        name: name.trim(),
+      });
+
+      if (!result.success) throw new Error(result.message);
+
+      const updatedPage = result.data;
+
+      setDraftWebsite((current) => ({
+        ...current,
+        pages: current.pages.map((item) =>
+          item.id === page.id
+            ? { ...item, ...updatedPage, sections: item.sections }
+            : item
+        ),
+      }));
+
+      setSaveMessage("Page renamed successfully");
+    } catch (error) {
+      console.error("Rename page error:", error);
+      setSaveMessage(error.message || "Failed to rename page");
+    } finally {
+      setIsPageActionInProgress(false);
+    }
+  };
+
+  const deletePage = async (page) => {
+    if (isPageActionInProgress || isSaving || isPublishing) return;
+
+    if (draftWebsite.pages.length <= 1) {
+      setSaveMessage("A website must have at least one page");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete "${page.name}" and all its sections? This cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    try {
+      setIsPageActionInProgress(true);
+      setSaveMessage("Deleting page...");
+
+      const hasUnsavedChanges =
+        generateFingerprint(latestDraftWebsiteRef.current) !==
+          lastSavedFingerprint.current ||
+        isWebsiteDirty ||
+        dirtyPageIds.length > 0 ||
+        dirtySectionIds.length > 0;
+
+      if (hasUnsavedChanges) {
+        const saved = await saveChanges();
+        if (!saved) throw new Error("Save your current changes before deleting a page.");
+      }
+
+      const result = await deleteWebsitePageAction(page.id);
+      if (!result.success) throw new Error(result.message);
+
+      const remainingPages = draftWebsite.pages.filter(
+        (item) => item.id !== page.id
+      );
+
+      setDraftWebsite((current) => ({
+        ...current,
+        pages: current.pages.filter((item) => item.id !== page.id),
+      }));
+
+      if (selectedPageId === page.id) {
+        const nextPage = remainingPages[0];
+        setSelectedPageId(nextPage.id);
+        setSelectedSectionId(null);
+        setSelectedElement(null);
+      }
+
+      setSaveMessage("Page deleted successfully");
+    } catch (error) {
+      console.error("Delete page error:", error);
+      setSaveMessage(error.message || "Failed to delete page");
+    } finally {
+      setIsPageActionInProgress(false);
+    }
+  };
+
+
 
   // --------------------------------
   // Keyboard Shortcuts (Cmd+S, Esc)
@@ -1024,41 +1180,88 @@ export default function Builder({ website }) {
             )}
 
             {/* Tab 2: Pages List */}
-            {leftTab === "pages" && (
-              <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
-                <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-neutral-400">
-                  Site Hierarchy
-                </div>
-                {draftWebsite.pages.map((page) => {
-                  const isSelected = page.id === selectedPageId;
-                  return (
-                    <button
-                      key={page.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedPageId(page.id);
-                        setSelectedSectionId(null);
-                        setSelectedElement(null);
-                      }}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left text-xs font-semibold transition-all ${isSelected
-                          ? "bg-neutral-900 text-white shadow-xs"
-                          : "text-neutral-700 hover:bg-neutral-100"
-                        }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <svg className="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                        <span>{page.name}</span>
-                      </div>
-                      <span className={`text-[10px] font-mono ${isSelected ? 'text-neutral-400' : 'text-neutral-400'}`}>
-                        /{page.slug || 'home'}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            
+  {/* Tab 2: Pages List */}
+  {leftTab === "pages" && (
+    <div className="flex-1 overflow-y-auto p-3 space-y-2">
+      <div className="flex items-center justify-between px-2 py-1">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">
+          Site Hierarchy
+        </span>
+
+        <button
+          type="button"
+          onClick={createPage}
+          disabled={isPageActionInProgress || isSaving || isPublishing}
+          className="rounded-md bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
+        >
+          + Add Page
+        </button>
+      </div>
+
+      {draftWebsite.pages.map((page) => {
+        const isSelected = page.id === selectedPageId;
+
+        return (
+          <div
+            key={page.id}
+            className={`rounded-lg border ${
+              isSelected
+                ? "border-neutral-800 bg-neutral-900 text-white"
+                : "border-neutral-200 bg-white text-neutral-700"
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedPageId(page.id);
+                setSelectedSectionId(null);
+                setSelectedElement(null);
+              }}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left text-xs font-semibold"
+            >
+              <span className="truncate">{page.name}</span>
+              <span className="shrink-0 text-[10px] font-mono opacity-60">
+                /{page.slug || "home"}
+              </span>
+            </button>
+
+            <div className="flex gap-2 px-3 pb-2">
+              <button
+                type="button"
+                onClick={() => renamePage(page)}
+                disabled={isPageActionInProgress || isSaving || isPublishing}
+                className="text-[11px] font-medium text-blue-500 hover:underline disabled:opacity-50"
+              >
+                Rename
+              </button>
+
+              <button
+                type="button"
+                onClick={() => deletePage(page)}
+                disabled={
+                  draftWebsite.pages.length <= 1 ||
+                  isPageActionInProgress ||
+                  isSaving ||
+                  isPublishing
+                }
+                className="text-[11px] font-medium text-red-500 hover:underline disabled:opacity-40"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        );
+      })}
+
+      {isPageActionInProgress && (
+        <p className="px-2 py-1 text-xs text-neutral-500">
+          Updating pages...
+        </p>
+      )}
+    </div>
+  )}
+
 
             {showSectionLibrary && (
               <SectionLibrary
@@ -1160,6 +1363,15 @@ export default function Builder({ website }) {
             }}
             onClearElement={() => setSelectedElement(null)}
             onElementSelect={handleElementSelect}
+
+            websiteId={draftWebsite.id}
+            pages={draftWebsite.pages || []}
+            onPageCreated={(page) => {
+            setDraftWebsite((current) => ({
+            ...current,
+            pages: [...(current.pages || []), page],
+            }));
+            }}
           />
         )}
       </div>

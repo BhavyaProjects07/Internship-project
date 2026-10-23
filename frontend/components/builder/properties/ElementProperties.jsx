@@ -6,6 +6,13 @@ import TypographyProperties from "./TypographyProperties";
 import ColorProperties from "./ColorProperties";
 import ImageProperties from "./ImageProperties";
 import ButtonProperties from "./ButtonProperties";
+import { createWebsitePageAction } from "@/app/builder/actions";
+function generateUniqueId() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
+}
 
 /**
  * ============================================================
@@ -28,6 +35,9 @@ function ElementPropertiesInner({
   section,
   selectedElement,
   onChange,
+   websiteId,
+  pages = [],
+  onPageCreated,
 }) {
   const content = section.content || {};
   const sectionType = section.type;
@@ -63,7 +73,7 @@ function ElementPropertiesInner({
     const arr = Array.isArray(content[arrayPath])
       ? [...content[arrayPath]]
       : [];
-    const uniqueId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36);
+    const uniqueId = generateUniqueId();
     arr.push({ ...defaultItem, id: `item-${uniqueId}` });
     updateContentField(arrayPath, arr);
   };
@@ -102,92 +112,257 @@ function ElementPropertiesInner({
   const parts = elementId.split(".");
   const isArrayItem = parts.length >= 2 && elementDef._isArrayItem;
 
-  if (isArrayItem) {
-    const arrayPath = parts[0];
-    const arrayIndex = Number(parts[1]);
-    const items = Array.isArray(content[arrayPath])
-      ? content[arrayPath]
-      : [];
-    const item = items[arrayIndex];
+  
+if (isArrayItem) {
+  const arrayPath = parts[0];
+  const arrayIndex = Number(parts[1]);
 
-    if (!item) {
-      return (
-        <div className="p-5 text-xs text-neutral-400 text-center">
-          Item not found at index {arrayIndex}
-        </div>
-      );
-    }
+  const items = Array.isArray(content[arrayPath])
+    ? content[arrayPath]
+    : [];
 
-    const subSchema = elementDef.arrayItemSchema || [];
+  const item = items[arrayIndex];
 
+  if (!item) {
     return (
-      <div className="p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">
-            {elementDef.label} #{arrayIndex + 1}
-          </span>
-          <button
-            type="button"
-            onClick={() => removeArrayItem(arrayPath, arrayIndex)}
-            className="text-xs text-red-500 hover:text-red-700 font-medium"
-          >
-            Remove
-          </button>
-        </div>
-
-        {/* If array item supports typography, we can pass it down as well. Wait, TypographyProperties handles current element ID natively (e.g., 'services.0.title'). But ElementProperties for arrays loops over sub-fields. 
-            Actually, the user selects 'services', not 'services.0.title'. Let's rethink. */}
-        {subSchema.map((sub) => (
-          <div key={sub.field}>
-            <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
-              {sub.label}
-            </label>
-            {sub.type === ELEMENT_TYPES.IMAGE ? (
-              <ImageProperties
-                image={item}
-                srcField={sub.field}
-                onChange={(updatedItem) => {
-                  const arr = Array.isArray(content[arrayPath]) ? [...content[arrayPath]] : [];
-                  arr[arrayIndex] = updatedItem;
-                  updateContentField(arrayPath, arr);
-                }}
-              />
-            ) : sub.type === ELEMENT_TYPES.PARAGRAPH && sub.field === 'alt' && elementDef.arrayItemSchema.some(s => s.type === ELEMENT_TYPES.IMAGE) ? (
-              null // Alt is handled by ImageProperties for images
-            ) : sub.type === ELEMENT_TYPES.PARAGRAPH ? (
-              <textarea
-                rows={2}
-                value={item[sub.field] || ""}
-                onChange={(e) =>
-                  updateArrayItem(
-                    arrayPath,
-                    arrayIndex,
-                    sub.field,
-                    e.target.value
-                  )
-                }
-                className="w-full resize-none rounded-lg border border-neutral-300 bg-white px-3 py-2 text-xs text-neutral-900 outline-none focus:border-blue-600"
-              />
-            ) : (
-              <input
-                type="text"
-                value={item[sub.field] || ""}
-                onChange={(e) =>
-                  updateArrayItem(
-                    arrayPath,
-                    arrayIndex,
-                    sub.field,
-                    e.target.value
-                  )
-                }
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-xs text-neutral-900 outline-none focus:border-blue-600"
-              />
-            )}
-          </div>
-        ))}
+      <div className="p-5 text-xs text-neutral-400 text-center">
+        Item not found at index {arrayIndex}
       </div>
     );
   }
+
+  const subSchema = elementDef.arrayItemSchema || [];
+  const isNavigationItem =
+    elementType === ELEMENT_TYPES.NAV_ITEM;
+
+  const updateItemField = (field, value) => {
+    updateArrayItem(arrayPath, arrayIndex, field, value);
+  };
+
+  const updateNavigationType = (linkType) => {
+    const updatedItems = [...items];
+
+    updatedItems[arrayIndex] = {
+      ...updatedItems[arrayIndex],
+      linkType,
+      ...(linkType === "page"
+        ? {}
+        : { pageId: "" }),
+    };
+
+    updateContentField(arrayPath, updatedItems);
+  };
+
+  const selectPage = (pageId) => {
+    const page = pages.find(
+      (p) => p.id === pageId
+    );
+
+    const updatedItems = [...items];
+
+    updatedItems[arrayIndex] = {
+      ...updatedItems[arrayIndex],
+      pageId: page?.id || "",
+      link: page ? `/${page.slug}` : "",
+    };
+
+    updateContentField(arrayPath, updatedItems);
+  };
+
+  const createPage = async () => {
+    const name = window.prompt("Enter the new page name:");
+
+    if (!name?.trim()) return;
+
+    if (!websiteId) {
+      window.alert("Website ID is missing.");
+      return;
+    }
+
+    try {
+      const result = await createWebsitePageAction(
+        websiteId,
+        { name: name.trim() }
+      );
+
+      if (!result?.success) {
+        window.alert(
+          result?.message || "Failed to create page."
+        );
+        return;
+      }
+
+      const page = result.data;
+
+      if (!page?.id || !page?.slug) {
+        window.alert(
+          "The server did not return valid page data."
+        );
+        return;
+      }
+
+      const updatedItems = [...items];
+
+      updatedItems[arrayIndex] = {
+        ...updatedItems[arrayIndex],
+        label:
+          updatedItems[arrayIndex].label || page.name,
+        linkType: "page",
+        pageId: page.id,
+        link: `/${page.slug}`,
+      };
+
+      updateContentField(arrayPath, updatedItems);
+      onPageCreated?.(page);
+    } catch (error) {
+      console.error("Create page failed:", error);
+      window.alert(
+        "Could not create page. Check the browser console."
+      );
+    }
+  };
+
+  return (
+    <div className="p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+          {elementDef.label} #{arrayIndex + 1}
+        </span>
+
+        <button
+          type="button"
+          onClick={() =>
+            removeArrayItem(arrayPath, arrayIndex)
+          }
+          className="text-xs text-red-500 hover:text-red-700 font-medium"
+        >
+          Remove
+        </button>
+      </div>
+
+      {subSchema.map((sub) => {
+        if (
+          isNavigationItem &&
+          sub.field === "pageId"
+        ) {
+          return (
+            <div key={sub.field}>
+              <label className="block text-[11px] text-neutral-500 mb-1">
+                Linked Page
+              </label>
+
+              <select
+                value={item.pageId || ""}
+                disabled={item.linkType !== "page"}
+                onChange={(e) =>
+                  selectPage(e.target.value)
+                }
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs text-neutral-900 disabled:opacity-50"
+              >
+                <option value="">Select a page</option>
+
+                {pages.map((page) => (
+                  <option
+                    key={page.id}
+                    value={page.id}
+                  >
+                    {page.name}
+                  </option>
+                ))}
+              </select>
+
+              {item.linkType === "page" && (
+                <button
+                  type="button"
+                  onClick={createPage}
+                  className="mt-2 text-xs font-semibold text-blue-600 hover:text-blue-800"
+                >
+                  + Create New Page
+                </button>
+              )}
+            </div>
+          );
+        }
+
+        if (
+          isNavigationItem &&
+          sub.field === "linkType"
+        ) {
+          return (
+            <div key={sub.field}>
+              <label className="block text-[11px] text-neutral-500 mb-1">
+                Link Type
+              </label>
+
+              <select
+                value={item.linkType || "anchor"}
+                onChange={(e) =>
+                  updateNavigationType(e.target.value)
+                }
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs text-neutral-900"
+              >
+                <option value="page">Internal Page</option>
+                <option value="anchor">Section Anchor</option>
+                <option value="external">External URL</option>
+              </select>
+            </div>
+          );
+        }
+
+        if (
+          isNavigationItem &&
+          sub.field === "link"
+        ) {
+          return (
+            <div key={sub.field}>
+              <label className="block text-[11px] text-neutral-500 mb-1">
+                {sub.label}
+              </label>
+
+              <input
+                type="text"
+                value={item.link || ""}
+                readOnly={item.linkType === "page"}
+                onChange={(e) =>
+                  updateItemField("link", e.target.value)
+                }
+                placeholder={
+                  item.linkType === "page"
+                    ? "Select a page above"
+                    : item.linkType === "external"
+                      ? "https://example.com"
+                      : "#services"
+                }
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs text-neutral-900 read-only:bg-neutral-100"
+              />
+            </div>
+          );
+        }
+
+        return (
+          <div key={sub.field}>
+            <label className="block text-[11px] text-neutral-500 mb-1">
+              {sub.label}
+            </label>
+
+            <input
+              type="text"
+              value={item[sub.field] || ""}
+              onChange={(e) =>
+                updateItemField(
+                  sub.field,
+                  e.target.value
+                )
+              }
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs text-neutral-900"
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 
   // ============================================================
   // NON-ARRAY ELEMENTS
@@ -390,54 +565,203 @@ function ElementPropertiesInner({
               </button>
             </div>
 
-            {subSchema.map((sub) => (
-              <div key={sub.field}>
-                <label className="block text-[11px] text-neutral-500 mb-1">
-                  {sub.label}
-                </label>
-                {sub.type === ELEMENT_TYPES.IMAGE ? (
-                  <ImageProperties
-                    image={item}
-                    srcField={sub.field}
-                    onChange={(updatedItem) => {
-                      const arr = [...items];
-                      arr[idx] = updatedItem;
-                      updateContentField(elementDef.contentPath, arr);
-                    }}
-                  />
-                ) : sub.type === ELEMENT_TYPES.PARAGRAPH && sub.field === 'alt' && elementDef.arrayItemSchema.some(s => s.type === ELEMENT_TYPES.IMAGE) ? (
-                  null // Alt is handled by ImageProperties for images
-                ) : sub.type === ELEMENT_TYPES.PARAGRAPH ? (
-                  <textarea
-                    rows={2}
-                    value={item[sub.field] || ""}
-                    onChange={(e) =>
-                      updateArrayItem(
-                        elementDef.contentPath,
-                        idx,
-                        sub.field,
-                        e.target.value
-                      )
-                    }
-                    className="w-full resize-none rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs text-neutral-900 outline-none focus:border-blue-600"
-                  />
-                ) : (
-                  <input
-                    type="text"
-                    value={item[sub.field] || ""}
-                    onChange={(e) =>
-                      updateArrayItem(
-                        elementDef.contentPath,
-                        idx,
-                        sub.field,
-                        e.target.value
-                      )
-                    }
-                    className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs text-neutral-900 outline-none focus:border-blue-600"
-                  />
-                )}
-              </div>
-            ))}
+            
+            
+{subSchema.map((sub) => {
+  if (
+    elementType === ELEMENT_TYPES.NAV_ITEM &&
+    sub.field === "linkType"
+  ) {
+    return (
+      <div key={sub.field}>
+        <label className="block text-[11px] text-neutral-500 mb-1">
+          Link Type
+        </label>
+        <select
+          value={item.linkType || "anchor"}
+          onChange={(e) =>
+            updateArrayItem(
+              elementDef.contentPath,
+              idx,
+              "linkType",
+              e.target.value
+            )
+          }
+          className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs text-neutral-900"
+        >
+          <option value="page">Internal Page</option>
+          <option value="anchor">Section Anchor</option>
+          <option value="external">External URL</option>
+        </select>
+      </div>
+    );
+  }
+
+  if (
+    elementType === ELEMENT_TYPES.NAV_ITEM &&
+    sub.field === "pageId"
+  ) {
+    return (
+      <div key={sub.field}>
+        <label className="block text-[11px] text-neutral-500 mb-1">
+          Linked Page
+        </label>
+        <select
+          value={item.pageId || ""}
+          disabled={item.linkType !== "page"}
+          onChange={(e) => {
+            const page = pages.find(
+              (p) => p.id === e.target.value
+            );
+
+            if (!page) return;
+
+            const updatedItems = [...items];
+            updatedItems[idx] = {
+              ...updatedItems[idx],
+              pageId: page.id,
+              link: `/${page.slug}`,
+            };
+
+            updateContentField(
+              elementDef.contentPath,
+              updatedItems
+            );
+          }}
+          className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs text-neutral-900 disabled:opacity-50"
+        >
+          <option value="">Select a page</option>
+          {pages.map((page) => (
+            <option key={page.id} value={page.id}>
+              {page.name}
+            </option>
+          ))}
+        </select>
+
+        {item.linkType === "page" && (
+          <button
+            type="button"
+            onClick={async () => {
+              const name = window.prompt(
+                "Enter the new page name:"
+              );
+
+              if (!name?.trim()) return;
+
+              if (!websiteId) {
+                window.alert("Website ID is missing.");
+                return;
+              }
+
+              try {
+                const result = await createWebsitePageAction(
+                  websiteId,
+                  { name: name.trim() }
+                );
+
+                if (!result?.success) {
+                  window.alert(
+                    result?.message || "Failed to create page."
+                  );
+                  return;
+                }
+
+                const page = result.data;
+
+                if (!page?.id || !page?.slug) {
+                  window.alert(
+                    "The server did not return valid page data."
+                  );
+                  return;
+                }
+
+                const updatedItems = [...items];
+                updatedItems[idx] = {
+                  ...updatedItems[idx],
+                  label:
+                    updatedItems[idx].label || page.name,
+                  linkType: "page",
+                  pageId: page.id,
+                  link: `/${page.slug}`,
+                };
+
+                updateContentField(
+                  elementDef.contentPath,
+                  updatedItems
+                );
+                onPageCreated?.(page);
+              } catch (error) {
+                console.error("Create page failed:", error);
+                window.alert(
+                  "Could not create page. Check the browser console."
+                );
+              }
+            }}
+            className="mt-2 text-xs font-semibold text-blue-600 hover:text-blue-800"
+          >
+            + Create New Page
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  if (
+    elementType === ELEMENT_TYPES.NAV_ITEM &&
+    sub.field === "link"
+  ) {
+    return (
+      <div key={sub.field}>
+        <label className="block text-[11px] text-neutral-500 mb-1">
+          {sub.label}
+        </label>
+        <input
+          type="text"
+          value={item.link || ""}
+          readOnly={item.linkType === "page"}
+          onChange={(e) =>
+            updateArrayItem(
+              elementDef.contentPath,
+              idx,
+              "link",
+              e.target.value
+            )
+          }
+          placeholder={
+            item.linkType === "page"
+              ? "Select a page above"
+              : item.linkType === "external"
+                ? "https://example.com"
+                : "#services"
+          }
+          className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs text-neutral-900 read-only:bg-neutral-100"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div key={sub.field}>
+      <label className="block text-[11px] text-neutral-500 mb-1">
+        {sub.label}
+      </label>
+      <input
+        type="text"
+        value={item[sub.field] || ""}
+        onChange={(e) =>
+          updateArrayItem(
+            elementDef.contentPath,
+            idx,
+            sub.field,
+            e.target.value
+          )
+        }
+        className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs text-neutral-900"
+      />
+    </div>
+  );
+})}
+
           </div>
         ))}
       </div>

@@ -57,16 +57,34 @@ const elementSchemas = {
       contentPath: "logo",
     },
     {
-      elementId: "navigation",
-      elementType: ELEMENT_TYPES.NAV_ITEM,
-      label: "Navigation",
-      contentPath: "navigation",
-      isArray: true,
-      arrayItemSchema: [
-        { field: "label", type: ELEMENT_TYPES.LINK, label: "Label" },
-        { field: "link", type: ELEMENT_TYPES.LINK, label: "Link URL" },
-      ],
+  elementId: "navigation",
+  elementType: ELEMENT_TYPES.NAV_ITEM,
+  label: "Navigation",
+  contentPath: "navigation",
+  isArray: true,
+  arrayItemSchema: [
+    {
+      field: "label",
+      type: ELEMENT_TYPES.LINK,
+      label: "Label",
     },
+    {
+      field: "linkType",
+      type: ELEMENT_TYPES.LINK,
+      label: "Link Type",
+    },
+    {
+      field: "link",
+      type: ELEMENT_TYPES.LINK,
+      label: "Link URL",
+    },
+    {
+      field: "pageId",
+      type: ELEMENT_TYPES.LINK,
+      label: "Linked Page ID",
+    },
+  ],
+},
     {
       elementId: "cta-button",
       elementType: ELEMENT_TYPES.BUTTON,
@@ -250,6 +268,7 @@ const elementSchemas = {
           label: "Description",
         },
         { field: "link", type: ELEMENT_TYPES.LINK, label: "Link" },
+        { field: "image", type: ELEMENT_TYPES.IMAGE, label: "Project Image" },
       ],
     },
   ],

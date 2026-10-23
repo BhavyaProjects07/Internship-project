@@ -20,6 +20,9 @@ export default function BuilderProperties({
   onClose,
   onClearElement,
   onElementSelect,
+   websiteId,
+  pages = [],
+  onPageCreated,
 }) {
   const colorPresets = [
     { label: "White", value: "#ffffff" },
@@ -233,6 +236,9 @@ export default function BuilderProperties({
           section={selectedSection}
           selectedElement={selectedElement}
           onChange={onChange}
+          websiteId={websiteId}
+pages={pages}
+onPageCreated={onPageCreated}
         />
       </aside>
     );

@@ -41,7 +41,7 @@ export default function MediaLibrary({ onSelect, onClose }) {
   }, [getToken, API_URL]);
 
   useEffect(() => {
-    fetchAssets();
+    void fetchAssets();
   }, [fetchAssets]);
 
   const handleAddUrl = async (e) => {

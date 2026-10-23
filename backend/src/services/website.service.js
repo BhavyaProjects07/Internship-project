@@ -1,272 +1,717 @@
 const prisma = require("../lib/prisma");
 
-const createWebsiteFromTemplate = async ({ templateId, name , userId}) => {
+const templateInclude = {
+  websiteCategory: true,
+  pages: {
+    orderBy: { order: "asc" },
+    include: {
+      sections: { orderBy: { order: "asc" } },
+    },
+  },
+};
+
+const websiteInclude = {
+  template: true,
+  pages: {
+    orderBy: { order: "asc" },
+    include: {
+      sections: { orderBy: { order: "asc" } },
+    },
+  },
+};
+
+const httpError = (message, statusCode = 400) => {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+};
+
+const slugify = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 70) || "template";
+
+const isPlainObject = (value) =>
+  value !== null &&
+  typeof value === "object" &&
+  !Array.isArray(value);
+
+const makeUniqueWebsiteSlug = async (name, tx = prisma) => {
+  const base = slugify(name);
+  let slug = base;
+  let suffix = 2;
+
+  while (
+    await tx.website.findUnique({
+      where: { slug },
+      select: { id: true },
+    })
+  ) {
+    slug = `${base.slice(0, 65)}-${suffix}`;
+    suffix += 1;
+  }
+
+  return slug;
+};
+
+// ============================================================
+// TEMPLATE OPERATIONS
+// ============================================================
+
+const getAllTemplates = async ({ includeDrafts = false } = {}) => {
+  return prisma.template.findMany({
+    where: includeDrafts ? {} : { status: "PUBLISHED" },
+    orderBy: { updatedAt: "desc" },
+    include: { websiteCategory: true },
+  });
+};
+
+const getTemplateById = async (
+  id,
+  { includeDrafts = false } = {}
+) => {
+  return prisma.template.findFirst({
+    where: {
+      id,
+      ...(includeDrafts ? {} : { status: "PUBLISHED" }),
+    },
+    include: templateInclude,
+  });
+};
+
+const createTemplate = async ({
+  name,
+  description,
+  categoryId,
+  thumbnail,
+}) => {
+  if (typeof name !== "string" || !name.trim()) {
+    throw httpError("Template name is required");
+  }
+
+  const cleanName = name.trim();
+  const baseSlug = slugify(cleanName);
+  const slug = `${baseSlug}-${Date.now().toString(36)}`;
+
+  let category = "General";
+
+  if (categoryId) {
+    const categoryRecord =
+      await prisma.websiteCategory.findUnique({
+        where: { id: categoryId },
+        select: { id: true, name: true },
+      });
+
+    if (!categoryRecord) {
+      throw httpError("Category not found", 404);
+    }
+
+    category = categoryRecord.name;
+  }
+
+  return prisma.template.create({
+    data: {
+      name: cleanName,
+      slug,
+      description: description?.trim() || null,
+      category,
+      categoryId: categoryId || null,
+      thumbnail: thumbnail?.trim() || null,
+      status: "DRAFT",
+      pages: {
+        create: {
+          name: "Home",
+          slug: "home",
+          order: 0,
+          editorData: {
+            content: [],
+            root: { props: {} },
+          },
+        },
+      },
+    },
+    include: templateInclude,
+  });
+};
+
+const updateTemplate = async (
+  id,
+  { name, description, categoryId, thumbnail }
+) => {
+  const existing = await prisma.template.findUnique({
+    where: { id },
+    select: { id: true },
+  });
+
+  if (!existing) {
+    throw httpError("Template not found", 404);
+  }
+
+  const data = {};
+
+  if (name !== undefined) {
+    if (typeof name !== "string" || !name.trim()) {
+      throw httpError("Template name is required");
+    }
+
+    data.name = name.trim();
+  }
+
+  if (description !== undefined) {
+    data.description = description?.trim() || null;
+  }
+
+  if (thumbnail !== undefined) {
+    data.thumbnail = thumbnail?.trim() || null;
+  }
+
+  if (categoryId !== undefined) {
+    if (categoryId === null || categoryId === "") {
+      data.categoryId = null;
+    } else {
+      const categoryRecord =
+        await prisma.websiteCategory.findUnique({
+          where: { id: categoryId },
+          select: { id: true, name: true },
+        });
+
+      if (!categoryRecord) {
+        throw httpError("Category not found", 404);
+      }
+
+      data.categoryId = categoryRecord.id;
+      data.category = categoryRecord.name;
+    }
+  }
+
+  return prisma.template.update({
+    where: { id },
+    data,
+    include: templateInclude,
+  });
+};
+
+const assignTemplateCategory = async (
+  templateId,
+  categoryId
+) => {
+  return updateTemplate(templateId, { categoryId });
+};
+
+const setTemplateStatus = async (id, status) => {
+  if (!["DRAFT", "PUBLISHED"].includes(status)) {
+    throw httpError("Status must be DRAFT or PUBLISHED");
+  }
+
   const template = await prisma.template.findUnique({
+    where: { id },
+    include: { pages: true },
+  });
+
+  if (!template) {
+    throw httpError("Template not found", 404);
+  }
+
+  if (status === "PUBLISHED" && template.pages.length === 0) {
+    throw httpError(
+      "Add at least one page before publishing this template"
+    );
+  }
+
+  return prisma.template.update({
+    where: { id },
+    data: {
+      status,
+      publishedAt:
+        status === "PUBLISHED" ? new Date() : null,
+    },
+    include: templateInclude,
+  });
+};
+
+const deleteTemplate = async (id) => {
+  const existing = await prisma.template.findUnique({
+    where: { id },
+    select: { id: true },
+  });
+
+  if (!existing) {
+    throw httpError("Template not found", 404);
+  }
+
+  return prisma.template.delete({
+    where: { id },
+  });
+};
+
+// ============================================================
+// WEBSITE CREATION AND RETRIEVAL
+// ============================================================
+
+const createWebsiteFromTemplate = async ({
+  templateId,
+  name,
+  userId,
+}) => {
+  if (
+    !templateId ||
+    !userId ||
+    typeof name !== "string" ||
+    !name.trim()
+  ) {
+    throw httpError(
+      "templateId, name, and userId are required"
+    );
+  }
+
+  const template = await prisma.template.findFirst({
     where: {
       id: templateId,
+      status: "PUBLISHED",
     },
     include: {
       pages: {
-        orderBy: {
-          order: "asc",
-        },
+        orderBy: { order: "asc" },
         include: {
-          sections: {
-            orderBy: {
-              order: "asc",
-            },
-          },
+          sections: { orderBy: { order: "asc" } },
         },
       },
     },
   });
 
   if (!template) {
-    throw new Error("Template not found");
+    throw httpError("Template not found", 404);
   }
 
-  const slug = `${name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")}-${Date.now()}`;
+  return prisma.$transaction(async (tx) => {
+    const slug = await makeUniqueWebsiteSlug(
+      name.trim(),
+      tx
+    );
 
-  const website = await prisma.website.create({
-    data: {
-      name,
-      slug,
-      templateId: template.id,
-      userId,
-      pages: {
-        create: template.pages.map((page) => ({
-          name: page.name,
-          slug: page.slug,
-          order: page.order,
+    return tx.website.create({
+      data: {
+        name: name.trim(),
+        slug,
+        userId,
+        templateId: template.id,
+        theme: template.theme ?? undefined,
 
-          sections: {
-            create: page.sections.map((section) => ({
-              type: section.type,
-              order: section.order,
-              content: section.content,
-              config: section.config,
-            })),
-          },
-        })),
-      },
-    },
+        pages: {
+          create: template.pages.map((page, index) => ({
+            name: page.name,
+            slug:
+              page.slug ||
+              (index === 0 ? "home" : `page-${index + 1}`),
+            order: page.order ?? index,
 
-    include: {
-      pages: {
-        orderBy: {
-          order: "asc",
-        },
-        include: {
-          sections: {
-            orderBy: {
-              order: "asc",
+            editorData: page.editorData ?? undefined,
+
+            sections: {
+              create: (page.sections || []).map(
+                (section) => ({
+                  type: section.type,
+                  order: section.order,
+                  content: section.content,
+                  config: section.config ?? undefined,
+                })
+              ),
             },
-          },
+          })),
         },
       },
-    },
-  });
-
-  return website;
-};
-
-const deleteWebsiteSection = async (sectionId, userId) => {
-  const section = await prisma.websiteSection.findUnique({
-    where: {
-      id: sectionId,
-    },
-    include: {
-      page: {
-        include: {
-          website: true,
-        },
-      },
-    },
-  });
-
-  if (!section) {
-    throw new Error("Website section not found");
-  }
-
-  if (section.page.website.userId !== userId) {
-    throw new Error("Unauthorized");
-  }
-
-  await prisma.websiteSection.delete({
-    where: {
-      id: sectionId,
-    },
-  });
-
-  return {
-    success: true,
-    message: "Website section deleted successfully",
-  };
-};
-
-const createWebsiteSection = async (pageId, data, userId) => {
-  const { type, content, config } = data;
-
-  if (!type) {
-    throw new Error("Section type is required");
-  }
-
-  const page = await prisma.websitePage.findUnique({
-    where: {
-      id: pageId,
-    },
-    include: {
-      website: true,
-    },
-  });
-
-  if (!page) {
-    throw new Error("Website page not found");
-  }
-
-  if (page.website.userId !== userId) {
-    throw new Error("Unauthorized");
-  }
-
-  const lastSection = await prisma.websiteSection.findFirst({
-    where: {
-      pageId,
-    },
-    orderBy: {
-      order: "desc",
-    },
-    select: {
-      order: true,
-    },
-  });
-
-  const nextOrder = lastSection ? lastSection.order + 1 : 1;
-
-  return await prisma.websiteSection.create({
-    data: {
-      type,
-      order: nextOrder,
-      content: content ?? {},
-      config: config ?? {},
-      pageId,
-    },
+      include: websiteInclude,
+    });
   });
 };
 
-const updateWebsite = async (id, data, userId) => {
-  const website = await prisma.website.findUnique({
-    where: { id },
-  });
-
-  if (!website || website.userId !== userId) {
-    throw new Error("Website not found or unauthorized");
-  }
-
-  return await prisma.website.update({
-    where: {
-      id,
-    },
-    data,
-  });
-};
-
-// Get a complete website by ID
 const getWebsiteById = async (id, userId) => {
-  const website = await prisma.website.findUnique({
+  return prisma.website.findFirst({
     where: {
       id,
+      userId,
     },
-    include: {
-      pages: {
-        orderBy: {
-          order: "asc",
-        },
-        include: {
-          sections: {
-            orderBy: {
-              order: "asc",
-            },
-          },
-        },
-      },
-    },
+    include: websiteInclude,
   });
-
-  if (!website || website.userId !== userId) {
-    return null;
-  }
-
-  return website;
 };
 
-// Get all websites for a user (lightweight metadata)
-const getUserWebsites = async (userId, page = 1, limit = 10) => {
-  const skip = (page - 1) * limit;
+const getUserWebsites = async (
+  userId,
+  page = 1,
+  limit = 10
+) => {
+  const safePage = Number.isInteger(Number(page))
+    ? Math.max(1, Number(page))
+    : 1;
 
-  const [websites, total] = await Promise.all([
+  const safeLimit = Number.isInteger(Number(limit))
+    ? Math.min(50, Math.max(1, Number(limit)))
+    : 10;
+
+  const where = { userId };
+
+  const [websites, total] = await prisma.$transaction([
     prisma.website.findMany({
-      where: {
-        userId: userId,
-      },
+      where,
+      orderBy: { updatedAt: "desc" },
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit,
       select: {
         id: true,
         name: true,
         slug: true,
+        userId: true,
+        templateId: true,
         createdAt: true,
         updatedAt: true,
-        template: {
+        theme: true,
+        isPublished: true,
+        publishedAt: true,
+        pages: {
+          orderBy: { order: "asc" },
           select: {
+            id: true,
             name: true,
-            thumbnail: true,
-          }
-        }
-      },
-      orderBy: {
-        updatedAt: 'desc',
-      },
-      skip,
-      take: limit,
-    }),
-    prisma.website.count({
-      where: {
-        userId: userId,
+            slug: true,
+            order: true,
+          },
+        },
       },
     }),
+
+    prisma.website.count({ where }),
   ]);
 
   return {
     data: websites,
     pagination: {
+      page: safePage,
+      limit: safeLimit,
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages: Math.ceil(total / safeLimit),
     },
   };
 };
 
-const updateWebsiteSection = async (sectionId, data, userId) => {
-  const section = await prisma.websiteSection.findUnique({
-    where: { id: sectionId },
-    include: { page: { include: { website: true } } },
+const updateWebsite = async (id, data, userId) => {
+  const existing = await prisma.website.findFirst({
+    where: { id, userId },
+    select: { id: true },
+  });
+
+  if (!existing) {
+    throw httpError(
+      "Website not found or unauthorized",
+      404
+    );
+  }
+
+  const updateData = {};
+
+  if (data.name !== undefined) {
+    if (
+      typeof data.name !== "string" ||
+      !data.name.trim()
+    ) {
+      throw httpError(
+        "Website name must be a non-empty string"
+      );
+    }
+
+    updateData.name = data.name.trim();
+  }
+
+  if (data.theme !== undefined) {
+    if (!isPlainObject(data.theme)) {
+      throw httpError("Invalid theme payload");
+    }
+
+    updateData.theme = data.theme;
+  }
+
+  return prisma.website.update({
+    where: { id },
+    data: updateData,
+    include: websiteInclude,
+  });
+};
+
+// ============================================================
+// WEBSITE PAGE OPERATIONS
+// ============================================================
+
+const createWebsitePage = async (
+  websiteId,
+  { name, slug },
+  userId
+) => {
+  const website = await prisma.website.findFirst({
+    where: {
+      id: websiteId,
+      userId,
+    },
+    include: {
+      pages: {
+        select: { order: true },
+      },
+    },
+  });
+
+  if (!website) {
+    throw httpError(
+      "Website not found or unauthorized",
+      404
+    );
+  }
+
+  if (typeof name !== "string" || !name.trim()) {
+    throw httpError("Page name is required");
+  }
+
+  const pageSlug = slugify(slug || name);
+
+  return prisma.websitePage.create({
+    data: {
+      websiteId,
+      name: name.trim(),
+      slug: pageSlug,
+      order:
+        website.pages.reduce(
+          (max, page) => Math.max(max, page.order),
+          -1
+        ) + 1,
+
+      editorData: {
+        content: [],
+        root: { props: {} },
+      },
+    },
+    include: {
+      sections: { orderBy: { order: "asc" } },
+    },
+  });
+};
+
+const updateWebsitePage = async (
+  pageId,
+  data,
+  userId
+) => {
+  const page = await prisma.websitePage.findFirst({
+    where: {
+      id: pageId,
+      website: { userId },
+    },
+    select: { id: true },
+  });
+
+  if (!page) {
+    throw httpError(
+      "Website page not found or unauthorized",
+      404
+    );
+  }
+
+  const updateData = {};
+
+  if (data.name !== undefined) {
+    if (typeof data.name !== "string" || !data.name.trim()) {
+      throw httpError("Page name is required");
+    }
+
+    updateData.name = data.name.trim();
+  }
+
+  if (data.slug !== undefined) {
+    if (typeof data.slug !== "string" || !data.slug.trim()) {
+      throw httpError("Page slug is required");
+    }
+
+    updateData.slug = slugify(data.slug);
+  }
+
+  return prisma.websitePage.update({
+    where: { id: pageId },
+    data: updateData,
+    include: {
+      sections: { orderBy: { order: "asc" } },
+    },
+  });
+};
+
+const deleteWebsitePage = async (pageId, userId) => {
+  return prisma.$transaction(async (tx) => {
+    const page = await tx.websitePage.findFirst({
+      where: {
+        id: pageId,
+        website: { userId },
+      },
+      select: {
+        id: true,
+        websiteId: true,
+      },
+    });
+
+    if (!page) {
+      throw httpError(
+        "Website page not found or unauthorized",
+        404
+      );
+    }
+
+    const count = await tx.websitePage.count({
+      where: { websiteId: page.websiteId },
+    });
+
+    if (count <= 1) {
+      throw httpError("Cannot delete the last page");
+    }
+
+    await tx.websitePage.delete({
+      where: { id: pageId },
+    });
+
+    return {
+      id: pageId,
+      deleted: true,
+    };
+  });
+};
+
+// ============================================================
+// LEGACY SECTION OPERATIONS
+// ============================================================
+
+const updateWebsiteSection = async (
+  sectionId,
+  data,
+  userId
+) => {
+  const section = await prisma.websiteSection.findFirst({
+    where: {
+      id: sectionId,
+      page: {
+        website: { userId },
+      },
+    },
+    select: { id: true },
   });
 
   if (!section) {
-    throw new Error("Website section not found");
-  }
-  if (section.page.website.userId !== userId) {
-    throw new Error("Unauthorized");
+    throw httpError(
+      "Website section not found or unauthorized",
+      404
+    );
   }
 
-  return await prisma.websiteSection.update({
+  const updateData = {};
+
+  if (data.type !== undefined) {
+    if (typeof data.type !== "string" || !data.type.trim()) {
+      throw httpError("Section type is required");
+    }
+
+    updateData.type = data.type.trim();
+  }
+
+  if (data.content !== undefined) {
+    if (!isPlainObject(data.content)) {
+      throw httpError("Section content must be an object");
+    }
+
+    updateData.content = data.content;
+  }
+
+  if (data.config !== undefined) {
+    updateData.config = data.config;
+  }
+
+  if (data.order !== undefined) {
+    if (!Number.isInteger(data.order) || data.order < 0) {
+      throw httpError("Section order must be a non-negative integer");
+    }
+
+    updateData.order = data.order;
+  }
+
+  return prisma.websiteSection.update({
+    where: { id: sectionId },
+    data: updateData,
+  });
+};
+
+const deleteWebsiteSection = async (
+  sectionId,
+  userId
+) => {
+  const section = await prisma.websiteSection.findFirst({
     where: {
       id: sectionId,
+      page: {
+        website: { userId },
+      },
     },
-    data,
+    select: { id: true },
+  });
+
+  if (!section) {
+    throw httpError("Website section not found", 404);
+  }
+
+  await prisma.websiteSection.delete({
+    where: { id: sectionId },
+  });
+
+  return {
+    id: sectionId,
+    deleted: true,
+  };
+};
+
+const createWebsiteSection = async (
+  pageId,
+  { type, content, config },
+  userId
+) => {
+  const page = await prisma.websitePage.findFirst({
+    where: {
+      id: pageId,
+      website: { userId },
+    },
+    select: { id: true },
+  });
+
+  if (!page) {
+    throw httpError(
+      "Website page not found or unauthorized",
+      404
+    );
+  }
+
+  if (typeof type !== "string" || !type.trim()) {
+    throw httpError("Section type is required");
+  }
+
+  if (!isPlainObject(content)) {
+    throw httpError("Section content must be an object");
+  }
+
+  const maxOrder = await prisma.websiteSection.aggregate({
+    where: { pageId },
+    _max: { order: true },
+  });
+
+  return prisma.websiteSection.create({
+    data: {
+      pageId,
+      type: type.trim(),
+      content,
+      config: config === undefined ? undefined : config,
+      order: (maxOrder._max.order ?? -1) + 1,
+    },
   });
 };
 
@@ -275,258 +720,464 @@ const reorderWebsiteSections = async ({
   sections,
   userId,
 }) => {
-  const page = await prisma.websitePage.findUnique({
-    where: {
-      id: pageId,
-    },
-    include: {
-      website: true,
-    },
-  });
-
-  if (!page) {
-    throw new Error("Website page not found");
+  if (!Array.isArray(sections)) {
+    throw httpError("Sections must be an array");
   }
 
-  if (page.website.userId !== userId) {
-    throw new Error("Unauthorized");
-  }
-
-  await prisma.$transaction(
-    sections.map((section) =>
-      prisma.websiteSection.update({
-        where: {
-          id: section.id,
-        },
-        data: {
-          order: section.order,
-        },
-      })
-    )
-  );
-
-  return await prisma.websitePage.findUnique({
-    where: {
-      id: pageId,
-    },
-    include: {
-      sections: {
-        orderBy: {
-          order: "asc",
-        },
+  return prisma.$transaction(async (tx) => {
+    const page = await tx.websitePage.findFirst({
+      where: {
+        id: pageId,
+        website: { userId },
       },
-    },
+      select: { id: true },
+    });
+
+    if (!page) {
+      throw httpError(
+        "Website page not found or unauthorized",
+        404
+      );
+    }
+
+    const existing = await tx.websiteSection.findMany({
+      where: { pageId },
+      select: { id: true },
+    });
+
+    const existingIds = new Set(
+      existing.map((section) => section.id)
+    );
+
+    const submittedIds = new Set();
+
+    for (let index = 0; index < sections.length; index += 1) {
+      const item = sections[index];
+
+      if (
+        !item ||
+        typeof item.id !== "string" ||
+        !existingIds.has(item.id) ||
+        submittedIds.has(item.id)
+      ) {
+        throw httpError("Invalid section ordering payload");
+      }
+
+      submittedIds.add(item.id);
+
+      await tx.websiteSection.update({
+        where: { id: item.id },
+        data: {
+          order: Number.isInteger(item.order)
+            ? item.order
+            : index,
+        },
+      });
+    }
+
+    return tx.websitePage.findUnique({
+      where: { id: pageId },
+      include: {
+        sections: { orderBy: { order: "asc" } },
+      },
+    });
   });
 };
 
-const saveWebsiteDraft = async (websiteId, pagesPayload, userId, theme, name) => {
-  // 1. Verify Website Ownership
-  const website = await prisma.website.findUnique({
-    where: { id: websiteId },
-    include: {
-      pages: {
-        include: {
-          sections: true,
+// ============================================================
+// DRAFT SAVING
+// ============================================================
+
+const saveWebsiteDraft = async (
+  websiteId,
+  pages,
+  userId,
+  theme,
+  name
+) => {
+  if (!Array.isArray(pages)) {
+    throw httpError("Pages must be an array");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const website = await tx.website.findFirst({
+      where: {
+        id: websiteId,
+        userId,
+      },
+      include: {
+        pages: {
+          orderBy: { order: "asc" },
+          include: { sections: true },
         },
       },
-    },
-  });
+    });
 
-  if (!website || website.userId !== userId) {
-    throw new Error("Website not found or unauthorized");
-  }
-
-  // 2. Validate Payload & Prepare Operations
-  const dbPageIds = new Set(website.pages.map((p) => p.id));
-  const dbSectionMap = new Map();
-  for (const page of website.pages) {
-    for (const section of page.sections) {
-      dbSectionMap.set(section.id, section.pageId);
+    if (!website) {
+      throw httpError(
+        "Website not found or unauthorized",
+        404
+      );
     }
-  }
 
-  const updateOperations = [
-    prisma.website.update({
-      where: { id: websiteId },
-      data: {
-        ...(theme !== undefined && { theme }),
-        ...(name !== undefined && { name }),
+    const currentPagesById = new Map(
+      website.pages.map((page) => [page.id, page])
+    );
+
+    const idMappings = [];
+
+    for (const incomingPage of pages) {
+      if (!isPlainObject(incomingPage)) {
+        throw httpError("Invalid page payload");
       }
-    })
-  ];
 
-  const tempIdMapIndex = [];
+      if (
+        typeof incomingPage.id !== "string" ||
+        !incomingPage.id
+      ) {
+        throw httpError(
+          "Every existing page must include its database ID"
+        );
+      }
 
-  for (const pagePayload of pagesPayload) {
-    if (!dbPageIds.has(pagePayload.id)) {
-      throw new Error("Invalid payload");
-    }
+      const currentPage = currentPagesById.get(
+        incomingPage.id
+      );
 
-    if (Array.isArray(pagePayload.sections)) {
-      for (const sectionPayload of pagePayload.sections) {
-        if (dbSectionMap.has(sectionPayload.id)) {
-          // Existing section
-          if (dbSectionMap.get(sectionPayload.id) !== pagePayload.id) {
-             throw new Error("Invalid payload: Section assigned to wrong page");
+      if (!currentPage) {
+        throw httpError(
+          "A submitted page does not belong to this website"
+        );
+      }
+
+      const pageUpdate = {};
+
+      if (incomingPage.name !== undefined) {
+        if (
+          typeof incomingPage.name !== "string" ||
+          !incomingPage.name.trim()
+        ) {
+          throw httpError("Invalid page name");
+        }
+
+        pageUpdate.name = incomingPage.name.trim();
+      }
+
+      if (incomingPage.slug !== undefined) {
+        if (
+          typeof incomingPage.slug !== "string" ||
+          !incomingPage.slug.trim()
+        ) {
+          throw httpError("Invalid page slug");
+        }
+
+        pageUpdate.slug = slugify(incomingPage.slug);
+      }
+
+      if (incomingPage.order !== undefined) {
+        if (
+          !Number.isInteger(incomingPage.order) ||
+          incomingPage.order < 0
+        ) {
+          throw httpError("Invalid page order");
+        }
+
+        pageUpdate.order = incomingPage.order;
+      }
+
+      // Preserve existing Puck data unless the caller explicitly
+      // submits a replacement document.
+      if (incomingPage.editorData !== undefined) {
+        const document = incomingPage.editorData;
+
+        if (
+          !isPlainObject(document) ||
+          !Array.isArray(document.content) ||
+          !isPlainObject(document.root)
+        ) {
+          throw httpError("Invalid Puck document");
+        }
+
+        // Do not let a legacy-only request erase a populated document.
+        const isEmptyDocument =
+          document.content.length === 0 &&
+          Object.keys(document.root.props || {}).length === 0;
+
+        const existingDocument = currentPage.editorData;
+        const existingHasContent =
+          isPlainObject(existingDocument) &&
+          Array.isArray(existingDocument.content) &&
+          existingDocument.content.length > 0;
+
+        if (isEmptyDocument && existingHasContent) {
+          throw httpError(
+            "Refusing to replace a populated Puck document with an empty document"
+          );
+        }
+
+        pageUpdate.editorData = document;
+      }
+
+      if (Object.keys(pageUpdate).length > 0) {
+        await tx.websitePage.update({
+          where: { id: currentPage.id },
+          data: pageUpdate,
+        });
+      }
+
+      // The legacy builder can continue submitting sections while
+      // the Puck editor stores editorData separately.
+      if (incomingPage.sections !== undefined) {
+        if (!Array.isArray(incomingPage.sections)) {
+          throw httpError("Sections must be an array");
+        }
+
+        const existingSections = currentPage.sections;
+        const existingIds = new Set(
+          existingSections.map((section) => section.id)
+        );
+
+        const retainedDatabaseIds = new Set();
+
+        for (
+          let index = 0;
+          index < incomingPage.sections.length;
+          index += 1
+        ) {
+          const incomingSection =
+            incomingPage.sections[index];
+
+          if (
+            !isPlainObject(incomingSection) ||
+            typeof incomingSection.type !== "string" ||
+            !incomingSection.type.trim() ||
+            !isPlainObject(incomingSection.content)
+          ) {
+            throw httpError("Invalid section payload");
           }
 
-          updateOperations.push(
-            prisma.websiteSection.update({
-              where: { id: sectionPayload.id },
-              data: {
-                order: sectionPayload.order,
-                content: sectionPayload.content ?? {},
-                config: sectionPayload.config ?? {},
-              },
-            })
-          );
-          
-          dbSectionMap.delete(sectionPayload.id); // Mark as seen
-        } else if (String(sectionPayload.id).startsWith("temp_")) {
-          // New section
-          if (!sectionPayload.type) {
-             throw new Error("Invalid payload: Missing type for new section");
-          }
-          
-          updateOperations.push(
-            prisma.websiteSection.create({
-              data: {
-                type: sectionPayload.type,
-                order: sectionPayload.order,
-                content: sectionPayload.content ?? {},
-                config: sectionPayload.config ?? {},
-                pageId: pagePayload.id,
-              },
-            })
-          );
+          const requestedId =
+            typeof incomingSection.id === "string"
+              ? incomingSection.id
+              : null;
 
-          tempIdMapIndex.push({
-            tempId: sectionPayload.id,
-            index: updateOperations.length - 1,
+          const order = Number.isInteger(incomingSection.order)
+            ? incomingSection.order
+            : index;
+
+          const sectionData = {
+            type: incomingSection.type.trim(),
+            order,
+            content: incomingSection.content,
+            config:
+              incomingSection.config === undefined
+                ? undefined
+                : incomingSection.config,
+          };
+
+          if (
+            requestedId &&
+            existingIds.has(requestedId)
+          ) {
+            await tx.websiteSection.update({
+              where: { id: requestedId },
+              data: sectionData,
+            });
+
+            retainedDatabaseIds.add(requestedId);
+          } else {
+            const created = await tx.websiteSection.create({
+              data: {
+                ...sectionData,
+                pageId: currentPage.id,
+              },
+            });
+
+            retainedDatabaseIds.add(created.id);
+
+            if (requestedId) {
+              idMappings.push({
+                clientId: requestedId,
+                databaseId: created.id,
+              });
+            }
+          }
+        }
+
+        const removedIds = existingSections
+          .filter(
+            (section) =>
+              !retainedDatabaseIds.has(section.id)
+          )
+          .map((section) => section.id);
+
+        if (removedIds.length > 0) {
+          await tx.websiteSection.deleteMany({
+            where: {
+              pageId: currentPage.id,
+              id: { in: removedIds },
+            },
           });
-        } else {
-          throw new Error(`Invalid payload: Unrecognized section ID ${sectionPayload.id}`);
         }
       }
     }
-  }
 
-  // Sections not present in the payload must be deleted
-  for (const [sectionId, pageId] of dbSectionMap.entries()) {
-    updateOperations.push(
-      prisma.websiteSection.delete({
-        where: { id: sectionId },
-      })
-    );
-  }
+    const websiteUpdate = {};
 
-  // 3. Execute Transaction
-  const results = await prisma.$transaction(updateOperations);
+    if (theme !== undefined) {
+      if (!isPlainObject(theme)) {
+        throw httpError("Invalid theme payload");
+      }
 
-  // 4. Map temporary IDs to database IDs
-  const idMappings = tempIdMapIndex.map((item) => ({
-    clientId: item.tempId,
-    databaseId: results[item.index].id,
-  }));
+      websiteUpdate.theme = theme;
+    }
 
-  // Return updated website (minimal info) + idMappings
-  const updatedWebsite = await prisma.website.findUnique({
-    where: { id: websiteId },
-    select: { id: true, updatedAt: true },
+    if (name !== undefined) {
+      if (typeof name !== "string" || !name.trim()) {
+        throw httpError("Website name is required");
+      }
+
+      websiteUpdate.name = name.trim();
+    }
+
+    const updated = await tx.website.update({
+      where: { id: websiteId },
+      data: websiteUpdate,
+      select: {
+        id: true,
+        updatedAt: true,
+      },
+    });
+
+    return {
+      ...updated,
+      idMappings,
+    };
   });
-
-  return {
-    ...updatedWebsite,
-    idMappings,
-  };
 };
 
+// ============================================================
+// PUBLISHING
+// ============================================================
+
 const publishWebsite = async (websiteId, userId) => {
-  // 1. Fetch the complete current draft using the existing function that includes auth
-  const website = await getWebsiteById(websiteId, userId);
-  
-  if (!website) {
-    throw new Error("Website not found or unauthorized");
-  }
+  return prisma.$transaction(async (tx) => {
+    const website = await tx.website.findFirst({
+      where: {
+        id: websiteId,
+        userId,
+      },
+      include: {
+        pages: {
+          orderBy: { order: "asc" },
+          include: {
+            sections: { orderBy: { order: "asc" } },
+          },
+        },
+      },
+    });
 
-  // 2. Serialize into the publishedData snapshot
-  // Using the ACTUAL Prisma field names fetched by getWebsiteById
-  const publishedData = {
-    id: website.id,
-    name: website.name,
-    slug: website.slug,
-    theme: website.theme,
-    pages: website.pages.map(page => ({
-      id: page.id,
-      name: page.name,
-      slug: page.slug,
-      order: page.order,
-      sections: page.sections.map(section => ({
-        id: section.id,
-        type: section.type,
-        order: section.order,
-        content: section.content,
-        config: section.config,
-      }))
-    }))
-  };
-
-  // 3. Update the Website record atomically
-  return await prisma.website.update({
-    where: { id: websiteId },
-    data: {
-      isPublished: true,
-      publishedAt: new Date(),
-      publishedData: publishedData
+    if (!website) {
+      throw httpError(
+        "Website not found or unauthorized",
+        404
+      );
     }
+
+    if (website.pages.length === 0) {
+      throw httpError(
+        "Cannot publish a website without pages"
+      );
+    }
+
+    const publishedData = {
+      schemaVersion: 1,
+      name: website.name,
+      theme: website.theme ?? null,
+
+      pages: website.pages.map((page) => ({
+        id: page.id,
+        name: page.name,
+        slug: page.slug,
+        order: page.order,
+
+        editorData: page.editorData ?? null,
+
+        sections: (page.sections || []).map(
+          (section) => ({
+            id: section.id,
+            type: section.type,
+            order: section.order,
+            content: section.content,
+            config: section.config ?? null,
+          })
+        ),
+      })),
+    };
+
+    return tx.website.update({
+      where: { id: website.id },
+      data: {
+        isPublished: true,
+        publishedAt: new Date(),
+        publishedData,
+      },
+      select: {
+        id: true,
+        slug: true,
+        isPublished: true,
+        publishedAt: true,
+        updatedAt: true,
+      },
+    });
   });
 };
 
 const getPublishedWebsiteBySlug = async (slug) => {
-  const website = await prisma.website.findUnique({
-    where: { slug },
+  return prisma.website.findFirst({
+    where: {
+      slug,
+      isPublished: true,
+    },
     select: {
       id: true,
       name: true,
       slug: true,
+      theme: true,
       isPublished: true,
       publishedAt: true,
       publishedData: true,
-    }
+    },
   });
-
-  if (!website) {
-    return null;
-  }
-
-  if (!website.isPublished || !website.publishedData) {
-    return null; // Return null if it's not published, to match 404 requirement
-  }
-
-  // Strip sensitive metadata if any, though select limits it.
-  // We return exactly what the public endpoint needs.
-  // Use the name and slug from publishedData to ensure total snapshot isolation
-  return {
-    id: website.id,
-    name: website.publishedData.name || website.name,
-    slug: website.publishedData.slug || website.slug,
-    publishedAt: website.publishedAt,
-    publishedData: website.publishedData
-  };
 };
 
+// ============================================================
+// EXPORTS
+// ============================================================
+
 module.exports = {
+  // Template operations
+  getAllTemplates,
+  getTemplateById,
+  createTemplate,
+  updateTemplate,
+  assignTemplateCategory,
+  setTemplateStatus,
+  deleteTemplate,
+
+  // Website operations
   createWebsiteFromTemplate,
+  createWebsitePage,
+  updateWebsitePage,
+  deleteWebsitePage,
   getWebsiteById,
   getUserWebsites,
-  updateWebsiteSection,
-  reorderWebsiteSections,
-  createWebsiteSection,
-  deleteWebsiteSection,
   updateWebsite,
+  updateWebsiteSection,
+  deleteWebsiteSection,
+  createWebsiteSection,
+  reorderWebsiteSections,
   saveWebsiteDraft,
   publishWebsite,
   getPublishedWebsiteBySlug,
 };
-
-

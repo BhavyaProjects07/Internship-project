@@ -61,6 +61,192 @@ if (!authState.userId) {
   }
 };
 
+
+
+const createWebsitePage = async (req, res) => {
+  try {
+    const { userId } = getAuth(req);
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    const { id: websiteId } = req.params;
+    const { name, slug } = req.body;
+
+    if (typeof name !== "string" || !name.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Page name is required",
+      });
+    }
+
+    const page = await websiteService.createWebsitePage(
+      websiteId,
+      { name: name.trim(), slug },
+      userId
+    );
+
+    return res.status(201).json({
+      success: true,
+      data: page,
+    });
+  } catch (error) {
+    console.error("Create website page error:", error);
+
+    if (error.code === "P2002") {
+      return res.status(409).json({
+        success: false,
+        message: "A page with this slug already exists",
+      });
+    }
+
+    if (error.message === "Website not found or unauthorized") {
+      return res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to create website page",
+    });
+  }
+};
+
+const updateWebsitePage = async (req, res) => {
+  try {
+    const { userId } = getAuth(req);
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    const { pageId } = req.params;
+    const { name, slug } = req.body;
+
+    if (
+      name === undefined &&
+      slug === undefined
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Provide a page name or slug to update",
+      });
+    }
+
+    if (
+      name !== undefined &&
+      (typeof name !== "string" || !name.trim())
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Page name must be a non-empty string",
+      });
+    }
+
+    if (
+      slug !== undefined &&
+      (typeof slug !== "string" || !slug.trim())
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Page slug must be a non-empty string",
+      });
+    }
+
+    const page = await websiteService.updateWebsitePage(
+      pageId,
+      {
+        ...(name !== undefined && { name: name.trim() }),
+        ...(slug !== undefined && { slug: slug.trim() }),
+      },
+      userId
+    );
+
+    return res.json({
+      success: true,
+      data: page,
+    });
+  } catch (error) {
+    console.error("Update website page error:", error);
+
+    if (error.code === "P2002") {
+      return res.status(409).json({
+        success: false,
+        message: "A page with this slug already exists",
+      });
+    }
+
+    if (error.message === "Website page not found or unauthorized") {
+      return res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update website page",
+    });
+  }
+};
+
+const deleteWebsitePage = async (req, res) => {
+  try {
+    const { userId } = getAuth(req);
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    const { pageId } = req.params;
+
+    const result = await websiteService.deleteWebsitePage(
+      pageId,
+      userId
+    );
+
+    return res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    console.error("Delete website page error:", error);
+
+    if (error.message === "Website page not found or unauthorized") {
+      return res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    if (error.message === "Cannot delete the last page") {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete website page",
+    });
+  }
+};
+
+
+
 // Get website by ID
 const getWebsite = async (req, res) => {
   try {
@@ -422,4 +608,7 @@ module.exports = {
   saveWebsiteDraft,
   publishWebsite,
   getPublicWebsite,
+  createWebsitePage,
+updateWebsitePage,
+deleteWebsitePage,
 };

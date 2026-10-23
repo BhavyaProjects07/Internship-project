@@ -1,6 +1,6 @@
 import sectionRegistry from "./sectionRegistry";
 
-export default function SectionRenderer({ section }) {
+export default function SectionRenderer({ section, websiteSlug }) {
   if (!section) {
     return null;
   }
@@ -21,6 +21,7 @@ export default function SectionRenderer({ section }) {
     <Component
       content={section.content}
       config={section.config}
+      websiteSlug={websiteSlug}
     />
   );
 }

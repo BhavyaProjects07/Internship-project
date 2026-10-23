@@ -7,10 +7,7 @@ export async function createWebsite(formData) {
   const { getToken } = await auth();
   const token = await getToken();
 
-console.log("Clerk diagnostic:", {
-  hasToken: Boolean(token),
-  tokenLength: token?.length ?? 0,
-});
+
   
   const templateId = formData.get("templateId");
   const name = formData.get("name");

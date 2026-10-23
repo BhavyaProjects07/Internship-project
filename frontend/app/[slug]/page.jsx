@@ -119,6 +119,7 @@ export default async function PublicWebsitePage({ params }) {
         <SectionRenderer
           key={section.id}
           section={section}
+          websiteSlug={slug}
         />
       ))}
     </div>

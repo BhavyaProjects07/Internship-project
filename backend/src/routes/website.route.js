@@ -12,6 +12,9 @@ const {
   getUserWebsites,
   publishWebsite,
   getPublicWebsite,
+    createWebsitePage,
+  updateWebsitePage,
+  deleteWebsitePage,
 } = require("../controllers/website.controller");
 
 const router = express.Router();
@@ -24,6 +27,13 @@ router.post("/", createWebsite);
 
 router.patch("/:id/draft", saveWebsiteDraft);
 router.post("/:id/publish", publishWebsite);
+// Website page management
+router.post("/:id/pages", createWebsitePage);
+
+router.patch("/pages/:pageId", updateWebsitePage);
+
+router.delete("/pages/:pageId", deleteWebsitePage);
+
 
 router.get("/:id", getWebsite);
 router.patch("/:id", updateWebsite);

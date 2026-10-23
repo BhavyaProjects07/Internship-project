@@ -75,48 +75,30 @@ export default function Portfolio({ content, config }) {
               className="group flex flex-col justify-between rounded-2xl border border-neutral-200/90 bg-white p-6 shadow-[0_2px_8px_rgba(0,0,0,0.03)] transition-all duration-300 hover:shadow-xl hover:shadow-neutral-950/5 hover:-translate-y-1 hover:border-neutral-300"
             >
               <div>
-                {/* Visual Viewport / Screen Simulation */}
-                <div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-6 bg-neutral-950 border border-neutral-800 p-5 flex flex-col justify-between">
-                  {/* Subtle Gradient Backing */}
-                  <div className={`absolute inset-0 bg-gradient-to-br ${project.color || 'from-neutral-900 to-neutral-950'} opacity-90`} />
-
-                  {/* Top Bar inside thumbnail */}
-                  <div className="relative z-10 flex items-center justify-between text-[11px] font-mono text-neutral-400 border-b border-neutral-800/80 pb-3">
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-neutral-600" />
-                      {project.title.toLowerCase().replace(/\s+/g, '')}.io
-                    </span>
-                    <span className={`font-semibold ${project.accent || 'text-white'}`}>
-                      {project.outcome || "Verified Outcome"}
-                    </span>
-                  </div>
-
-                  {/* Styled Mockup Graphics based on project type */}
-                  <div className="relative z-10 my-auto py-2">
-                    <div className="space-y-2">
-                      <div className="h-1.5 w-1/3 bg-neutral-700/80 rounded" />
-                      <div className="h-3 w-3/4 bg-white/90 rounded font-bold text-xs text-neutral-900 px-2 flex items-center">
+                {/* Project Image or Clean Placeholder */}
+                <div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-6 border border-neutral-200/50 bg-neutral-100 flex items-center justify-center">
+                  {project.image ? (
+                    <img 
+                      src={project.image} 
+                      alt={project.alt || project.title} 
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className={`absolute inset-0 bg-gradient-to-br ${project.color || 'from-neutral-100 to-neutral-200'} opacity-90 flex items-center justify-center p-6 text-center`}>
+                      <span className={`font-bold text-lg ${project.accent || 'text-neutral-900'} opacity-80 mix-blend-overlay`}>
                         {project.title}
-                      </div>
-                      <div className="h-1.5 w-1/2 bg-neutral-700/60 rounded" />
+                      </span>
                     </div>
-
-                    {/* Chart / Data representation */}
-                    <div className="mt-4 pt-3 border-t border-neutral-800/60 flex items-end gap-1.5 h-12">
-                      <div className="w-1/6 bg-neutral-700 h-1/3 rounded-t-sm" />
-                      <div className="w-1/6 bg-neutral-600 h-2/3 rounded-t-sm" />
-                      <div className="w-1/6 bg-neutral-700 h-1/2 rounded-t-sm" />
-                      <div className="w-1/6 bg-neutral-600 h-3/4 rounded-t-sm" />
-                      <div className="w-1/6 bg-neutral-500 h-4/5 rounded-t-sm" />
-                      <div className="w-1/6 bg-white h-full rounded-t-sm shadow-sm" />
+                  )}
+                  
+                  {/* Outcome Badge */}
+                  {project.outcome && (
+                    <div className="absolute top-4 right-4 z-10">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold bg-white/90 text-neutral-900 shadow-sm backdrop-blur-sm border border-black/5">
+                        {project.outcome}
+                      </span>
                     </div>
-                  </div>
-
-                  {/* Bottom Bar inside thumbnail */}
-                  <div className="relative z-10 text-[10px] text-neutral-500 font-mono flex justify-between items-center pt-2">
-                    <span>SYSTEM ARCHITECTURE</span>
-                    <span className="text-neutral-400">P99 &lt; 50MS</span>
-                  </div>
+                  )}
                 </div>
 
                 {/* Metadata unboxed text */}

@@ -277,3 +277,115 @@ export async function updateWebsiteAction(websiteId, data) {
     };
   }
 }
+
+
+
+
+export async function createWebsitePageAction(websiteId, data) {
+  try {
+    const { getToken } = await auth();
+    const token = await getToken();
+
+    if (!token) {
+      return { success: false, message: "Authentication required" };
+    }
+
+    const response = await fetch(
+      `${process.env.API_URL}websites/${websiteId}/pages`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      }
+    );
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: result.message || "Failed to create page",
+      };
+    }
+
+    return { success: true, data: result.data ?? result };
+  } catch (error) {
+    console.error("Create website page error:", error);
+    return { success: false, message: "Failed to create page" };
+  }
+}
+
+export async function updateWebsitePageAction(pageId, data) {
+  try {
+    const { getToken } = await auth();
+    const token = await getToken();
+
+    if (!token) {
+      return { success: false, message: "Authentication required" };
+    }
+
+    const response = await fetch(
+      `${process.env.API_URL}websites/pages/${pageId}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      }
+    );
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: result.message || "Failed to update page",
+      };
+    }
+
+    return { success: true, data: result.data ?? result };
+  } catch (error) {
+    console.error("Update website page error:", error);
+    return { success: false, message: "Failed to update page" };
+  }
+}
+
+export async function deleteWebsitePageAction(pageId) {
+  try {
+    const { getToken } = await auth();
+    const token = await getToken();
+
+    if (!token) {
+      return { success: false, message: "Authentication required" };
+    }
+
+    const response = await fetch(
+      `${process.env.API_URL}websites/pages/${pageId}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: result.message || "Failed to delete page",
+      };
+    }
+
+    return { success: true, data: result.data ?? result };
+  } catch (error) {
+    console.error("Delete website page error:", error);
+    return { success: false, message: "Failed to delete page" };
+  }
+}

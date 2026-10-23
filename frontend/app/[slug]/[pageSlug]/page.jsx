@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import SectionRenderer from "@/components/sections/SectionRenderer";
 import { DEFAULT_THEME } from "@/lib/theme";
-
+import PuckPublicRenderer from "@/components/website-builder/PuckPublicRenderer";
 async function getPublishedWebsite(slug) {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}websites/public/${slug}`,
+      `${process.env.API_URL}websites/public/${slug}`,
       { cache: 'no-store' }
     );
     if (!response.ok) {
@@ -36,9 +36,9 @@ export default async function PublicSubPage({ params }) {
   const { slug, pageSlug } = await params;
   const website = await getPublishedWebsite(slug);
 
-  if (!website || !website.isPublished || !website.publishedData) {
-    notFound();
-  }
+ if (!website || !website.publishedData) {
+  notFound();
+}
 
   const { publishedData } = website;
   const pages = publishedData.pages || [];
@@ -70,9 +70,19 @@ export default async function PublicSubPage({ params }) {
 
   return (
     <div style={themeVars} className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)]">
-      {sections.map((section) => (
-        <SectionRenderer key={section.id} section={section} />
-      ))}
+      {targetPage.editorData ? (
+  <PuckPublicRenderer data={targetPage.editorData} />
+) : (
+  [...(targetPage.sections || [])]
+    .sort((a, b) => a.order - b.order)
+    .map((section) => (
+      <SectionRenderer
+        key={section.id}
+        section={section}
+        websiteSlug={slug}
+      />
+    ))
+)}
     </div>
   );
 }
