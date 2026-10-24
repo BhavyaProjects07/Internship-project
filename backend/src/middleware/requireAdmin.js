@@ -11,6 +11,7 @@ const requireAdmin = async (req, res, next) => {
       });
     }
 
+    
     const user = await clerkClient.users.getUser(userId);
 
     if (user.publicMetadata?.role !== "admin") {

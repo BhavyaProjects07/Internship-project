@@ -219,6 +219,7 @@ const updateCategory = async (req, res) => {
   }
 };
 
+
 const setCategoryStatus = async (req, res) => {
   try {
     const { isActive } = req.body;

@@ -1,27 +1,30 @@
-const API_URL = "http://localhost:5000/api";
+const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+).replace(/\/+$/, "");
 
-export async function getTemplates() {
-  const response = await fetch(`${API_URL}/templates`);
+async function apiFetch(path, options = {}) {
+  const response = await fetch(`${API_URL}${path}`, options);
 
   if (!response.ok) {
-    throw new Error("Failed to fetch templates");
+    const message = await response.text().catch(() => "");
+    throw new Error(
+      `API request failed (${response.status} ${response.statusText})${message ? `: ${message}` : ""}`
+    );
   }
 
   return response.json();
+}
+
+export async function getTemplates() {
+  return apiFetch("/templates");
 }
 
 export async function getTemplateById(id) {
-  const response = await fetch(`${API_URL}/templates/${id}`);
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch template");
-  }
-
-  return response.json();
+  return apiFetch(`/templates/${encodeURIComponent(id)}`);
 }
 
 export async function createWebsite(templateId, name) {
-  const response = await fetch(`${API_URL}/websites`, {
+  return apiFetch("/websites", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -31,20 +34,8 @@ export async function createWebsite(templateId, name) {
       name,
     }),
   });
-
-  if (!response.ok) {
-    throw new Error("Failed to create website");
-  }
-
-  return response.json();
 }
 
 export async function getWebsiteById(id) {
-  const response = await fetch(`${API_URL}/websites/${id}`);
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch website");
-  }
-
-  return response.json();
+  return apiFetch(`/websites/${encodeURIComponent(id)}`);
 }
