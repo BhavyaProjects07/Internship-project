@@ -113,8 +113,8 @@ export function ColorPickerInput({ label, value = "", onChange }) {
               value === "transparent"
                 ? "linear-gradient(45deg, #e2e8f0 25%, transparent 25%), linear-gradient(-45deg, #e2e8f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e2e8f0 75%), linear-gradient(-45deg, transparent 75%, #e2e8f0 75%)"
                 : undefined,
-            backgroundSize: "8px 8px",
-            backgroundPosition: "0 0, 0 4px, 4px -4px, -4px 0px",
+            backgroundSize: value === "transparent" ? "8px 8px" : undefined,
+            backgroundPosition: value === "transparent" ? "0 0, 0 4px, 4px -4px, -4px 0px" : undefined,
           }}
           title="Click to open color picker"
         >

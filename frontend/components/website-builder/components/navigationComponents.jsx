@@ -232,7 +232,7 @@ export const navigationComponents = {
                   placeholder="Search..."
                   style={{
                     border: "none",
-                    background: "transparent",
+                    backgroundColor: "transparent",
                     outline: "none",
                     fontSize: 13,
                     width: "100%",
@@ -460,7 +460,7 @@ export const navigationComponents = {
               style={{
                 position: "absolute",
                 right: 16,
-                background: "transparent",
+                backgroundColor: "transparent",
                 border: "none",
                 color: textColor || "#ffffff",
                 fontSize: 14,
@@ -794,7 +794,7 @@ export const navigationComponents = {
                         padding: "8px 12px",
                         borderRadius: 8,
                         border: "1px solid rgba(255,255,255,0.2)",
-                        background: "rgba(255,255,255,0.06)",
+                        backgroundColor: "rgba(255,255,255,0.06)",
                         color: "#ffffff",
                         fontSize: 13,
                         outline: "none",

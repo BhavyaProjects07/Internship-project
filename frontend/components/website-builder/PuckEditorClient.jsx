@@ -1086,7 +1086,7 @@ const saveGlobalLayout = useCallback(async () => {
             
 <div
   className="studio-canvas-page"
-  style={{ background: "#ffffff", color: "#111827" }}
+  style={{ backgroundColor: "#ffffff", color: "#111827" }}
 >
   {globalLayout.header.enabled && (
     <header
@@ -1097,7 +1097,7 @@ const saveGlobalLayout = useCallback(async () => {
         gap: 16,
         flexWrap: "wrap",
         padding: "16px 24px",
-        background: globalLayout.header.backgroundColor,
+        backgroundColor: globalLayout.header.backgroundColor,
         color: globalLayout.header.textColor,
         borderBottom: "1px solid #e5e7eb",
       }}
@@ -1135,7 +1135,7 @@ const saveGlobalLayout = useCallback(async () => {
     <footer
       style={{
         padding: "24px",
-        background: globalLayout.footer.backgroundColor,
+        backgroundColor: globalLayout.footer.backgroundColor,
         color: globalLayout.footer.textColor,
       }}
     >

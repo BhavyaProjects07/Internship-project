@@ -47,7 +47,7 @@ export const marketingComponents = {
       ]),
       gradientFrom: colorField("Gradient color from"),
       gradientTo: colorField("Gradient color to"),
-      backgroundImage: textField("Full background image URL"),
+      backgroundImage: textField("Background image URL"),
       overlayOpacity: numberField("Background overlay opacity (%)", 0, 100),
       textColor: colorField("Text color"),
       accentColor: colorField("Accent highlight color"),
@@ -118,15 +118,21 @@ export const marketingComponents = {
     }) => {
       const isCentered = layout === "centered";
       const isSplit = layout === "split";
-      const isBg = layout === "background";
 
-      let bgStyle = backgroundColor;
-      if (backgroundGradient) {
-        bgStyle = `linear-gradient(135deg, ${gradientFrom || "#090d16"}, ${gradientTo || "#131b2e"})`;
+      const heroBgColor = backgroundColor || "#090d16";
+      const cleanBgImage = (backgroundImage || "").trim().replace(/["\\\n\r]/g, "");
+      const hasBgImage = Boolean(cleanBgImage);
+
+      let heroBgImage = undefined;
+      if (hasBgImage && backgroundGradient) {
+        heroBgImage = `url("${cleanBgImage}"), linear-gradient(135deg, ${gradientFrom || "#090d16"}, ${gradientTo || "#131b2e"})`;
+      } else if (hasBgImage) {
+        heroBgImage = `url("${cleanBgImage}")`;
+      } else if (backgroundGradient) {
+        heroBgImage = `linear-gradient(135deg, ${gradientFrom || "#090d16"}, ${gradientTo || "#131b2e"})`;
       }
-      if (isBg && backgroundImage) {
-        bgStyle = `url("${backgroundImage}"), ${bgStyle}`;
-      }
+
+      const showOverlay = (hasBgImage || layout === "background" || overlayOpacity > 0) && overlayOpacity > 0;
 
       return (
         <AnimationWrapper
@@ -141,25 +147,28 @@ export const marketingComponents = {
             position: "relative",
             width: "100%",
             boxSizing: "border-box",
-            background: bgStyle,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            color: textColor,
+            backgroundColor: heroBgColor,
+            backgroundImage: heroBgImage,
+            backgroundSize: hasBgImage ? "cover" : undefined,
+            backgroundPosition: hasBgImage ? "center" : undefined,
+            backgroundRepeat: hasBgImage ? "no-repeat" : undefined,
+            color: textColor || "#ffffff",
             paddingTop: `${paddingY}px`,
             paddingBottom: `${paddingY}px`,
             borderRadius: `${borderRadius}px`,
             overflow: "hidden",
           }}
         >
-          {isBg && overlayOpacity > 0 && (
+          {showOverlay && (
             <div
               aria-hidden="true"
               style={{
                 position: "absolute",
                 inset: 0,
                 backgroundColor: "#000000",
-                opacity: overlayOpacity / 100,
+                opacity: Math.min(1, Math.max(0, overlayOpacity / 100)),
                 pointerEvents: "none",
+                zIndex: 0,
               }}
             />
           )}

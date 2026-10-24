@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Puck & Database Pipeline Architecture Guide</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 18mm 16mm 18mm 16mm;
+      @bottom-right {
+        content: counter(page);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #0f172a;
+      background-color: #ffffff;
+      line-height: 1.55;
+      font-size: 13.5px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .header-banner {
+      background: linear-gradient(135deg, #090d16 0%, #1e1b4b 50%, #312e81 100%);
+      color: #ffffff;
+      padding: 28px 24px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+    }
+
+    .badge-pill {
+      display: inline-block;
+      padding: 4px 10px;
+      background: rgba(99, 102, 241, 0.35);
+      border: 1px solid rgba(165, 180, 252, 0.4);
+      color: #e0e7ff;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+      line-height: 1.25;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #cbd5e1;
+      line-height: 1.4;
+    }
+
+    .section-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 18px;
+      page-break-inside: avoid;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 16px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 12px;
+      border-bottom: 1px solid #f1f5f9;
+      padding-bottom: 8px;
+    }
+
+    .step-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      background: #4f46e5;
+      color: #ffffff;
+      border-radius: 50%;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    p {
+      margin-bottom: 10px;
+      color: #334155;
+    }
+
+    .highlight-box {
+      background: #f8fafc;
+      border-left: 4px solid #4f46e5;
+      padding: 12px 14px;
+      border-radius: 0 8px 8px 0;
+      margin: 12px 0;
+      font-size: 13px;
+      color: #1e293b;
+    }
+
+    .grid-diagram {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .diagram-step {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .diagram-step h4 {
+      font-size: 13px;
+      color: #0f172a;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .diagram-step p {
+      font-size: 11.5px;
+      color: #64748b;
+      margin: 0;
+    }
+
+    pre, code {
+      font-family: Consolas, "Courier New", monospace;
+    }
+
+    pre {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 11.5px;
+      line-height: 1.45;
+      overflow-x: auto;
+      margin: 10px 0;
+    }
+
+    .table-container {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 12.5px;
+    }
+
+    .table-container th, .table-container td {
+      border: 1px solid #e2e8f0;
+      padding: 8px 12px;
+      text-align: left;
+    }
+
+    .table-container th {
+      background: #f1f5f9;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .table-container td code {
+      background: #f1f5f9;
+      padding: 2px 5px;
+      border-radius: 4px;
+      color: #4f46e5;
+      font-size: 11px;
+    }
+
+    .tag-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .tag-blue { background: #eff6ff; color: #1d4ed8; }
+    .tag-green { background: #ecfdf5; color: #047857; }
+    .tag-purple { background: #f5f3ff; color: #6d28d9; }
+
+    .footer-note {
+      text-align: center;
+      font-size: 11.5px;
+      color: #94a3b8;
+      margin-top: 20px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Banner -->
+  <div class="header-banner">
+    <div class="badge-pill">Architectural Whitepaper</div>
+    <h1>How Puck Visual Website Builder Works &amp; Saves Data</h1>
+    <div class="subtitle">A Simple, Easy-to-Understand Guide on the Data Storage, Styling Pipeline, and Neon Database Architecture</div>
+  </div>
+
+  <!-- The Simple Analogy -->
+  <div class="section-card">
+    <div class="section-title">
+      <span class="step-number">&#9733;</span>
+      <span>The 10-Second Analogy: Blueprint vs. Finished House</span>
+    </div>
+    <p>
+      Imagine you are building a custom Lego house or ordering a tailored suit:
+    </p>
+    <div class="highlight-box">
+      <strong>Instead of saving heavy, rigid, locked-down HTML and CSS files</strong>, Puck saves a lightweight <strong>digital recipe</strong> (called JSON). It records only your exact choices: <em>"Add a Hero section; make background dark navy (#090d16); make corner radius 16px; fade up in 700ms."</em>
+    </div>
+    <p>
+      When someone visits your website, your Next.js application reads that recipe in milliseconds and assembles the live, interactive, animated website instantly on screen.
+    </p>
+  </div>
+
+  <!-- Step 1: The Visual Studio -->
+  <div class="section-card">
+    <div class="section-title">
+      <span class="step-number">1</span>
+      <span>What Happens When You Customize in the Editor?</span>
+    </div>
+    <p>
+      Inside the visual builder canvas and right sidebar:
+    </p>
+    <ul style="margin-left: 20px; margin-bottom: 12px; color: #334155;">
+      <li><strong>Color Pickers:</strong> When you pick <code>#6366f1</code> from the palette swatch, Puck updates the component prop <code>accentColor: "#6366f1"</code>.</li>
+      <li><strong>Sliders &amp; Radii:</strong> Dragging a slider from 0 to 16 sets <code>borderRadius: 16</code>.</li>
+      <li><strong>Multiple Products / Grids:</strong> Choosing 4 columns with row scroll sets <code>layout: "row"</code> and <code>columns: "4"</code>.</li>
+      <li><strong>Animations:</strong> Selecting Fade-Up with 150ms delay sets <code>animPreset: "fade-up"</code> and <code>animDelay: 150</code>.</li>
+    </ul>
+    <p>Every single adjustment lives inside a live JavaScript state object representing the page.</p>
+  </div>
+
+  <!-- Step 2: The Database Vault (NeonDB) -->
+  <div class="section-card">
+    <div class="section-title">
+      <span class="step-number">2</span>
+      <span>Where &amp; How It Is Saved in Your Neon Database</span>
+    </div>
+    <p>
+      When you click <strong>"Save Template"</strong> or <strong>"Publish"</strong>, your frontend sends the state to your backend API, which saves it into PostgreSQL (NeonDB):
+    </p>
+
+    <table class="table-container">
+      <thead>
+        <tr>
+          <th>Database Table</th>
+          <th>Column Name</th>
+          <th>Data Type</th>
+          <th>What It Actually Holds</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Template</strong></td>
+          <td><code>id, name, slug</code></td>
+          <td><span class="tag-pill tag-blue">String / CUID</span></td>
+          <td>Template metadata (e.g. "Agency Studio", "E-commerce")</td>
+        </tr>
+        <tr>
+          <td><strong>TemplatePage</strong></td>
+          <td><code>editorData</code></td>
+          <td><span class="tag-pill tag-purple">JSONB</span></td>
+          <td><strong>The Core Document:</strong> Holds all components, props, text, and styles.</td>
+        </tr>
+        <tr>
+          <td><strong>WebsitePage</strong></td>
+          <td><code>editorData</code></td>
+          <td><span class="tag-pill tag-green">JSONB</span></td>
+          <td>When a user clicks "Use Template", this copies the recipe to their website.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>Here is an exact real-world sample of what is stored inside the <code>editorData</code> column in your Neon database:</p>
+
+<pre>{
+  "content": [
+    {
+      "type": "Hero",
+      "props": {
+        "title": "Digital Products Built for Ambitious Brands",
+        "backgroundColor": "#090d16",
+        "backgroundGradient": true,
+        "gradientFrom": "#090d16",
+        "gradientTo": "#131b2e",
+        "accentColor": "#6366f1",
+        "textColor": "#ffffff",
+        "borderRadius": 16,
+        "animPreset": "fade-up",
+        "animDuration": 700
+      }
+    },
+    {
+      "type": "ProductGrid",
+      "props": {
+        "sectionTitle": "Curated Seasonal Collection",
+        "layout": "grid",
+        "columns": "4",
+        "cardBg": "#ffffff",
+        "products": [ ... ]
+      }
+    }
+  ],
+  "root": {
+    "props": {
+      "title": "Home Page",
+      "backgroundColor": "#ffffff",
+      "fontFamily": "Inter"
+    }
+  }
+}</pre>
+  </div>
+
+  <!-- Step 3: The 3-Stage Styling Pipeline -->
+  <div class="section-card">
+    <div class="section-title">
+      <span class="step-number">3</span>
+      <span>How JSON Transforms Into Styled Visual Webpages</span>
+    </div>
+    <p>
+      How does <code>backgroundColor: "#090d16"</code> become a visible dark background? This happens through our 3-stage engine:
+    </p>
+
+    <div class="grid-diagram">
+      <div class="diagram-step">
+        <span class="tag-pill tag-blue">Stage 1</span>
+        <h4 style="margin-top:6px;">Style Synthesizer</h4>
+        <p><code>buildBoxStyle()</code> turns raw props into CSS: <code>background</code>, <code>linear-gradient</code>, <code>borderRadius: "16px"</code>, and <code>backdropFilter</code>.</p>
+      </div>
+      <div class="diagram-step">
+        <span class="tag-pill tag-purple">Stage 2</span>
+        <h4 style="margin-top:6px;">Token &amp; Hover Engine</h4>
+        <p>Resolves interactive micro-animations (like <code>hover-lift-md</code> or button shadows) via modular utility classes.</p>
+      </div>
+      <div class="diagram-step">
+        <span class="tag-pill tag-green">Stage 3</span>
+        <h4 style="margin-top:6px;">Animation Runtime</h4>
+        <p><code>AnimationWrapper</code> uses an <code>IntersectionObserver</code> to trigger GPU-accelerated entrance effects when scrolled into view.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 4: Key Benefits -->
+  <div class="section-card">
+    <div class="section-title">
+      <span class="step-number">4</span>
+      <span>Why This Architecture is Production-Grade</span>
+    </div>
+    <ul style="margin-left: 20px; color: #334155; line-height: 1.7;">
+      <li><strong>Tiny Database Footprint:</strong> An entire multi-section, heavily styled page takes only <strong>~20 KB of JSON</strong> in NeonDB, instead of megabytes of duplicated HTML/CSS.</li>
+      <li><strong>Infinite Editability:</strong> Because styling is stored as clean properties, you can reopen any template months later and adjust any color, spacing, or text with zero friction.</li>
+      <li><strong>Responsive By Default:</strong> The components use modern fluid sizing (like CSS <code>clamp(...)</code> and responsive auto-fit grids), so one saved JSON document displays on Mobile, Tablet, and Desktop automatically.</li>
+      <li><strong>Instant Client Cloning:</strong> When someone clicks "Use Template", the backend simply duplicates the <code>editorData</code> JSON in under 50ms, giving the user their own editable website immediately.</li>
+    </ul>
+  </div>
+
+  <div class="footer-note">
+    Generated for Full-Stack Visual Website Builder Architecture &bull; NeonDB PostgreSQL &bull; Next.js &amp; Puck Integration
+  </div>
+
+</body>
+</html>
