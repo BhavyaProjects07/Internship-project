@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
+import MediaInput from "@/components/media/MediaInput";
 
 const API_URL = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/"
@@ -360,17 +361,15 @@ async function handleSubmit(event) {
               />
             </label>
 
-            <label className="block text-sm font-medium text-gray-700">
-              Thumbnail URL
-              <input
-                name="thumbnail"
-                type="url"
+            <div className="sm:col-span-2">
+              <MediaInput
+                label="Category thumbnail"
                 value={form.thumbnail}
-                onChange={updateField}
-                placeholder="https://…"
-                className="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2.5 outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900"
+                onChange={(url) => setForm((current) => ({ ...current, thumbnail: url }))}
+                placeholder="https://... or upload/choose from library"
+                description="Thumbnail image displayed when users browse categories in the site creator."
               />
-            </label>
+            </div>
 
             <label className="block text-sm font-medium text-gray-700">
               Display order

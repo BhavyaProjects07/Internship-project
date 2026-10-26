@@ -4,14 +4,23 @@ import React from "react";
 import AnimationWrapper from "../animation/AnimationWrapper.jsx";
 import { animationFields, animationDefaults } from "../fields/animationFields.js";
 import { spacingFields, commonDesignDefaults } from "../fields/boxStyleFields.js";
-import { selectField, numberField, textField, radioField, colorField } from "../fields/helpers.js";
+import {
+  selectField,
+  numberField,
+  textField,
+  radioField,
+  colorField,
+  responsiveField,
+} from "../fields/helpers.js";
 import { typographyFields, typographyDefaults } from "../fields/typographyFields.js";
 import { buildElementStyle, getHoverClass } from "../layout/styleBuilders.js";
+import { buildResponsiveStyles } from "../layout/responsiveStyles.js";
 import {
   ALIGNMENT_OPTIONS,
   FONT_WEIGHT_OPTIONS,
   HOVER_EFFECT_OPTIONS,
   RADIUS_OPTIONS,
+  SPACING_OPTIONS,
 } from "../tokens/index.js";
 import { RenderIcon, ICON_PRESETS } from "./icons.jsx";
 
@@ -55,6 +64,11 @@ export const actionComponents = {
         { label: "Full width (100%)", value: true },
       ]),
       alignment: selectField("Alignment in container", ALIGNMENT_OPTIONS),
+      responsive: responsiveField("Responsive overrides", [
+        { name: "fontSize", label: "Font size (px)", type: "number", min: 10, max: 36 },
+        { name: "paddingX", label: "Horizontal padding (px)", type: "number", min: 4, max: 80 },
+        { name: "paddingY", label: "Vertical padding (px)", type: "number", min: 4, max: 60 },
+      ]),
       ...spacingFields,
       ...animationFields,
     },
@@ -102,6 +116,7 @@ export const actionComponents = {
       alignment,
       marginTop,
       marginBottom,
+      responsive,
       animTrigger,
       animPreset,
       animLoop,
@@ -139,6 +154,15 @@ export const actionComponents = {
           <RenderIcon name={icon} size={fontSize + 2} color={textClr} />
         ) : null;
 
+      const { className: respClass, css: respCss } = buildResponsiveStyles({
+        responsive,
+        variableMap: {
+          paddingX: "--puck-padding-x",
+          paddingY: "--puck-padding-y",
+          fontSize: "--puck-font-size",
+        },
+      });
+
       return (
         <AnimationWrapper
           trigger={animTrigger}
@@ -160,11 +184,12 @@ export const actionComponents = {
             marginBottom,
           }}
         >
+          {respCss && <style dangerouslySetInnerHTML={{ __html: respCss }} />}
           <a
             href={href || "#"}
             target={target}
             rel={target === "_blank" ? "noopener noreferrer" : undefined}
-            className={getHoverClass(hoverEffect)}
+            className={`${getHoverClass(hoverEffect)} ${respClass}`.trim()}
             style={{
               display: "inline-flex",
               width: fullWidth ? "100%" : "auto",
@@ -175,19 +200,22 @@ export const actionComponents = {
               backgroundColor: btnBgColor,
               backgroundImage: btnBgImage,
               color: textClr,
-              fontSize: `${fontSize}px`,
+              fontSize: `var(--puck-font-size, ${fontSize}px)`,
               fontWeight,
-              padding: `${paddingY}px ${paddingX}px`,
+              padding: `var(--puck-padding-y, ${paddingY}px) var(--puck-padding-x, ${paddingX}px)`,
               borderRadius: `${borderRadius}px`,
               border,
               boxShadow: shadow,
               textDecoration: "none",
               cursor: "pointer",
               transition: "all 200ms ease",
+              maxWidth: "100%",
             }}
           >
             {iconPosition === "left" && iconEl}
-            <span>{label}</span>
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {label}
+            </span>
             {iconPosition === "right" && iconEl}
           </a>
         </AnimationWrapper>
@@ -211,6 +239,18 @@ export const actionComponents = {
       secondaryColor: colorField("Secondary text color"),
       alignment: selectField("Alignment", ALIGNMENT_OPTIONS),
       gap: numberField("Spacing between buttons (px)", 0, 60),
+      responsive: responsiveField("Responsive overrides", [
+        {
+          name: "direction",
+          label: "Stacking direction",
+          type: "select",
+          options: [
+            { label: "Row (Side by side)", value: "row" },
+            { label: "Column (Stacked vertically)", value: "column" },
+          ],
+        },
+        { name: "gap", label: "Spacing between buttons (px)", type: "number", min: 0, max: 60 },
+      ]),
       ...spacingFields,
       ...animationFields,
     },
@@ -242,80 +282,102 @@ export const actionComponents = {
       gap,
       marginTop,
       marginBottom,
+      responsive,
       animTrigger,
       animPreset,
       animLoop,
       animDuration,
       animDelay,
       animEasing,
-    }) => (
-      <AnimationWrapper
-        trigger={animTrigger}
-        preset={animPreset}
-        loop={animLoop}
-        duration={animDuration}
-        delay={animDelay}
-        easing={animEasing}
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "center",
-          justifyContent:
-            alignment === "center"
-              ? "center"
-              : alignment === "right"
-              ? "flex-end"
-              : "flex-start",
-          gap: `${gap}px`,
-          width: "100%",
-          marginTop,
-          marginBottom,
-        }}
-      >
-        {primaryText && (
-          <a
-            href={primaryUrl || "#"}
-            className="transition-transform duration-150 hover:-translate-y-0.5"
+    }) => {
+      const { className: respClass, css: respCss } = buildResponsiveStyles({
+        responsive,
+        variableMap: {
+          direction: "--puck-flex-direction",
+          gap: "--puck-gap",
+        },
+      });
+
+      return (
+        <AnimationWrapper
+          trigger={animTrigger}
+          preset={animPreset}
+          loop={animLoop}
+          duration={animDuration}
+          delay={animDelay}
+          easing={animEasing}
+          style={{
+            width: "100%",
+            marginTop,
+            marginBottom,
+          }}
+        >
+          {respCss && <style dangerouslySetInnerHTML={{ __html: respCss }} />}
+          <div
+            className={respClass}
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "13px 26px",
-              borderRadius: 10,
-              backgroundColor: primaryBg || "#0f172a",
-              color: primaryColor || "#ffffff",
-              fontSize: 15,
-              fontWeight: 600,
-              textDecoration: "none",
-              boxShadow: "0 4px 12px rgba(15, 23, 42, 0.15)",
+              display: "flex",
+              flexDirection: "var(--puck-flex-direction, row)",
+              flexWrap: "wrap",
+              alignItems: "stretch",
+              justifyContent:
+                alignment === "center"
+                  ? "center"
+                  : alignment === "right"
+                  ? "flex-end"
+                  : "flex-start",
+              gap: `var(--puck-gap, ${gap}px)`,
+              width: "100%",
             }}
           >
-            {primaryText}
-          </a>
-        )}
-        {secondaryText && (
-          <a
-            href={secondaryUrl || "#"}
-            className="transition-transform duration-150 hover:-translate-y-0.5"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "13px 24px",
-              borderRadius: 10,
-              backgroundColor: secondaryBg || "transparent",
-              color: secondaryColor || "#0f172a",
-              border: "1px solid #cbd5e1",
-              fontSize: 15,
-              fontWeight: 600,
-              textDecoration: "none",
-            }}
-          >
-            {secondaryText}
-          </a>
-        )}
-      </AnimationWrapper>
-    ),
+            {primaryText && (
+              <a
+                href={primaryUrl || "#"}
+                className="transition-transform duration-150 hover:-translate-y-0.5"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "13px 26px",
+                  borderRadius: 10,
+                  backgroundColor: primaryBg || "#0f172a",
+                  color: primaryColor || "#ffffff",
+                  fontSize: 15,
+                  fontWeight: 600,
+                  textDecoration: "none",
+                  boxShadow: "0 4px 12px rgba(15, 23, 42, 0.15)",
+                  boxSizing: "border-box",
+                }}
+              >
+                {primaryText}
+              </a>
+            )}
+            {secondaryText && (
+              <a
+                href={secondaryUrl || "#"}
+                className="transition-transform duration-150 hover:-translate-y-0.5"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "13px 24px",
+                  borderRadius: 10,
+                  backgroundColor: secondaryBg || "transparent",
+                  color: secondaryColor || "#0f172a",
+                  border: "1px solid #cbd5e1",
+                  fontSize: 15,
+                  fontWeight: 600,
+                  textDecoration: "none",
+                  boxSizing: "border-box",
+                }}
+              >
+                {secondaryText}
+              </a>
+            )}
+          </div>
+        </AnimationWrapper>
+      );
+    },
   },
 
   // ------------------------------------------------------------------------
@@ -335,6 +397,10 @@ export const actionComponents = {
         { label: "Include arrow →", value: true },
       ]),
       ...typographyFields,
+      responsive: responsiveField("Responsive overrides", [
+        { name: "fontSize", label: "Font size (px)", type: "number", min: 10, max: 36 },
+        { name: "textAlign", label: "Text align", type: "select", options: ALIGNMENT_OPTIONS },
+      ]),
       ...spacingFields,
       ...animationFields,
     },
@@ -361,33 +427,40 @@ export const actionComponents = {
       animDuration,
       animDelay,
       animEasing,
+      responsive,
       ...props
-    }) => (
-      <AnimationWrapper
-        trigger={animTrigger}
-        preset={animPreset}
-        loop={animLoop}
-        duration={animDuration}
-        delay={animDelay}
-        easing={animEasing}
-        style={{ display: "inline-block" }}
-      >
-        <a
-          href={href || "#"}
-          target={target}
-          rel={target === "_blank" ? "noopener noreferrer" : undefined}
-          style={{
-            ...buildElementStyle(props),
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            cursor: "pointer",
-          }}
+    }) => {
+      const { className: respClass, css: respCss } = buildResponsiveStyles({ responsive });
+
+      return (
+        <AnimationWrapper
+          trigger={animTrigger}
+          preset={animPreset}
+          loop={animLoop}
+          duration={animDuration}
+          delay={animDelay}
+          easing={animEasing}
+          style={{ display: "inline-block" }}
         >
-          <span>{text}</span>
-          {arrow && <span aria-hidden="true">&rarr;</span>}
-        </a>
-      </AnimationWrapper>
-    ),
+          {respCss && <style dangerouslySetInnerHTML={{ __html: respCss }} />}
+          <a
+            href={href || "#"}
+            target={target}
+            rel={target === "_blank" ? "noopener noreferrer" : undefined}
+            className={respClass}
+            style={{
+              ...buildElementStyle(props),
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              cursor: "pointer",
+            }}
+          >
+            <span>{text}</span>
+            {arrow && <span aria-hidden="true">&rarr;</span>}
+          </a>
+        </AnimationWrapper>
+      );
+    },
   },
 };

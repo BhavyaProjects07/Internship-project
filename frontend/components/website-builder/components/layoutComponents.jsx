@@ -4,9 +4,20 @@ import React from "react";
 import AnimationWrapper from "../animation/AnimationWrapper.jsx";
 import { animationFields, animationDefaults } from "../fields/animationFields.js";
 import { boxStyleFields, spacingFields, commonDesignDefaults } from "../fields/boxStyleFields.js";
-import { selectField, numberField, textField, radioField, colorField } from "../fields/helpers.js";
 import { buildBoxStyle, getHoverClass } from "../layout/styleBuilders.js";
 import { SPACING_OPTIONS, VERTICAL_ALIGN_OPTIONS, BORDER_STYLE_OPTIONS, WIDTH_OPTIONS } from "../tokens/index.js";
+import { buildResponsiveStyles } from "../layout/responsiveStyles.js";
+
+import {
+  selectField,
+  numberField,
+  textField,
+  radioField,
+  colorField,
+  responsiveField,
+} from "../fields/helpers.js";
+
+
 
 export const layoutComponents = {
   // ------------------------------------------------------------------------
@@ -48,6 +59,37 @@ export const layoutComponents = {
         { label: "Subtle border", value: true },
       ]),
       borderColor: colorField("Border line color"),
+      responsive: responsiveField([
+        {
+          key: "paddingY",
+          label: "Vertical padding",
+          type: "select",
+          options: [
+            { label: "None (0px)", value: "0px" },
+            { label: "Small (24px)", value: "24px" },
+            { label: "Medium (40px)", value: "40px" },
+            { label: "Large (64px)", value: "64px" },
+            { label: "Extra Large (96px)", value: "96px" },
+          ],
+        },
+        {
+          key: "paddingX",
+          label: "Horizontal padding",
+          type: "select",
+          options: SPACING_OPTIONS,
+        },
+        {
+          key: "maxWidth",
+          label: "Inner container width",
+          type: "select",
+          options: [
+            { label: "Narrow (760px)", value: "760px" },
+            { label: "Medium (1024px)", value: "1024px" },
+            { label: "Standard (1240px)", value: "1240px" },
+            { label: "Full width (100%)", value: "100%" },
+          ],
+        },
+      ]),
       ...animationFields,
     },
     defaultProps: {
@@ -65,6 +107,7 @@ export const layoutComponents = {
       overlayOpacity: 0,
       borderBottom: false,
       borderColor: "#e5e7eb",
+      responsive: {},
       ...animationDefaults,
     },
     render: ({
@@ -82,6 +125,7 @@ export const layoutComponents = {
       overlayOpacity,
       borderBottom,
       borderColor,
+      responsive,
       animTrigger,
       animPreset,
       animLoop,
@@ -100,56 +144,69 @@ export const layoutComponents = {
         sectionBgImage = `linear-gradient(${gradientAngle}deg, ${gradientFrom || "#ffffff"}, ${gradientTo || "#f8fafc"})`;
       }
 
+      const { className: respClass, css: respCss } = buildResponsiveStyles({
+        responsive,
+        variableMap: {
+          paddingY: "--puck-padding-y",
+          paddingX: "--puck-padding-x",
+          maxWidth: "--puck-max-width",
+        },
+      });
+
       return (
-        <AnimationWrapper
-          as="section"
-          trigger={animTrigger}
-          preset={animPreset}
-          loop={animLoop}
-          duration={animDuration}
-          delay={animDelay}
-          easing={animEasing}
-          style={{
-            position: "relative",
-            width: "100%",
-            boxSizing: "border-box",
-            backgroundColor: sectionBgColor,
-            backgroundImage: sectionBgImage,
-            backgroundSize: sectionBgImage ? "cover" : undefined,
-            backgroundPosition: sectionBgImage ? "center" : undefined,
-            backgroundRepeat: sectionBgImage ? "no-repeat" : undefined,
-            paddingTop: paddingY,
-            paddingBottom: paddingY,
-            borderBottom: borderBottom ? `1px solid ${borderColor || "#e5e7eb"}` : undefined,
-            overflow: "hidden",
-          }}
-        >
-          {overlayOpacity > 0 && (
-            <div
-              aria-hidden="true"
-              style={{
-                position: "absolute",
-                inset: 0,
-                backgroundColor: overlayColor || "#000000",
-                opacity: overlayOpacity / 100,
-                pointerEvents: "none",
-              }}
-            />
-          )}
-          <div
+        <>
+          {respCss && <style>{respCss}</style>}
+          <AnimationWrapper
+            as="section"
+            trigger={animTrigger}
+            preset={animPreset}
+            loop={animLoop}
+            duration={animDuration}
+            delay={animDelay}
+            easing={animEasing}
+            className={respClass}
             style={{
               position: "relative",
-              zIndex: 1,
-              boxSizing: "border-box",
               width: "100%",
-              maxWidth,
-              marginInline: "auto",
-              paddingInline: paddingX,
+              boxSizing: "border-box",
+              backgroundColor: sectionBgColor,
+              backgroundImage: sectionBgImage,
+              backgroundSize: sectionBgImage ? "cover" : undefined,
+              backgroundPosition: sectionBgImage ? "center" : undefined,
+              backgroundRepeat: sectionBgImage ? "no-repeat" : undefined,
+              paddingTop: `var(--puck-padding-y, ${paddingY})`,
+              paddingBottom: `var(--puck-padding-y, ${paddingY})`,
+              borderBottom: borderBottom ? `1px solid ${borderColor || "#e5e7eb"}` : undefined,
+              overflow: "hidden",
             }}
           >
-            <Content minEmptyHeight="100px" />
-          </div>
-        </AnimationWrapper>
+            {overlayOpacity > 0 && (
+              <div
+                aria-hidden="true"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  backgroundColor: overlayColor || "#000000",
+                  opacity: overlayOpacity / 100,
+                  pointerEvents: "none",
+                }}
+              />
+            )}
+            <div
+              style={{
+                position: "relative",
+                zIndex: 1,
+                boxSizing: "border-box",
+                width: "100%",
+                maxWidth: `var(--puck-max-width, ${maxWidth})`,
+                marginInline: "auto",
+                paddingInline: `var(--puck-padding-x, ${paddingX})`,
+              }}
+            >
+              <Content minEmptyHeight="100px" />
+            </div>
+          </AnimationWrapper>
+        </>
       );
     },
   },
@@ -177,6 +234,37 @@ export const layoutComponents = {
       ]),
       alignItems: selectField("Align items", VERTICAL_ALIGN_OPTIONS),
       gap: numberField("Item spacing gap (px)", 0, 160),
+      responsive: responsiveField([
+        {
+          key: "display",
+          label: "Display mode",
+          type: "select",
+          options: [
+            { label: "Flex column (Stack)", value: "flex-col" },
+            { label: "Flex row (Horizontal)", value: "flex-row" },
+            { label: "Block", value: "block" },
+          ],
+        },
+        {
+          key: "gap",
+          label: "Item spacing gap (px)",
+          type: "number",
+          min: 0,
+          max: 120,
+        },
+        {
+          key: "paddingTop",
+          label: "Padding top",
+          type: "select",
+          options: SPACING_OPTIONS,
+        },
+        {
+          key: "paddingBottom",
+          label: "Padding bottom",
+          type: "select",
+          options: SPACING_OPTIONS,
+        },
+      ]),
       ...animationFields,
     },
     defaultProps: {
@@ -192,6 +280,7 @@ export const layoutComponents = {
       justifyContent: "flex-start",
       alignItems: "stretch",
       gap: 16,
+      responsive: {},
       ...animationDefaults,
     },
     render: ({
@@ -200,6 +289,7 @@ export const layoutComponents = {
       justifyContent,
       alignItems,
       gap,
+      responsive,
       hoverEffect,
       animTrigger,
       animPreset,
@@ -208,38 +298,53 @@ export const layoutComponents = {
       animDelay,
       animEasing,
       ...props
-    }) => (
-      <AnimationWrapper
-        trigger={animTrigger}
-        preset={animPreset}
-        loop={animLoop}
-        duration={animDuration}
-        delay={animDelay}
-        easing={animEasing}
-        className={getHoverClass(hoverEffect)}
-        style={{
-          ...buildBoxStyle(props),
-          display: display === "block" ? "block" : "flex",
-          flexDirection: display === "flex-row" ? "row" : "column",
-          justifyContent: display !== "block" ? justifyContent : undefined,
-          alignItems: display !== "block" ? alignItems : undefined,
-          flexWrap: display === "flex-row" ? "wrap" : undefined,
-          gap: `${gap}px`,
-          minWidth: 0,
-        }}
-      >
-        <Content
-          style={{
-            display: display === "block" ? "block" : "flex",
-            flexDirection: display === "flex-row" ? "row" : "column",
-            gap: `${gap}px`,
-            minWidth: 0,
-            width: "100%",
-          }}
-          minEmptyHeight="60px"
-        />
-      </AnimationWrapper>
-    ),
+    }) => {
+      const { className: respClass, css: respCss } = buildResponsiveStyles({
+        responsive,
+        variableMap: {
+          display: "--puck-display",
+          gap: "--puck-gap",
+          paddingTop: "--puck-padding-top",
+          paddingBottom: "--puck-padding-bottom",
+        },
+      });
+
+      return (
+        <>
+          {respCss && <style>{respCss}</style>}
+          <AnimationWrapper
+            trigger={animTrigger}
+            preset={animPreset}
+            loop={animLoop}
+            duration={animDuration}
+            delay={animDelay}
+            easing={animEasing}
+            className={`${getHoverClass(hoverEffect)} ${respClass}`}
+            style={{
+              ...buildBoxStyle(props),
+              display: display === "block" ? "block" : "flex",
+              flexDirection: display === "flex-row" ? "row" : "column",
+              justifyContent: display !== "block" ? justifyContent : undefined,
+              alignItems: display !== "block" ? alignItems : undefined,
+              flexWrap: display === "flex-row" ? "wrap" : undefined,
+              gap: `var(--puck-gap, ${gap}px)`,
+              minWidth: 0,
+            }}
+          >
+            <Content
+              style={{
+                display: display === "block" ? "block" : "flex",
+                flexDirection: display === "flex-row" ? "row" : "column",
+                gap: `var(--puck-gap, ${gap}px)`,
+                minWidth: 0,
+                width: "100%",
+              }}
+              minEmptyHeight="60px"
+            />
+          </AnimationWrapper>
+        </>
+      );
+    },
   },
 
   // ------------------------------------------------------------------------
@@ -247,6 +352,7 @@ export const layoutComponents = {
   // ------------------------------------------------------------------------
   Columns: {
     label: "Columns (Multi-slot)",
+
     fields: {
       column1: { type: "slot" },
       column2: { type: "slot" },
@@ -254,6 +360,7 @@ export const layoutComponents = {
       column4: { type: "slot" },
       column5: { type: "slot" },
       column6: { type: "slot" },
+
       columns: selectField("Columns count", [
         { label: "2 Equal Columns", value: "2" },
         { label: "3 Equal Columns", value: "3" },
@@ -261,12 +368,43 @@ export const layoutComponents = {
         { label: "5 Equal Columns", value: "5" },
         { label: "6 Equal Columns", value: "6" },
       ]),
+
       gap: numberField("Column gap (px)", 0, 100),
-      alignItems: selectField("Vertical alignment", VERTICAL_ALIGN_OPTIONS),
+
+      responsive: responsiveField([
+        {
+          key: "columns",
+          label: "Number of columns",
+          type: "select",
+          options: [
+            { label: "1 Column (Stack vertically)", value: "1" },
+            { label: "2 columns", value: "2" },
+            { label: "3 columns", value: "3" },
+            { label: "4 columns", value: "4" },
+            { label: "5 columns", value: "5" },
+            { label: "6 columns", value: "6" },
+          ],
+        },
+        {
+          key: "gap",
+          label: "Column gap (px)",
+          type: "number",
+          min: 0,
+          max: 100,
+          step: 1,
+        },
+      ]),
+
+      alignItems: selectField(
+        "Vertical alignment",
+        VERTICAL_ALIGN_OPTIONS
+      ),
+
       ...spacingFields,
       ...boxStyleFields,
       ...animationFields,
     },
+
     defaultProps: {
       column1: [],
       column2: [],
@@ -274,12 +412,16 @@ export const layoutComponents = {
       column4: [],
       column5: [],
       column6: [],
+
       columns: "3",
       gap: 24,
       alignItems: "stretch",
+      responsive: {},
+
       ...commonDesignDefaults,
       ...animationDefaults,
     },
+
     render: ({
       column1: Column1,
       column2: Column2,
@@ -287,43 +429,86 @@ export const layoutComponents = {
       column4: Column4,
       column5: Column5,
       column6: Column6,
+
       columns,
       gap,
       alignItems,
+      responsive,
+
       animTrigger,
       animPreset,
       animLoop,
       animDuration,
       animDelay,
       animEasing,
+
       ...props
     }) => {
-      const count = Math.min(6, Math.max(2, Number(columns) || 3));
-      const allSlots = [Column1, Column2, Column3, Column4, Column5, Column6];
+      const count = Math.min(
+        6,
+        Math.max(1, Number(columns) || 3)
+      );
+
+      const allSlots = [
+        Column1,
+        Column2,
+        Column3,
+        Column4,
+        Column5,
+        Column6,
+      ];
+
+      const { className, css } = buildResponsiveStyles({
+        responsive,
+        variableMap: {
+          columns: "--puck-columns",
+          gap: "--puck-gap",
+        },
+      });
 
       return (
-        <AnimationWrapper
-          trigger={animTrigger}
-          preset={animPreset}
-          loop={animLoop}
-          duration={animDuration}
-          delay={animDelay}
-          easing={animEasing}
-          style={{
-            ...buildBoxStyle(props),
-            display: "grid",
-            gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))`,
-            alignItems,
-            gap: `${gap}px`,
-            width: "100%",
-          }}
-        >
-          {allSlots.slice(0, count).map((Col, index) => (
-            <div key={`col-${index}`} style={{ minWidth: 0, width: "100%" }}>
-              <Col minEmptyHeight="80px" />
-            </div>
-          ))}
-        </AnimationWrapper>
+        <>
+          {css && <style>{css}</style>}
+
+          <div
+            className={className}
+            style={{
+              width: "100%",
+              minWidth: 0,
+            }}
+          >
+            <AnimationWrapper
+              trigger={animTrigger}
+              preset={animPreset}
+              loop={animLoop}
+              duration={animDuration}
+              delay={animDelay}
+              easing={animEasing}
+              style={{
+                ...buildBoxStyle(props),
+                display: "grid",
+                gridTemplateColumns:
+                  `repeat(var(--puck-columns, ${count}), minmax(0, 1fr))`,
+                alignItems,
+                gap: `var(--puck-gap, ${Number(gap) || 0}px)`,
+                width: "100%",
+                minWidth: 0,
+              }}
+            >
+              {allSlots.slice(0, count).map((Col, index) => (
+                <div
+                  key={`col-${index}`}
+                  style={{
+                    minWidth: 0,
+                    width: "100%",
+                  }}
+                >
+                  <Col minEmptyHeight="80px" />
+                </div>
+              ))}
+            </AnimationWrapper>
+          </div>
+        </>
       );
     },
   },
@@ -337,6 +522,22 @@ export const layoutComponents = {
       content: { type: "slot" },
       minItemWidth: numberField("Min item width (px)", 120, 600),
       gap: numberField("Grid gap (px)", 0, 80),
+      responsive: responsiveField([
+        {
+          key: "minItemWidth",
+          label: "Min item width (px)",
+          type: "number",
+          min: 100,
+          max: 600,
+        },
+        {
+          key: "gap",
+          label: "Grid gap (px)",
+          type: "number",
+          min: 0,
+          max: 80,
+        },
+      ]),
       ...spacingFields,
       ...boxStyleFields,
       ...animationFields,
@@ -345,6 +546,7 @@ export const layoutComponents = {
       content: [],
       minItemWidth: 280,
       gap: 24,
+      responsive: {},
       ...commonDesignDefaults,
       ...animationDefaults,
     },
@@ -352,6 +554,7 @@ export const layoutComponents = {
       content: Content,
       minItemWidth,
       gap,
+      responsive,
       animTrigger,
       animPreset,
       animLoop,
@@ -359,25 +562,40 @@ export const layoutComponents = {
       animDelay,
       animEasing,
       ...props
-    }) => (
-      <AnimationWrapper
-        trigger={animTrigger}
-        preset={animPreset}
-        loop={animLoop}
-        duration={animDuration}
-        delay={animDelay}
-        easing={animEasing}
-        style={{
-          ...buildBoxStyle(props),
-          display: "grid",
-          gridTemplateColumns: `repeat(auto-fill, minmax(${minItemWidth || 280}px, 1fr))`,
-          gap: `${gap}px`,
-          width: "100%",
-        }}
-      >
-        <Content minEmptyHeight="80px" />
-      </AnimationWrapper>
-    ),
+    }) => {
+      const { className: respClass, css: respCss } = buildResponsiveStyles({
+        responsive,
+        variableMap: {
+          minItemWidth: "--puck-min-item-width",
+          gap: "--puck-gap",
+        },
+      });
+
+      return (
+        <>
+          {respCss && <style>{respCss}</style>}
+          <AnimationWrapper
+            trigger={animTrigger}
+            preset={animPreset}
+            loop={animLoop}
+            duration={animDuration}
+            delay={animDelay}
+            easing={animEasing}
+            className={respClass}
+            style={{
+              ...buildBoxStyle(props),
+              display: "grid",
+              gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, var(--puck-min-item-width, ${minItemWidth || 280}px)), 1fr))`,
+              gap: `var(--puck-gap, ${gap}px)`,
+              width: "100%",
+              minWidth: 0,
+            }}
+          >
+            <Content minEmptyHeight="80px" />
+          </AnimationWrapper>
+        </>
+      );
+    },
   },
 
   // ------------------------------------------------------------------------
@@ -404,6 +622,30 @@ export const layoutComponents = {
       ]),
       align: selectField("Align", VERTICAL_ALIGN_OPTIONS),
       gap: numberField("Gap (px)", 0, 100),
+      responsive: responsiveField([
+        {
+          key: "direction",
+          label: "Flex direction",
+          type: "select",
+          options: [
+            { label: "Column (Vertical stack)", value: "column" },
+            { label: "Row (Horizontal)", value: "row" },
+          ],
+        },
+        {
+          key: "gap",
+          label: "Gap (px)",
+          type: "number",
+          min: 0,
+          max: 100,
+        },
+        {
+          key: "align",
+          label: "Align items",
+          type: "select",
+          options: VERTICAL_ALIGN_OPTIONS,
+        },
+      ]),
       ...spacingFields,
       ...boxStyleFields,
       ...animationFields,
@@ -415,6 +657,7 @@ export const layoutComponents = {
       justify: "flex-start",
       align: "center",
       gap: 16,
+      responsive: {},
       ...commonDesignDefaults,
       ...animationDefaults,
     },
@@ -425,6 +668,7 @@ export const layoutComponents = {
       justify,
       align,
       gap,
+      responsive,
       animTrigger,
       animPreset,
       animLoop,
@@ -432,28 +676,44 @@ export const layoutComponents = {
       animDelay,
       animEasing,
       ...props
-    }) => (
-      <AnimationWrapper
-        trigger={animTrigger}
-        preset={animPreset}
-        loop={animLoop}
-        duration={animDuration}
-        delay={animDelay}
-        easing={animEasing}
-        style={{
-          ...buildBoxStyle(props),
-          display: "flex",
-          flexDirection: direction,
-          flexWrap: wrap,
-          justifyContent: justify,
-          alignItems: align,
-          gap: `${gap}px`,
-          width: "100%",
-        }}
-      >
-        <Content minEmptyHeight="60px" />
-      </AnimationWrapper>
-    ),
+    }) => {
+      const { className: respClass, css: respCss } = buildResponsiveStyles({
+        responsive,
+        variableMap: {
+          direction: "--puck-flex-direction",
+          gap: "--puck-gap",
+          align: "--puck-align-items",
+        },
+      });
+
+      return (
+        <>
+          {respCss && <style>{respCss}</style>}
+          <AnimationWrapper
+            trigger={animTrigger}
+            preset={animPreset}
+            loop={animLoop}
+            duration={animDuration}
+            delay={animDelay}
+            easing={animEasing}
+            className={respClass}
+            style={{
+              ...buildBoxStyle(props),
+              display: "flex",
+              flexDirection: `var(--puck-flex-direction, ${direction})`,
+              flexWrap: wrap,
+              justifyContent: justify,
+              alignItems: `var(--puck-align-items, ${align})`,
+              gap: `var(--puck-gap, ${gap}px)`,
+              width: "100%",
+              minWidth: 0,
+            }}
+          >
+            <Content minEmptyHeight="60px" />
+          </AnimationWrapper>
+        </>
+      );
+    },
   },
 
   // ------------------------------------------------------------------------
@@ -553,18 +813,37 @@ export const layoutComponents = {
     label: "Spacer",
     fields: {
       height: numberField("Height (px)", 4, 400),
+      responsive: responsiveField([
+        {
+          key: "height",
+          label: "Height (px)",
+          type: "number",
+          min: 0,
+          max: 300,
+        },
+      ]),
     },
-    defaultProps: { height: 48 },
-    render: ({ height }) => (
-      <div
-        aria-hidden="true"
-        style={{
-          height: `${height}px`,
-          width: "100%",
-          pointerEvents: "none",
-        }}
-      />
-    ),
+    defaultProps: { height: 48, responsive: {} },
+    render: ({ height, responsive }) => {
+      const { className: respClass, css: respCss } = buildResponsiveStyles({
+        responsive,
+        variableMap: { height: "--puck-spacer-height" },
+      });
+      return (
+        <>
+          {respCss && <style>{respCss}</style>}
+          <div
+            aria-hidden="true"
+            className={respClass}
+            style={{
+              height: `var(--puck-spacer-height, ${height}px)`,
+              width: "100%",
+              pointerEvents: "none",
+            }}
+          />
+        </>
+      );
+    },
   },
 
   // ------------------------------------------------------------------------

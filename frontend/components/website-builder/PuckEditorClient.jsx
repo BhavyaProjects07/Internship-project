@@ -1,4 +1,4 @@
-
+﻿
 "use client";
 
 import {
@@ -66,6 +66,21 @@ function Icon({ name, size = 18 }) {
         <path d="M9 3v18" />
       </>
     ),
+    sidebarLeft: (
+      <>
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <path d="M9 3v18" />
+      </>
+    ),
+    sidebarRight: (
+      <>
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <path d="M15 3v18" />
+      </>
+    ),
+    chevronLeft: <path d="m15 18-6-6 6-6" />,
+    chevronRight: <path d="m9 18 6-6-6-6" />,
+    x: <path d="M18 6 6 18M6 6l12 12" />,
   };
 
   return <svg {...common}>{paths[name] || paths.blocks}</svg>;
@@ -138,10 +153,10 @@ export default function PuckEditorClient({
   const [savedAt, setSavedAt] = useState(null);
   const [retryDocument, setRetryDocument] = useState(null);
   const [activeSidebarTab, setActiveSidebarTab] = useState("elements");
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
 
-
-  
-const lastCanvasScrollRef = useRef(0);
+  const lastCanvasScrollRef = useRef(0);
   const saveLockRef = useRef(false);
   const dirtyRef = useRef(false);
   const mountedRef = useRef(true);
@@ -170,28 +185,20 @@ const lastCanvasScrollRef = useRef(0);
   }, []);
 
 
+  const [previewDevice, setPreviewDevice] = useState("desktop");
+
+  const previewWidths = {
+    desktop: "100%",
+    tablet: "768px",
+    mobile: "390px",
+  };
+
+
 
   
-const DEFAULT_GLOBAL_LAYOUT = {
-  header: {
-    enabled: true,
-    logoText: "Your Brand",
-    logoUrl: "",
-    backgroundColor: "#ffffff",
-    textColor: "#111827",
-    alignment: "between",
-    links: [],
-  },
-  footer: {
-    enabled: true,
-    backgroundColor: "#111827",
-    textColor: "#ffffff",
-    copyrightText: "© Your Brand. All rights reserved.",
-    links: [],
-  },
-};
 
-const [globalLayout, setGlobalLayout] = useState(DEFAULT_GLOBAL_LAYOUT);
+
+
 const [globalLayoutLoading, setGlobalLayoutLoading] = useState(true);
 const [globalLayoutSaving, setGlobalLayoutSaving] = useState(false);
 const [globalLayoutError, setGlobalLayoutError] = useState("");
@@ -709,7 +716,7 @@ const saveGlobalLayout = useCallback(async () => {
   } finally {
     setGlobalLayoutSaving(false);
   }
-}, [templateId, getToken, globalLayout]);
+}, [templateId, getToken]);
 
 
   if (error && !data) {
@@ -755,6 +762,88 @@ const saveGlobalLayout = useCallback(async () => {
           <h2>Visual editor</h2>
         </div>
       </div>
+
+      {/* Quick Sidebar Toggles in Toolbar */}
+      <div className="studio-toolbar-center">
+        <button
+          type="button"
+          onClick={() => setIsLeftSidebarOpen((prev) => !prev)}
+          className={`studio-panel-toggle ${isLeftSidebarOpen ? "is-active" : ""}`}
+          title={isLeftSidebarOpen ? "Collapse Left Panel (Elements & Layers)" : "Open Left Panel"}
+          aria-pressed={isLeftSidebarOpen}
+        >
+          <Icon name="sidebarLeft" size={16} />
+          <span>Elements</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setIsRightSidebarOpen((prev) => !prev)}
+          className={`studio-panel-toggle ${isRightSidebarOpen ? "is-active" : ""}`}
+          title={isRightSidebarOpen ? "Collapse Inspector (Properties)" : "Open Inspector"}
+          aria-pressed={isRightSidebarOpen}
+        >
+          <Icon name="sidebarRight" size={16} />
+          <span>Inspector</span>
+        </button>
+      </div>
+
+      
+      <div
+        className="studio-device-preview"
+        role="group"
+        aria-label="Responsive preview device"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 4,
+          padding: 4,
+          border: "1px solid #e2e8f0",
+          borderRadius: 10,
+          background: "#f8fafc",
+        }}
+      >
+        {[
+          { id: "desktop", label: "Desktop", icon: "monitor" },
+          { id: "tablet", label: "Tablet", icon: "tablet" },
+          { id: "mobile", label: "Mobile", icon: "smartphone" },
+        ].map((device) => {
+          const active = previewDevice === device.id;
+
+          return (
+            <button
+              key={device.id}
+              type="button"
+              onClick={() => setPreviewDevice(device.id)}
+              aria-pressed={active}
+              title={`${device.label} preview`}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                padding: "8px 10px",
+                border: "1px solid transparent",
+                borderRadius: 7,
+                background: active ? "#ffffff" : "transparent",
+                color: active ? "#0f172a" : "#64748b",
+                boxShadow: active
+                  ? "0 1px 3px rgba(15, 23, 42, 0.12)"
+                  : "none",
+                fontSize: 12,
+                fontWeight: active ? 600 : 500,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <Icon name={device.icon} size={15} />
+              <span>{device.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+
 
       <div className="studio-toolbar-actions">
         <StatusIndicator status={saveStatus} savedAt={savedAt} />
@@ -811,44 +900,51 @@ const saveGlobalLayout = useCallback(async () => {
         <PuckSaveBridge onRegister={registerCurrentDataGetter} />
 
         <div className="studio-composition">
-          <aside className="studio-sidebar">
-            <div className="studio-sidebar-tabs">
-              <button
-                type="button"
-                className={
-                  activeSidebarTab === "elements"
-                    ? "studio-sidebar-tab is-active"
-                    : "studio-sidebar-tab"
-                }
-                aria-pressed={activeSidebarTab === "elements"}
-                onClick={() => setActiveSidebarTab("elements")}
-              >
-                <Icon name="blocks" size={16} />
-                Elements
-              </button>
+          {isLeftSidebarOpen && (
+            <aside className="studio-sidebar">
+              <div className="studio-sidebar-header">
+                <div className="studio-sidebar-tabs">
+                  <button
+                    type="button"
+                    className={
+                      activeSidebarTab === "elements"
+                        ? "studio-sidebar-tab is-active"
+                        : "studio-sidebar-tab"
+                    }
+                    aria-pressed={activeSidebarTab === "elements"}
+                    onClick={() => setActiveSidebarTab("elements")}
+                  >
+                    <Icon name="blocks" size={16} />
+                    Elements
+                  </button>
 
-              <button
-                type="button"
-                className={
-                  activeSidebarTab === "layers"
-                    ? "studio-sidebar-tab is-active"
-                    : "studio-sidebar-tab"
-                }
-                aria-pressed={activeSidebarTab === "layers"}
-                onClick={() => setActiveSidebarTab("layers")}
-              >
-                <Icon name="layers" size={16} />
-                Layers
-              </button>
+                  <button
+                    type="button"
+                    className={
+                      activeSidebarTab === "layers"
+                        ? "studio-sidebar-tab is-active"
+                        : "studio-sidebar-tab"
+                    }
+                    aria-pressed={activeSidebarTab === "layers"}
+                    onClick={() => setActiveSidebarTab("layers")}
+                  >
+                    <Icon name="layers" size={16} />
+                    Layers
+                  </button>
+                </div>
 
-              
+                <button
+                  type="button"
+                  onClick={() => setIsLeftSidebarOpen(false)}
+                  title="Collapse Left Panel"
+                  className="studio-panel-close-btn"
+                  aria-label="Close Left Sidebar"
+                >
+                  <Icon name="chevronLeft" size={16} />
+                </button>
+              </div>
 
-              
-
-
-            </div>
-
-            <div className="studio-sidebar-content">
+              <div className="studio-sidebar-content">
               
               {activeSidebarTab === "elements" ? (
                 <>
@@ -1074,120 +1170,96 @@ const saveGlobalLayout = useCallback(async () => {
 
             </div>
           </aside>
+          )}
 
           <section className="studio-canvas-panel">
-           
+            {!isLeftSidebarOpen && (
+              <button
+                type="button"
+                onClick={() => setIsLeftSidebarOpen(true)}
+                className="studio-floating-toggle studio-floating-toggle-left"
+                title="Open Elements & Layers sidebar"
+              >
+                <Icon name="sidebarLeft" size={15} />
+                <span>Elements</span>
+                <Icon name="chevronRight" size={13} />
+              </button>
+            )}
 
+            {!isRightSidebarOpen && (
+              <button
+                type="button"
+                onClick={() => setIsRightSidebarOpen(true)}
+                className="studio-floating-toggle studio-floating-toggle-right"
+                title="Open Component Inspector"
+              >
+                <Icon name="chevronLeft" size={13} />
+                <span>Inspector</span>
+                <Icon name="sidebarRight" size={15} />
+              </button>
+            )}
+
+            <div
+              className="studio-canvas"
+              onScroll={handleCanvasScroll}
+            >
             
-          <div
-            className="studio-canvas"
-            onScroll={handleCanvasScroll}
-          >
-            
-<div
-  className="studio-canvas-page"
-  style={{ backgroundColor: "#ffffff", color: "#111827" }}
->
-  {globalLayout.header.enabled && (
-    <header
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 16,
-        flexWrap: "wrap",
-        padding: "16px 24px",
-        backgroundColor: globalLayout.header.backgroundColor,
-        color: globalLayout.header.textColor,
-        borderBottom: "1px solid #e5e7eb",
-      }}
-    >
-      {globalLayout.header.logoUrl ? (
-        <img
-          src={globalLayout.header.logoUrl}
-          alt={globalLayout.header.logoText || "Brand logo"}
-          style={{ maxWidth: 160, maxHeight: 48, objectFit: "contain" }}
-        />
-      ) : (
-        <strong>{globalLayout.header.logoText || "Your Brand"}</strong>
-      )}
 
-      <nav style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-        {globalLayout.header.links.map((link, index) => (
-          <a
-            key={`${link.href}-${index}`}
-            href={link.href}
-            style={{
-              color: globalLayout.header.textColor,
-              textDecoration: "none",
-            }}
-          >
-            {link.label}
-          </a>
-        ))}
-      </nav>
-    </header>
-  )}
+              <div
+                className={`studio-canvas-page studio-preview-${previewDevice}`}
+                style={{
+                  backgroundColor: "#ffffff",
+                  color: "#111827",
+                  width: previewWidths[previewDevice],
+                  maxWidth: "100%",
+                  minWidth: 0,
+                  minHeight: "100%",
+                  marginInline: "auto",
+                  boxSizing: "border-box",
+                  containerType: "inline-size",
+                  containerName: "studio-preview",
+                  transition: "width 180ms ease",
+                  overflowWrap: "break-word",
+                }}
+              >
+                <Puck.Preview id="website-studio-preview" />
+              </div>
 
-  <Puck.Preview id="website-studio-preview" />
-
-  {globalLayout.footer.enabled && (
-    <footer
-      style={{
-        padding: "24px",
-        backgroundColor: globalLayout.footer.backgroundColor,
-        color: globalLayout.footer.textColor,
-      }}
-    >
-      <nav
-        style={{
-          display: "flex",
-          gap: 16,
-          flexWrap: "wrap",
-          marginBottom: 12,
-        }}
-      >
-        {globalLayout.footer.links.map((link, index) => (
-          <a
-            key={`${link.href}-${index}`}
-            href={link.href}
-            style={{
-              color: globalLayout.footer.textColor,
-              textDecoration: "none",
-            }}
-          >
-            {link.label}
-          </a>
-        ))}
-      </nav>
-
-      <p style={{ margin: 0 }}>
-        {globalLayout.footer.copyrightText}
-      </p>
-    </footer>
-  )}
-</div>
 
           </div>
 
           </section>
 
-          <aside className="studio-inspector">
-            <div className="studio-inspector-heading">
-              <span className="studio-inspector-icon">
-                <Icon name="panel" size={17} />
-              </span>
+          {isRightSidebarOpen && (
+            <aside className="studio-inspector">
+              <div className="studio-inspector-heading">
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+                  <span className="studio-inspector-icon">
+                    <Icon name="panel" size={17} />
+                  </span>
 
-              <div>
-                <h3>Inspector</h3>
-                <p>Content and component settings</p>
+                  <div style={{ minWidth: 0 }}>
+                    <h3>Inspector</h3>
+                    <p>Content and component settings</p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsRightSidebarOpen(false)}
+                  title="Collapse Inspector"
+                  className="studio-panel-close-btn"
+                  aria-label="Close Inspector"
+                >
+                  <Icon name="chevronRight" size={16} />
+                </button>
               </div>
-            </div>
 
-            <div className="studio-inspector-content">
-              <Puck.Fields />
-            </div>
-          </aside>
+              <div className="studio-inspector-content">
+                <Puck.Fields />
+              </div>
+            </aside>
+          )}
         </div>
       </Puck>
     </div>

@@ -16,24 +16,34 @@ class PuckErrorBoundary extends Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error("PuckPublicRenderer rendering error:", error, errorInfo);
+    console.error(
+      "PuckPublicRenderer rendering error:",
+      error,
+      errorInfo
+    );
   }
 
   render() {
     if (this.state.hasError) {
       return (
         <div className="p-8 text-center text-red-600 bg-red-50 border border-red-200 rounded-xl my-4">
-          <p className="font-semibold">Unable to render component block</p>
-          <p className="text-xs text-red-500 mt-1">{this.state.error?.message || "Render error"}</p>
+          <p className="font-semibold">
+            Unable to render component block
+          </p>
+          <p className="text-xs text-red-500 mt-1">
+            {this.state.error?.message || "Render error"}
+          </p>
         </div>
       );
     }
+
     return this.props.children;
   }
 }
 
 export default function PuckPublicRenderer({ data }) {
   let parsedData = data;
+
   if (typeof data === "string") {
     try {
       parsedData = JSON.parse(data);
@@ -53,11 +63,20 @@ export default function PuckPublicRenderer({ data }) {
 
   return (
     <PuckErrorBoundary>
-      <Render
-        config={puckConfig}
-        data={parsedData}
-      />
+      <div
+        className="puck-public-responsive-container"
+        style={{
+          width: "100%",
+          minWidth: 0,
+          containerType: "inline-size",
+          containerName: "studio-preview",
+        }}
+      >
+        <Render
+          config={puckConfig}
+          data={parsedData}
+        />
+      </div>
     </PuckErrorBoundary>
   );
 }
-

@@ -50,17 +50,17 @@ export function buildBoxStyle(props = {}) {
 
   return {
     boxSizing: "border-box",
-    width,
-    maxWidth: maxWidth > 0 ? `${maxWidth}px` : undefined,
-    minHeight: minHeight > 0 ? `${minHeight}px` : undefined,
-    marginTop,
-    marginRight,
-    marginBottom,
-    marginLeft,
-    paddingTop,
-    paddingRight,
-    paddingBottom,
-    paddingLeft,
+    width: width ? `var(--puck-width, ${width})` : "100%",
+    maxWidth: maxWidth > 0 ? `var(--puck-max-width, ${maxWidth}px)` : "var(--puck-max-width, none)",
+    minHeight: minHeight > 0 ? `var(--puck-min-height, ${minHeight}px)` : undefined,
+    marginTop: `var(--puck-margin-top, ${marginTop})`,
+    marginRight: `var(--puck-margin-right, ${marginRight})`,
+    marginBottom: `var(--puck-margin-bottom, ${marginBottom})`,
+    marginLeft: `var(--puck-margin-left, ${marginLeft})`,
+    paddingTop: `var(--puck-padding-top, ${paddingTop})`,
+    paddingRight: `var(--puck-padding-right, ${paddingRight})`,
+    paddingBottom: `var(--puck-padding-bottom, ${paddingBottom})`,
+    paddingLeft: `var(--puck-padding-left, ${paddingLeft})`,
     backgroundColor: resolvedBgColor,
     backgroundImage: resolvedBgImage,
     backgroundSize: resolvedBgImage ? backgroundSize : undefined,
@@ -98,15 +98,15 @@ export function buildTypographyStyle(props = {}) {
 
   const style = {
     fontFamily,
-    fontSize: `${fontSize}px`,
+    fontSize: `var(--puck-font-size, ${fontSize}px)`,
     fontWeight,
     fontStyle,
     textTransform,
     textDecoration,
-    lineHeight,
-    letterSpacing: `${letterSpacing}px`,
+    lineHeight: `var(--puck-line-height, ${lineHeight})`,
+    letterSpacing: `var(--puck-letter-spacing, ${letterSpacing}px)`,
     color,
-    textAlign,
+    textAlign: `var(--puck-text-align, ${textAlign})`,
   };
 
   if (gradientText) {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import AnimationWrapper from "../animation/AnimationWrapper.jsx";
 import { animationFields, animationDefaults } from "../fields/animationFields.js";
@@ -12,7 +12,10 @@ import {
   textareaField,
   radioField,
   colorField,
+  imageField,
+  responsiveField,
 } from "../fields/helpers.js";
+import { buildResponsiveStyles } from "../layout/responsiveStyles.js";
 import { RenderIcon } from "./icons.jsx";
 
 export const navigationComponents = {
@@ -26,7 +29,7 @@ export const navigationComponents = {
       bannerBg: colorField("Banner background color"),
       bannerTextColor: colorField("Banner text color"),
       logoText: textField("Brand Name"),
-      logoUrl: textField("Logo Image URL (Optional)"),
+      logoUrl: imageField("Logo Image URL (Optional)"),
       logoWidth: numberField("Logo width (px)", 20, 300),
       links: {
         type: "array",
@@ -66,6 +69,15 @@ export const navigationComponents = {
         { label: "No", value: false },
       ]),
       borderColor: colorField("Border line color"),
+      responsive: responsiveField([
+        {
+          key: "logoWidth",
+          label: "Logo width (px)",
+          type: "number",
+          min: 40,
+          max: 260,
+        },
+      ]),
       ...animationFields,
     },
     defaultProps: {
@@ -95,6 +107,7 @@ export const navigationComponents = {
       ctaColor: "#ffffff",
       borderBottom: true,
       borderColor: "#e2e8f0",
+      responsive: {},
       ...animationDefaults,
     },
     render: function RenderNavbar({
@@ -118,6 +131,7 @@ export const navigationComponents = {
       ctaColor = "#ffffff",
       borderBottom = true,
       borderColor = "#e2e8f0",
+      responsive,
       animTrigger,
       animPreset,
       animLoop,
@@ -125,237 +139,464 @@ export const navigationComponents = {
       animDelay,
       animEasing,
     }) {
-      const [mobileOpen, setMobileOpen] = useState(false);
+      const [drawerOpen, setDrawerOpen] = useState(false);
       const [hoveredIdx, setHoveredIdx] = useState(null);
+      const drawerRef = useRef(null);
 
       const isSticky = headerMode === "sticky" || headerMode === "glass";
       const isFloating = headerMode === "floating";
       const isGlass = headerMode === "glass" || isFloating;
 
-      return (
-        <AnimationWrapper
-          as="header"
-          trigger={animTrigger}
-          preset={animPreset}
-          loop={animLoop}
-          duration={animDuration}
-          delay={animDelay}
-          easing={animEasing}
-          style={{
-            position: isSticky || isFloating ? "sticky" : "relative",
-            top: isFloating ? 16 : 0,
-            zIndex: 100,
-            width: isFloating ? "calc(100% - 32px)" : "100%",
-            maxWidth: isFloating ? 1240 : "100%",
-            margin: isFloating ? "0 auto" : 0,
-            borderRadius: isFloating ? 18 : 0,
-            boxShadow: isFloating ? "0 10px 30px -5px rgba(0,0,0,0.12)" : undefined,
-            backgroundColor: isGlass
-              ? "rgba(255, 255, 255, 0.88)"
-              : backgroundColor || "#ffffff",
-            backdropFilter: isGlass ? "blur(14px)" : undefined,
-            WebkitBackdropFilter: isGlass ? "blur(14px)" : undefined,
-            borderBottom: borderBottom && !isFloating ? `1px solid ${borderColor}` : undefined,
-            border: isFloating ? `1px solid ${borderColor}` : undefined,
-            transition: "all 200ms ease",
-          }}
-        >
-          {bannerText && !isFloating && (
-            <div
-              style={{
-                backgroundColor: bannerBg,
-                color: bannerTextColor,
-                fontSize: 13,
-                fontWeight: 600,
-                textAlign: "center",
-                padding: "8px 16px",
-              }}
-            >
-              {bannerText}
-            </div>
-          )}
+      const { className: respClass, css: respCss } = buildResponsiveStyles({
+        responsive,
+        variableMap: {
+          logoWidth: "--puck-logo-width",
+        },
+      });
 
-          <div
+      // Handle ESC key to close drawer
+      useEffect(() => {
+        if (!drawerOpen) return;
+        const handleKeyDown = (e) => {
+          if (e.key === "Escape") {
+            setDrawerOpen(false);
+          }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+      }, [drawerOpen]);
+
+      // Prevent body scrolling while drawer is open
+      useEffect(() => {
+        if (!drawerOpen) return;
+        const prevOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        return () => {
+          document.body.style.overflow = prevOverflow;
+        };
+      }, [drawerOpen]);
+
+      return (
+        <>
+          {respCss && <style>{respCss}</style>}
+          <AnimationWrapper
+            as="header"
+            trigger={animTrigger}
+            preset={animPreset}
+            loop={animLoop}
+            duration={animDuration}
+            delay={animDelay}
+            easing={animEasing}
+            className={respClass}
             style={{
-              maxWidth: 1280,
-              margin: "0 auto",
-              padding: isFloating ? "12px 24px" : "16px 24px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 20,
+              position: isSticky || isFloating ? "sticky" : "relative",
+              top: isFloating ? 16 : 0,
+              zIndex: 100,
+              width: isFloating ? "calc(100% - 32px)" : "100%",
+              maxWidth: isFloating ? 1240 : "100%",
+              margin: isFloating ? "0 auto" : 0,
+              borderRadius: isFloating ? 18 : 0,
+              boxShadow: isFloating ? "0 10px 30px -5px rgba(0,0,0,0.12)" : undefined,
+              backgroundColor: isGlass
+                ? "rgba(255, 255, 255, 0.88)"
+                : backgroundColor || "#ffffff",
+              backdropFilter: isGlass ? "blur(14px)" : undefined,
+              WebkitBackdropFilter: isGlass ? "blur(14px)" : undefined,
+              borderBottom: borderBottom && !isFloating ? `1px solid ${borderColor}` : undefined,
+              border: isFloating ? `1px solid ${borderColor}` : undefined,
+              transition: "all 200ms ease",
             }}
           >
-            <Link
-              href="/"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                fontSize: 20,
-                fontWeight: 800,
-                color: textColor,
-                textDecoration: "none",
-                letterSpacing: -0.5,
-                flexShrink: 0,
-              }}
-            >
-              {logoUrl ? (
-                <img
-                  src={logoUrl}
-                  alt={logoText || "Brand"}
-                  style={{ width: `${logoWidth}px`, maxHeight: 44, objectFit: "contain" }}
-                />
-              ) : (
-                logoText || "Brand"
-              )}
-            </Link>
-
-            {/* Optional integrated search input */}
-            {showSearch && (
+            {bannerText && !isFloating && (
               <div
                 style={{
-                  display: "none",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "6px 14px",
-                  borderRadius: 999,
-                  border: "1px solid #cbd5e1",
-                  backgroundColor: "#f8fafc",
-                  maxWidth: 240,
-                  width: "100%",
+                  backgroundColor: bannerBg,
+                  color: bannerTextColor,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  textAlign: "center",
+                  padding: "8px 16px",
                 }}
-                className="lg:flex"
               >
-                <RenderIcon name="search" size={14} color="#94a3b8" />
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  style={{
-                    border: "none",
-                    backgroundColor: "transparent",
-                    outline: "none",
-                    fontSize: 13,
-                    width: "100%",
-                  }}
-                />
+                {bannerText}
               </div>
             )}
 
-            <nav
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 24,
-              }}
-              className="hidden md:flex"
-            >
-              {links.map((link, idx) => (
-                <a
-                  key={`nav-link-${idx}`}
-                  href={link.href}
-                  onMouseEnter={() => setHoveredIdx(idx)}
-                  onMouseLeave={() => setHoveredIdx(null)}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    fontSize: 15,
-                    fontWeight: 600,
-                    color: hoveredIdx === idx ? hoverColor || "#4f46e5" : linkColor,
-                    textDecoration: "none",
-                    transition: "color 150ms ease",
-                  }}
-                >
-                  <span>{link.label}</span>
-                  {link.badge && (
-                    <span
-                      style={{
-                        padding: "2px 6px",
-                        borderRadius: 999,
-                        fontSize: 9,
-                        fontWeight: 800,
-                        backgroundColor: "#eff6ff",
-                        color: "#2563eb",
-                        letterSpacing: 0.5,
-                      }}
-                    >
-                      {link.badge}
-                    </span>
-                  )}
-                </a>
-              ))}
-            </nav>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              {showCTA && ctaLabel && (
-                <a
-                  href={ctaHref || "#"}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: "10px 20px",
-                    borderRadius: 10,
-                    backgroundColor: ctaBg || "#0f172a",
-                    color: ctaColor || "#ffffff",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    textDecoration: "none",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                  }}
-                >
-                  {ctaLabel}
-                </a>
-              )}
-              <button
-                type="button"
-                onClick={() => setMobileOpen(!mobileOpen)}
-                className="md:hidden"
-                style={{
-                  padding: 8,
-                  backgroundColor: "transparent",
-                  border: "1px solid #cbd5e1",
-                  borderRadius: 8,
-                  cursor: "pointer",
-                  fontSize: 18,
-                  color: textColor,
-                }}
-                aria-label="Toggle menu"
-              >
-                {mobileOpen ? "\u2715" : "\u2630"}
-              </button>
-            </div>
-          </div>
-
-          {mobileOpen && (
             <div
               style={{
-                padding: "16px 24px 24px",
-                borderTop: "1px solid #e2e8f0",
-                backgroundColor: backgroundColor || "#ffffff",
-                display: "grid",
-                gap: 12,
+                maxWidth: 1280,
+                margin: "0 auto",
+                padding: isFloating ? "12px 24px" : "16px 24px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 16,
+                minWidth: 0,
               }}
             >
-              {links.map((link, idx) => (
-                <a
-                  key={`mobile-link-${idx}`}
-                  href={link.href}
-                  onClick={() => setMobileOpen(false)}
+              <Link
+                href="/"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  fontSize: 20,
+                  fontWeight: 800,
+                  color: textColor,
+                  textDecoration: "none",
+                  letterSpacing: -0.5,
+                  flexShrink: 0,
+                  minWidth: 0,
+                }}
+              >
+                {logoUrl ? (
+                  <img
+                    src={logoUrl}
+                    alt={logoText || "Brand"}
+                    style={{
+                      width: `var(--puck-logo-width, ${logoWidth}px)`,
+                      maxWidth: "min(var(--puck-logo-width, 160px), 100%)",
+                      maxHeight: 44,
+                      objectFit: "contain",
+                    }}
+                  />
+                ) : (
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {logoText || "Brand"}
+                  </span>
+                )}
+              </Link>
+
+              {/* Search input bar for desktop */}
+              {showSearch && (
+                <div
+                  className="puck-nav-search-bar"
                   style={{
-                    fontSize: 16,
-                    fontWeight: 600,
-                    color: linkColor,
-                    textDecoration: "none",
-                    padding: "8px 0",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "6px 14px",
+                    borderRadius: 999,
+                    border: "1px solid #cbd5e1",
+                    backgroundColor: "#f8fafc",
+                    maxWidth: 240,
+                    width: "100%",
                   }}
                 >
-                  {link.label}
-                </a>
-              ))}
+                  <RenderIcon name="search" size={14} color="#94a3b8" />
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    style={{
+                      border: "none",
+                      backgroundColor: "transparent",
+                      outline: "none",
+                      fontSize: 13,
+                      width: "100%",
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Desktop links */}
+              <nav
+                className="puck-nav-desktop-links"
+                style={{
+                  alignItems: "center",
+                  gap: 24,
+                  flexWrap: "nowrap",
+                }}
+              >
+                {links.map((link, idx) => (
+                  <a
+                    key={`nav-link-${idx}`}
+                    href={link.href}
+                    onMouseEnter={() => setHoveredIdx(idx)}
+                    onMouseLeave={() => setHoveredIdx(null)}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontSize: 15,
+                      fontWeight: 600,
+                      color: hoveredIdx === idx ? hoverColor || "#4f46e5" : linkColor,
+                      textDecoration: "none",
+                      transition: "color 150ms ease",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <span>{link.label}</span>
+                    {link.badge && (
+                      <span
+                        style={{
+                          padding: "2px 6px",
+                          borderRadius: 999,
+                          fontSize: 9,
+                          fontWeight: 800,
+                          backgroundColor: "#eff6ff",
+                          color: "#2563eb",
+                          letterSpacing: 0.5,
+                        }}
+                      >
+                        {link.badge}
+                      </span>
+                    )}
+                  </a>
+                ))}
+              </nav>
+
+              {/* CTA & Mobile Hamburger button */}
+              <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+                {showCTA && ctaLabel && (
+                  <a
+                    href={ctaHref || "#"}
+                    className="puck-nav-desktop-cta"
+                    style={{
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "10px 18px",
+                      borderRadius: 10,
+                      backgroundColor: ctaBg || "#0f172a",
+                      color: ctaColor || "#ffffff",
+                      fontSize: 14,
+                      fontWeight: 700,
+                      textDecoration: "none",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {ctaLabel}
+                  </a>
+                )}
+
+                {/* Accessible Hamburger Menu Button */}
+                <button
+                  type="button"
+                  className="puck-nav-hamburger-btn"
+                  onClick={() => setDrawerOpen(true)}
+                  aria-label="Open mobile navigation"
+                  aria-expanded={drawerOpen}
+                  style={{
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "8px 10px",
+                    borderRadius: 8,
+                    border: "1px solid #cbd5e1",
+                    backgroundColor: "transparent",
+                    color: textColor || "#0f172a",
+                    cursor: "pointer",
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12" />
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <line x1="3" y1="18" x2="21" y2="18" />
+                  </svg>
+                </button>
+              </div>
             </div>
+          </AnimationWrapper>
+
+          {/* Mobile Navigation Drawer Modal */}
+          {drawerOpen && (
+            <>
+              {/* Backdrop */}
+              <div
+                role="presentation"
+                onClick={() => setDrawerOpen(false)}
+                style={{
+                  position: "fixed",
+                  inset: 0,
+                  backgroundColor: "rgba(15, 23, 42, 0.6)",
+                  backdropFilter: "blur(4px)",
+                  WebkitBackdropFilter: "blur(4px)",
+                  zIndex: 9998,
+                  animation: "puckFadeIn 200ms ease",
+                }}
+              />
+
+              {/* Slide-over Drawer Panel */}
+              <div
+                ref={drawerRef}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Navigation drawer"
+                style={{
+                  position: "fixed",
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  width: "min(340px, 86vw)",
+                  backgroundColor: backgroundColor || "#ffffff",
+                  color: textColor || "#0f172a",
+                  boxShadow: "-8px 0 32px rgba(0, 0, 0, 0.25)",
+                  zIndex: 9999,
+                  display: "flex",
+                  flexDirection: "column",
+                  boxSizing: "border-box",
+                  animation: "puckSlideIn 240ms cubic-bezier(0.16, 1, 0.3, 1)",
+                }}
+              >
+                {/* Drawer Header */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "18px 20px",
+                    borderBottom: "1px solid #e2e8f0",
+                  }}
+                >
+                  <span style={{ fontSize: 17, fontWeight: 800, color: textColor }}>
+                    {logoText || "Menu"}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setDrawerOpen(false)}
+                    aria-label="Close navigation drawer"
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 8,
+                      border: "1px solid #cbd5e1",
+                      backgroundColor: "#f8fafc",
+                      color: textColor || "#0f172a",
+                      display: "grid",
+                      placeItems: "center",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Drawer Search (if enabled) */}
+                {showSearch && (
+                  <div style={{ padding: "14px 20px 0" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "8px 12px",
+                        borderRadius: 8,
+                        border: "1px solid #cbd5e1",
+                        backgroundColor: "#f8fafc",
+                        width: "100%",
+                        boxSizing: "border-box",
+                      }}
+                    >
+                      <RenderIcon name="search" size={14} color="#94a3b8" />
+                      <input
+                        type="text"
+                        placeholder="Search..."
+                        style={{
+                          border: "none",
+                          backgroundColor: "transparent",
+                          outline: "none",
+                          fontSize: 13,
+                          width: "100%",
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Drawer Links List */}
+                <nav
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 4,
+                    padding: "16px 14px",
+                    overflowY: "auto",
+                    flex: 1,
+                  }}
+                >
+                  {links.map((link, idx) => (
+                    <a
+                      key={`drawer-link-${idx}`}
+                      href={link.href}
+                      onClick={() => setDrawerOpen(false)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "12px 14px",
+                        borderRadius: 8,
+                        fontSize: 15,
+                        fontWeight: 600,
+                        color: linkColor || "#334155",
+                        textDecoration: "none",
+                        backgroundColor: "transparent",
+                        transition: "background-color 150ms ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "#f1f5f9";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                      }}
+                    >
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {link.label}
+                      </span>
+                      {link.badge && (
+                        <span
+                          style={{
+                            padding: "2px 7px",
+                            borderRadius: 999,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            backgroundColor: "#eff6ff",
+                            color: "#2563eb",
+                          }}
+                        >
+                          {link.badge}
+                        </span>
+                      )}
+                    </a>
+                  ))}
+                </nav>
+
+                {/* Drawer CTA Button */}
+                {showCTA && ctaLabel && (
+                  <div
+                    style={{
+                      padding: "16px 20px 24px",
+                      borderTop: "1px solid #e2e8f0",
+                      backgroundColor: backgroundColor || "#ffffff",
+                    }}
+                  >
+                    <a
+                      href={ctaHref || "#"}
+                      onClick={() => setDrawerOpen(false)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: "100%",
+                        padding: "12px 18px",
+                        borderRadius: 10,
+                        backgroundColor: ctaBg || "#0f172a",
+                        color: ctaColor || "#ffffff",
+                        fontSize: 14,
+                        fontWeight: 700,
+                        textDecoration: "none",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+                        boxSizing: "border-box",
+                      }}
+                    >
+                      {ctaLabel}
+                    </a>
+                  </div>
+                )}
+              </div>
+            </>
           )}
-        </AnimationWrapper>
+        </>
       );
     },
   },
@@ -484,7 +725,7 @@ export const navigationComponents = {
     label: "Footer (Multi-Column)",
     fields: {
       brandName: textField("Brand / Company name"),
-      logoUrl: textField("Logo image URL (Optional)"),
+      logoUrl: imageField("Logo image URL (Optional)"),
       description: textareaField("Brand summary description"),
       backgroundColor: colorField("Footer background color"),
       textColor: colorField("Text description color"),

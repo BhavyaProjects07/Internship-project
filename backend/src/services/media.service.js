@@ -2,11 +2,32 @@ const { PrismaClient } = require("@prisma/client");
 const storageService = require("./storage.service");
 const prisma = new PrismaClient();
 
-const getMediaAssets = async (userId) => {
-  return await prisma.mediaAsset.findMany({
-    where: { userId },
+const getMediaAssets = async (userId, options = {}) => {
+  const where = { userId };
+
+  if (options.search && typeof options.search === "string" && options.search.trim()) {
+    const term = options.search.trim();
+    where.OR = [
+      { filename: { contains: term, mode: "insensitive" } },
+      { alt: { contains: term, mode: "insensitive" } },
+    ];
+  }
+
+  const query = {
+    where,
     orderBy: { createdAt: "desc" },
-  });
+  };
+
+  if (options.limit && !isNaN(Number(options.limit))) {
+    const limitNum = Math.max(1, Math.min(100, Number(options.limit)));
+    query.take = limitNum;
+    if (options.page && !isNaN(Number(options.page))) {
+      const pageNum = Math.max(1, Number(options.page));
+      query.skip = (pageNum - 1) * limitNum;
+    }
+  }
+
+  return await prisma.mediaAsset.findMany(query);
 };
 
 const getMediaAssetById = async (id, userId) => {
@@ -48,12 +69,13 @@ const deleteMediaAsset = async (id, userId) => {
   // If this asset was uploaded via a storage provider, delete it from the provider first
   if (asset.provider !== "url" && asset.providerId) {
     try {
-      await storageService.delete(asset.providerId);
+      await storageService.delete(asset.providerId, asset.provider);
     } catch (error) {
-      console.error("Failed to delete asset from storage provider:", error);
-      // We can choose to throw or continue. Continuing allows the DB record to be cleaned up
-      // if Cloudinary fails, but throwing is safer to prevent orphans.
-      throw new Error("Failed to delete asset from storage provider");
+      console.error(
+        `[MediaService] Failed to delete provider file '${asset.providerId}':`,
+        error.message || error
+      );
+      // We log and continue to allow DB record cleanup, preventing stale un-deletable DB rows
     }
   }
 

@@ -4,7 +4,15 @@ import React, { useState } from "react";
 import AnimationWrapper from "../animation/AnimationWrapper.jsx";
 import { animationFields, animationDefaults } from "../fields/animationFields.js";
 import { spacingFields } from "../fields/boxStyleFields.js";
-import { textField, textareaField, radioField, colorField } from "../fields/helpers.js";
+import {
+  textField,
+  textareaField,
+  radioField,
+  colorField,
+  numberField,
+  responsiveField,
+} from "../fields/helpers.js";
+import { buildResponsiveStyles } from "../layout/responsiveStyles.js";
 import { RenderIcon } from "./icons.jsx";
 
 export const formComponents = {
@@ -25,6 +33,10 @@ export const formComponents = {
       includeSubject: radioField("Include Subject selector", [
         { label: "Yes", value: true },
         { label: "No", value: false },
+      ]),
+      responsive: responsiveField("Responsive overrides", [
+        { name: "paddingY", label: "Vertical padding (px)", type: "number", min: 16, max: 80 },
+        { name: "paddingX", label: "Horizontal padding (px)", type: "number", min: 12, max: 60 },
       ]),
       ...spacingFields,
       ...animationFields,
@@ -50,6 +62,7 @@ export const formComponents = {
       includeSubject,
       marginTop,
       marginBottom,
+      responsive,
       animTrigger,
       animPreset,
       animLoop,
@@ -63,6 +76,14 @@ export const formComponents = {
         e.preventDefault();
         setSent(true);
       };
+
+      const { className: respClass, css: respCss } = buildResponsiveStyles({
+        responsive,
+        variableMap: {
+          paddingY: "--puck-padding-y",
+          paddingX: "--puck-padding-x",
+        },
+      });
 
       if (sent) {
         return (
@@ -111,10 +132,12 @@ export const formComponents = {
           delay={animDelay}
           easing={animEasing}
         >
+          {respCss && <style dangerouslySetInnerHTML={{ __html: respCss }} />}
           <form
             onSubmit={handleSubmit}
+            className={respClass}
             style={{
-              padding: "36px 32px",
+              padding: "var(--puck-padding-y, 36px) var(--puck-padding-x, 28px)",
               backgroundColor: "#ffffff",
               borderRadius: 20,
               border: "1px solid #e2e8f0",
@@ -123,6 +146,8 @@ export const formComponents = {
               gap: 16,
               marginTop,
               marginBottom,
+              boxSizing: "border-box",
+              width: "100%",
             }}
           >
             {heading && (
@@ -135,7 +160,14 @@ export const formComponents = {
                 {description}
               </p>
             )}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))",
+                gap: 14,
+                width: "100%",
+              }}
+            >
               <label style={{ display: "grid", gap: 6, fontSize: 13, fontWeight: 600, color: "#334155" }}>
                 Full Name *
                 <input
@@ -147,6 +179,8 @@ export const formComponents = {
                     border: "1px solid #cbd5e1",
                     fontSize: 14,
                     outline: "none",
+                    boxSizing: "border-box",
+                    width: "100%",
                   }}
                 />
               </label>
@@ -162,6 +196,8 @@ export const formComponents = {
                     border: "1px solid #cbd5e1",
                     fontSize: 14,
                     outline: "none",
+                    boxSizing: "border-box",
+                    width: "100%",
                   }}
                 />
               </label>
@@ -177,6 +213,8 @@ export const formComponents = {
                     border: "1px solid #cbd5e1",
                     fontSize: 14,
                     outline: "none",
+                    boxSizing: "border-box",
+                    width: "100%",
                   }}
                 />
               </label>
@@ -192,6 +230,8 @@ export const formComponents = {
                     fontSize: 14,
                     outline: "none",
                     backgroundColor: "#ffffff",
+                    boxSizing: "border-box",
+                    width: "100%",
                   }}
                 >
                   <option>Custom Website Development</option>
@@ -213,6 +253,8 @@ export const formComponents = {
                   border: "1px solid #cbd5e1",
                   fontSize: 14,
                   outline: "none",
+                  boxSizing: "border-box",
+                  width: "100%",
                 }}
               />
             </label>
@@ -228,6 +270,8 @@ export const formComponents = {
                 border: "none",
                 cursor: "pointer",
                 boxShadow: "0 4px 14px rgba(79, 70, 229, 0.3)",
+                width: "100%",
+                boxSizing: "border-box",
               }}
             >
               {buttonText}
@@ -250,6 +294,10 @@ export const formComponents = {
       placeholder: textField("Input placeholder"),
       guarantee: textField("Privacy guarantee footnote"),
       accentColor: colorField("Button color"),
+      responsive: responsiveField("Responsive overrides", [
+        { name: "paddingY", label: "Vertical padding (px)", type: "number", min: 16, max: 80 },
+        { name: "paddingX", label: "Horizontal padding (px)", type: "number", min: 12, max: 60 },
+      ]),
       ...spacingFields,
       ...animationFields,
     },
@@ -274,6 +322,7 @@ export const formComponents = {
       accentColor,
       marginTop,
       marginBottom,
+      responsive,
       animTrigger,
       animPreset,
       animLoop,
@@ -282,6 +331,14 @@ export const formComponents = {
       animEasing,
     }) {
       const [done, setDone] = useState(false);
+
+      const { className: respClass, css: respCss } = buildResponsiveStyles({
+        responsive,
+        variableMap: {
+          paddingY: "--puck-padding-y",
+          paddingX: "--puck-padding-x",
+        },
+      });
 
       return (
         <AnimationWrapper
@@ -292,15 +349,19 @@ export const formComponents = {
           delay={animDelay}
           easing={animEasing}
           style={{
-            padding: "40px 32px",
+            padding: "var(--puck-padding-y, 40px) var(--puck-padding-x, 24px)",
             backgroundColor: "#f8fafc",
             borderRadius: 20,
             border: "1px solid #e2e8f0",
             textAlign: "center",
             marginTop,
             marginBottom,
+            boxSizing: "border-box",
+            width: "100%",
           }}
+          className={respClass}
         >
+          {respCss && <style dangerouslySetInnerHTML={{ __html: respCss }} />}
           <h3 style={{ margin: "0 0 8px", fontSize: 24, fontWeight: 800, color: "#0f172a" }}>
             {headline}
           </h3>
@@ -333,6 +394,8 @@ export const formComponents = {
                 margin: "0 auto 12px",
                 gap: 8,
                 flexWrap: "wrap",
+                width: "100%",
+                boxSizing: "border-box",
               }}
             >
               <input
@@ -340,12 +403,14 @@ export const formComponents = {
                 type="email"
                 placeholder={placeholder || "Enter your email..."}
                 style={{
-                  flex: "1 1 260px",
+                  flex: "1 1 220px",
                   padding: "12px 18px",
                   borderRadius: 10,
                   border: "1px solid #cbd5e1",
                   fontSize: 14,
                   outline: "none",
+                  boxSizing: "border-box",
+                  minWidth: 0,
                 }}
               />
               <button
@@ -359,6 +424,7 @@ export const formComponents = {
                   fontSize: 14,
                   border: "none",
                   cursor: "pointer",
+                  flex: "0 0 auto",
                 }}
               >
                 {buttonText}

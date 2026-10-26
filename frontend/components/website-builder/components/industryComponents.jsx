@@ -4,8 +4,19 @@ import React, { useState } from "react";
 import AnimationWrapper from "../animation/AnimationWrapper.jsx";
 import { animationFields, animationDefaults } from "../fields/animationFields.js";
 import { spacingFields } from "../fields/boxStyleFields.js";
-import { selectField, numberField, textField, textareaField, radioField, colorField, arrayField } from "../fields/helpers.js";
+import {
+  selectField,
+  numberField,
+  textField,
+  textareaField,
+  radioField,
+  colorField,
+  arrayField,
+  imageField,
+  responsiveField,
+} from "../fields/helpers.js";
 import { getHoverClass } from "../layout/styleBuilders.js";
+import { buildResponsiveStyles } from "../layout/responsiveStyles.js";
 import { RADIUS_OPTIONS, HOVER_EFFECT_OPTIONS, ALIGNMENT_OPTIONS } from "../tokens/index.js";
 import { RenderIcon } from "./icons.jsx";
 
@@ -25,7 +36,7 @@ export const industryComponents = {
       year: textField("Year completed"),
       client: textField("Client / Brand name"),
       summary: textareaField("Short project summary"),
-      imageUrl: textField("Project cover image URL"),
+      imageUrl: imageField("Project cover image URL"),
       linkUrl: textField("Case study link URL"),
       linkText: textField("Link label"),
       outcomeMetric: textField("Key outcome metric (e.g. +140% Conversions)"),
@@ -493,8 +504,8 @@ export const industryComponents = {
       publishDate: textField("Publish date"),
       authorName: textField("Author full name"),
       authorRole: textField("Author role / title"),
-      authorAvatar: textField("Author avatar image URL"),
-      heroImageUrl: textField("Featured hero image URL"),
+      authorAvatar: imageField("Author avatar image URL"),
+      heroImageUrl: imageField("Featured hero image URL"),
       categoryColor: colorField("Category label color"),
       titleColor: colorField("Headline color"),
       metaColor: colorField("Meta date/read-time color"),
@@ -619,7 +630,7 @@ export const industryComponents = {
       category: textField("Category badge"),
       date: textField("Publish date"),
       readTime: textField("Read time"),
-      imageUrl: textField("Thumbnail image URL"),
+      imageUrl: imageField("Thumbnail image URL"),
       authorName: textField("Author name"),
       postUrl: textField("Article destination URL"),
       cardBg: colorField("Card background color"),
@@ -776,6 +787,19 @@ export const industryComponents = {
         { label: "Comfortable (28px)", value: "28px" },
         { label: "Spacious (36px)", value: "36px" },
       ]),
+      responsive: responsiveField("Responsive overrides", [
+        {
+          name: "columns",
+          label: "Grid columns",
+          type: "select",
+          options: [
+            { label: "1 Column (Stacked)", value: "1" },
+            { label: "2 Columns", value: "2" },
+            { label: "3 Columns", value: "3" },
+            { label: "4 Columns", value: "4" },
+          ],
+        },
+      ]),
       showCategoryFilter: radioField("Show category filter tabs", [
         { label: "Yes", value: true },
         { label: "No", value: false },
@@ -816,7 +840,7 @@ export const industryComponents = {
             { label: "Hidden", value: "none" },
           ]),
           swatches: textField("Color swatches (comma-separated hex codes, e.g. #0f172a,#e2e8f0,#4f46e5)"),
-          imageUrl: textField("Product image URL"),
+          imageUrl: imageField("Product image URL"),
           buttonText: textField("Action button text"),
           buttonUrl: textField("Product link URL"),
         },
@@ -927,7 +951,7 @@ export const industryComponents = {
       marginBottom: "48px",
       ...animationDefaults,
     },
-    render: ({
+    render: function RenderProductGrid({
       sectionTitle,
       sectionSubtitle,
       headerAlignment = "left",
@@ -956,13 +980,14 @@ export const industryComponents = {
       products = [],
       marginTop,
       marginBottom,
+      responsive,
       animTrigger,
       animPreset,
       animLoop,
       animDuration,
       animDelay,
       animEasing,
-    }) => {
+    }) {
       const [selectedCat, setSelectedCat] = useState("All");
 
       const categoryList = filterCategories
@@ -982,6 +1007,13 @@ export const industryComponents = {
 
       const colCount = parseInt(columns, 10) || 4;
 
+      const { className: respClass, css: respCss } = buildResponsiveStyles({
+        responsive,
+        variableMap: {
+          columns: "--puck-columns",
+        },
+      });
+
       return (
         <AnimationWrapper
           as="section"
@@ -993,6 +1025,7 @@ export const industryComponents = {
           easing={animEasing}
           style={{ width: "100%", marginTop, marginBottom }}
         >
+          {respCss && <style dangerouslySetInnerHTML={{ __html: respCss }} />}
           {/* Section Header */}
           {(sectionTitle || sectionSubtitle || showViewAll) && (
             <div
@@ -1095,6 +1128,7 @@ export const industryComponents = {
 
           {/* Catalog Layout Container */}
           <div
+            className={respClass}
             style={
               layout === "row"
                 ? {
@@ -1113,7 +1147,7 @@ export const industryComponents = {
                   }
                 : {
                     display: "grid",
-                    gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))`,
+                    gridTemplateColumns: `repeat(var(--puck-columns, ${colCount}), minmax(0, 1fr))`,
                     gap,
                   }
             }
@@ -1382,7 +1416,7 @@ export const industryComponents = {
         { label: "Hidden", value: "none" },
       ]),
       swatches: textField("Color swatches (comma-separated hex, e.g. #000,#fff,#6366f1)"),
-      imageUrl: textField("Product photo URL"),
+      imageUrl: imageField("Product photo URL"),
       imageHeight: numberField("Product image height (px)", 140, 600, 10),
       imageFit: selectField("Image display mode", [
         { label: "Cover (Fill)", value: "cover" },

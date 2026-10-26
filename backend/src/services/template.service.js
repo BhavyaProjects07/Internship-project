@@ -681,24 +681,6 @@ const reorderPages = async (templateId, pageIds) => {
 
 
 
-const DEFAULT_GLOBAL_LAYOUT = {
-  header: {
-    enabled: true,
-    logoText: "Your Brand",
-    logoUrl: "",
-    backgroundColor: "#ffffff",
-    textColor: "#111827",
-    alignment: "between",
-    links: [],
-  },
-  footer: {
-    enabled: true,
-    backgroundColor: "#111827",
-    textColor: "#ffffff",
-    copyrightText: "© Your Brand. All rights reserved.",
-    links: [],
-  },
-};
 
 const getGlobalLayout = async (templateId) => {
   const template = await prisma.template.findUnique({

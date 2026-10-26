@@ -6,7 +6,7 @@ import {
   HOVER_EFFECT_OPTIONS,
   SPACING_OPTIONS,
 } from "../tokens/index.js";
-import { selectField, numberField, textField, radioField, colorField } from "./helpers.js";
+import { selectField, numberField, textField, radioField, colorField, imageField } from "./helpers.js";
 
 export const spacingFields = {
   marginTop: selectField("Margin top", SPACING_OPTIONS),
@@ -28,7 +28,7 @@ export const boxStyleFields = {
   gradientAngle: numberField("Gradient angle (deg)", 0, 360),
   gradientFrom: colorField("Gradient start color"),
   gradientTo: colorField("Gradient end color"),
-  backgroundImage: textField("Background image URL"),
+  backgroundImage: imageField("Background image URL"),
   backgroundSize: selectField("Background size", [
     { label: "Cover", value: "cover" },
     { label: "Contain", value: "contain" },

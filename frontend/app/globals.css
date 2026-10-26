@@ -252,19 +252,16 @@ body {
   flex: 1 1 0%;
 }
 
-/* Custom three-column editor. */
+/* Custom editor layout using Flexbox for rock-solid collapse handling */
 .studio-composition {
-  display: grid;
+  display: flex;
+  flex-direction: row;
 
   width: 100%;
   height: 100%;
   min-width: 0;
   min-height: 0;
-
-  grid-template-columns:
-    minmax(190px, 238px)
-    minmax(0, 1fr)
-    minmax(250px, 300px);
+  flex: 1 1 0%;
 
   overflow: hidden;
   background: var(--studio-bg);
@@ -275,23 +272,147 @@ body {
 .studio-sidebar,
 .studio-inspector {
   display: flex;
-
-  width: 100%;
+  flex-direction: column;
   min-width: 0;
   min-height: 0;
-
-  flex-direction: column;
+  height: 100%;
   overflow: hidden;
-
   background: var(--studio-panel);
 }
 
 .studio-sidebar {
+  width: 250px;
+  min-width: 220px;
+  max-width: 260px;
+  flex: 0 0 250px;
   border-right: 1px solid var(--studio-border);
 }
 
 .studio-inspector {
+  width: 320px;
+  min-width: 300px;
+  max-width: 360px;
+  flex: 0 0 320px;
   border-left: 1px solid var(--studio-border);
+}
+
+.studio-canvas-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--studio-bg);
+}
+
+/* ---------- Sidebar Header with Close Button ---------- */
+.studio-sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--studio-border);
+  padding: 8px 10px;
+  background: var(--studio-panel);
+}
+
+.studio-sidebar-header .studio-sidebar-tabs {
+  border-bottom: 0;
+  padding: 0;
+  flex: 1;
+}
+
+.studio-panel-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--studio-border);
+  background: #ffffff;
+  color: var(--studio-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.studio-panel-close-btn:hover {
+  background: var(--studio-bg);
+  color: var(--studio-text);
+  border-color: #cbd5e1;
+}
+
+/* ---------- Toolbar Center Toggles ---------- */
+.studio-toolbar-center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.studio-panel-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid var(--studio-border);
+  background: #ffffff;
+  color: var(--studio-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.studio-panel-toggle:hover {
+  background: var(--studio-bg);
+  color: var(--studio-text);
+}
+
+.studio-panel-toggle.is-active {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #bfdbfe;
+}
+
+/* ---------- Floating Edge Toggles on Canvas ---------- */
+
+.studio-floating-toggle {
+  position: absolute;
+  top: 14px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.studio-floating-toggle:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.studio-floating-toggle-left {
+  left: 14px;
+}
+
+.studio-floating-toggle-right {
+  right: 14px;
 }
 
 /* ---------- Elements / Layers navigation ---------- */
@@ -382,19 +503,7 @@ body {
   line-height: 1.5;
 }
 
-/* ---------- Center canvas panel ---------- */
 
-.studio-canvas-panel {
-  display: flex;
-
-  width: 100%;
-  min-width: 0;
-  min-height: 0;
-
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--studio-bg);
-}
 
 /* Fixed toolbar above the independently scrolling preview. */
 .studio-canvas-toolbar {
@@ -641,11 +750,14 @@ body {
 /* ---------- Smaller desktop and tablet ---------- */
 
 @media (max-width: 1100px) {
-  .studio-composition {
-    grid-template-columns:
-      minmax(175px, 205px)
-      minmax(0, 1fr)
-      minmax(230px, 265px);
+  .studio-sidebar {
+    width: 200px;
+    flex: 0 0 200px;
+  }
+
+  .studio-inspector {
+    width: 260px;
+    flex: 0 0 260px;
   }
 
   .studio-canvas {
@@ -680,19 +792,21 @@ body {
   }
 
   .studio-composition {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows:
-      minmax(180px, 24%)
-      minmax(320px, 1fr)
-      minmax(220px, 30%);
+    flex-direction: column;
   }
 
   .studio-sidebar {
+    width: 100%;
+    max-height: 250px;
+    flex: 0 0 auto;
     border-right: 0;
     border-bottom: 1px solid var(--studio-border);
   }
 
   .studio-inspector {
+    width: 100%;
+    max-height: 250px;
+    flex: 0 0 auto;
     border-top: 1px solid var(--studio-border);
     border-left: 0;
   }
@@ -797,3 +911,136 @@ body {
     transition: none;
   }
 }
+
+/* =========================================================
+   RESPONSIVE WEBSITE BUILDER — SYSTEM STYLES
+   ========================================================= */
+
+/* Prevent horizontal overflow across all rendered templates */
+.studio-canvas-page,
+.puck-public-responsive-container {
+  overflow-x: clip;
+}
+
+/* Base Desktop Navbar Rules */
+.puck-nav-desktop-links {
+  display: flex !important;
+}
+.puck-nav-hamburger-btn {
+  display: none !important;
+}
+.puck-nav-desktop-cta {
+  display: inline-flex !important;
+}
+.puck-nav-search-bar {
+  display: flex !important;
+}
+
+/* Tablet: adjust gap and compact search */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .puck-nav-desktop-links {
+    gap: 12px !important;
+  }
+  .puck-nav-search-bar {
+    display: none !important;
+  }
+}
+
+/* Published Mobile Viewport (< 768px) */
+@media (max-width: 767px) {
+  .puck-nav-desktop-links {
+    display: none !important;
+  }
+  .puck-nav-hamburger-btn {
+    display: inline-flex !important;
+  }
+  .puck-nav-desktop-cta {
+    display: none !important;
+  }
+  .puck-nav-search-bar {
+    display: none !important;
+  }
+}
+
+/* Visual Editor Preview Canvas with Mobile selected */
+.studio-preview-mobile .puck-nav-desktop-links {
+  display: none !important;
+}
+.studio-preview-mobile .puck-nav-hamburger-btn {
+  display: inline-flex !important;
+}
+.studio-preview-mobile .puck-nav-desktop-cta {
+  display: none !important;
+}
+.studio-preview-mobile .puck-nav-search-bar {
+  display: none !important;
+}
+
+/* Visual Editor Preview Canvas with Tablet selected */
+.studio-preview-tablet .puck-nav-desktop-links {
+  gap: 12px !important;
+}
+.studio-preview-tablet .puck-nav-search-bar {
+  display: none !important;
+}
+
+/* Container query equivalents (for editor or responsive containers) */
+@container studio-preview (max-width: 767px) {
+  .puck-nav-desktop-links {
+    display: none !important;
+  }
+  .puck-nav-hamburger-btn {
+    display: inline-flex !important;
+  }
+  .puck-nav-desktop-cta {
+    display: none !important;
+  }
+  .puck-nav-search-bar {
+    display: none !important;
+  }
+}
+
+@container studio-preview (min-width: 768px) and (max-width: 1023px) {
+  .puck-nav-desktop-links {
+    gap: 12px !important;
+  }
+  .puck-nav-search-bar {
+    display: none !important;
+  }
+}
+
+/* Common responsive helper utilities */
+.puck-responsive-grid-cols {
+  grid-template-columns: repeat(var(--puck-columns, 3), minmax(0, 1fr));
+}
+.puck-responsive-flex-dir {
+  flex-direction: var(--puck-flex-direction, row);
+}
+.puck-responsive-align {
+  align-items: var(--puck-align-items, center);
+}
+.puck-responsive-justify {
+  justify-content: var(--puck-justify-content, flex-start);
+}
+.puck-responsive-gap {
+  gap: var(--puck-gap, 16px);
+}
+
+@keyframes puckFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes puckSlideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+

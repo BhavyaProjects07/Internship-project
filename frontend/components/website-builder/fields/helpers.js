@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import MediaLibraryModal from "@/components/media/MediaLibraryModal";
 
 /**
  * Reusable Puck Field Builders with Interactive Visual Controls
@@ -213,3 +214,476 @@ export const colorField = (label) => ({
     />
   ),
 });
+
+/**
+ * Interactive Image Input Control with Centralized ImageKit Media Library Modal
+ */
+export function ImageFieldInput({ label, value = "", onChange, name }) {
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+
+  return (
+    <div style={{ display: "grid", gap: 8, marginBottom: 12, width: "100%", boxSizing: "border-box" }}>
+      {/* Label and Clear action */}
+      {label && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "#334155" }}>{label}</span>
+          {value && (
+            <button
+              type="button"
+              onClick={() => onChange("")}
+              style={{
+                fontSize: 11,
+                fontWeight: 500,
+                color: "#64748b",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "2px 4px",
+                borderRadius: 4,
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#ef4444")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#64748b")}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Row 1: Image thumbnail preview + direct URL input */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", minWidth: 0 }}>
+        <button
+          type="button"
+          onClick={() => setIsLibraryOpen(true)}
+          title="Click to select or upload image"
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 8,
+            border: "1px solid #cbd5e1",
+            backgroundColor: "#f8fafc",
+            overflow: "hidden",
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            padding: 0,
+            position: "relative",
+            transition: "border-color 0.15s ease",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#4f46e5")}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#cbd5e1")}
+        >
+          {value ? (
+            <img
+              src={value}
+              alt="Preview"
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
+            />
+          ) : (
+            <svg
+              style={{ width: 18, height: 18, color: "#94a3b8" }}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.8"
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          )}
+        </button>
+
+        <input
+          type="text"
+          name={name}
+          value={value || ""}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Paste image URL..."
+          style={{
+            flex: 1,
+            minWidth: 0,
+            width: "100%",
+            padding: "8px 10px",
+            fontSize: 12,
+            borderRadius: 8,
+            border: "1px solid #cbd5e1",
+            outline: "none",
+            color: "#0f172a",
+            backgroundColor: "#ffffff",
+            boxSizing: "border-box",
+            transition: "border-color 0.15s ease",
+          }}
+          onFocus={(e) => (e.currentTarget.style.borderColor = "#4f46e5")}
+          onBlur={(e) => (e.currentTarget.style.borderColor = "#cbd5e1")}
+        />
+      </div>
+
+      {/* Row 2: Prominent, full-width button to open Centralized Media Library */}
+      <button
+        type="button"
+        onClick={() => setIsLibraryOpen(true)}
+        style={{
+          width: "100%",
+          padding: "8px 12px",
+          fontSize: 12,
+          fontWeight: 600,
+          borderRadius: 8,
+          border: "1px solid #4f46e5",
+          backgroundColor: "#4f46e5",
+          color: "#ffffff",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          boxShadow: "0 1px 2px rgba(79, 70, 229, 0.15)",
+          transition: "background-color 0.15s ease",
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#4338ca")}
+        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#4f46e5")}
+      >
+        <svg
+          style={{ width: 14, height: 14 }}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+          />
+        </svg>
+        Upload / Choose from Assets
+      </button>
+
+      {isLibraryOpen && (
+        <MediaLibraryModal
+          initialUrl={value}
+          onSelect={(url) => {
+            onChange(url);
+            setIsLibraryOpen(false);
+          }}
+          onClose={() => setIsLibraryOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * Visual Image Field constructor for Puck
+ * Allows pasting direct URLs as well as uploading/selecting from the Centralized Media Library
+ */
+export const imageField = (label) => ({
+  type: "custom",
+  label,
+  render: ({ value, onChange, name }) => (
+    <ImageFieldInput
+      label={label}
+      name={name}
+      value={value}
+      onChange={onChange}
+    />
+  ),
+});
+
+
+
+/**
+ * Reusable responsive settings field for Puck Inspector.
+ * Stores values as:
+ * {
+ *   tablet: { ... },
+ *   mobile: { ... }
+ * }
+ *
+ * Desktop continues to use the component's existing base properties.
+ */
+/**
+ * Reusable responsive settings field for Puck Inspector.
+ * Stores values as:
+ * {
+ *   tablet: { ... },
+ *   mobile: { ... }
+ * }
+ *
+ * Desktop continues to use the component's existing base properties.
+ */
+export const responsiveField = (settings = [], label = "Responsive overrides") => ({
+  type: "custom",
+  label,
+  render: ({ value, onChange }) => (
+    <ResponsiveSettingsInput
+      settings={settings}
+      value={value || {}}
+      onChange={onChange}
+    />
+  ),
+});
+
+function ResponsiveSettingsInput({ settings = [], value = {}, onChange }) {
+  const [device, setDevice] = useState("mobile");
+
+  const tabletOverridesCount = Object.keys(value?.tablet || {}).filter(
+    (k) => value.tablet[k] !== undefined && value.tablet[k] !== null && value.tablet[k] !== ""
+  ).length;
+
+  const mobileOverridesCount = Object.keys(value?.mobile || {}).filter(
+    (k) => value.mobile[k] !== undefined && value.mobile[k] !== null && value.mobile[k] !== ""
+  ).length;
+
+  const deviceOptions = [
+    { id: "desktop", label: "Desktop", count: 0 },
+    { id: "tablet", label: "Tablet", count: tabletOverridesCount },
+    { id: "mobile", label: "Mobile", count: mobileOverridesCount },
+  ];
+
+  const updateValue = (key, nextValue) => {
+    if (device === "desktop") {
+      return;
+    }
+
+    const currentDeviceValues = { ...(value?.[device] || {}) };
+
+    if (nextValue === "" || nextValue === null || nextValue === undefined) {
+      delete currentDeviceValues[key];
+    } else {
+      currentDeviceValues[key] = nextValue;
+    }
+
+    const nextValueObj = {
+      ...value,
+      [device]: currentDeviceValues,
+    };
+
+    if (Object.keys(currentDeviceValues).length === 0) {
+      delete nextValueObj[device];
+    }
+
+    onChange(nextValueObj);
+  };
+
+  const clearDeviceOverrides = () => {
+    const nextValue = { ...value };
+    delete nextValue[device];
+    onChange(nextValue);
+  };
+
+  const inputStyle = {
+    width: "100%",
+    minWidth: 0,
+    padding: "8px 9px",
+    border: "1px solid #cbd5e1",
+    borderRadius: 7,
+    background: "#fff",
+    color: "#0f172a",
+    fontSize: 12,
+    boxSizing: "border-box",
+  };
+
+  return (
+    <div style={{ display: "grid", gap: 12, paddingBottom: 8 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+          gap: 4,
+        }}
+      >
+        {deviceOptions.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            onClick={() => setDevice(option.id)}
+            style={{
+              padding: "7px 3px",
+              borderRadius: 6,
+              border: "1px solid",
+              borderColor:
+                device === option.id ? "#4f46e5" : "#e2e8f0",
+              background:
+                device === option.id ? "#eef2ff" : "#fff",
+              color:
+                device === option.id ? "#4338ca" : "#475569",
+              fontSize: 11,
+              fontWeight: 600,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 4,
+            }}
+          >
+            <span>{option.label}</span>
+            {option.count > 0 && (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 15,
+                  height: 15,
+                  borderRadius: "50%",
+                  backgroundColor: device === option.id ? "#4f46e5" : "#94a3b8",
+                  color: "#ffffff",
+                  fontSize: 9,
+                  fontWeight: 700,
+                }}
+              >
+                {option.count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {device === "desktop" && (
+        <div
+          style={{
+            padding: 10,
+            borderRadius: 7,
+            background: "#f8fafc",
+            color: "#475569",
+            fontSize: 12,
+            lineHeight: 1.5,
+            border: "1px solid #e2e8f0",
+          }}
+        >
+          Desktop uses the component&apos;s base settings in the Inspector. Switch to <strong>Tablet</strong> or <strong>Mobile</strong> above to customize overrides for smaller screens.
+        </div>
+      )}
+
+      {device !== "desktop" &&
+        settings.map((setting) => {
+          const currentValue = value?.[device]?.[setting.key] ?? "";
+          const isOverridden = currentValue !== "";
+
+          return (
+            <label
+              key={setting.key}
+              style={{
+                display: "grid",
+                gap: 5,
+                color: "#334155",
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>{setting.label}</span>
+                {isOverridden && (
+                  <span style={{ fontSize: 10, color: "#4f46e5", fontWeight: 700 }}>
+                    Customized
+                  </span>
+                )}
+              </div>
+
+              {setting.type === "select" ? (
+                <select
+                  value={String(currentValue)}
+                  onChange={(event) =>
+                    updateValue(setting.key, event.target.value)
+                  }
+                  style={{
+                    ...inputStyle,
+                    borderColor: isOverridden ? "#818cf8" : "#cbd5e1",
+                    backgroundColor: isOverridden ? "#fbfbfe" : "#ffffff",
+                  }}
+                >
+                  <option value="">
+                    {device === "mobile" && value?.tablet?.[setting.key] !== undefined
+                      ? `Inherit tablet (${value.tablet[setting.key]})`
+                      : "Inherit desktop setting"}
+                  </option>
+                  {setting.options.map((option) => (
+                    <option
+                      key={String(option.value)}
+                      value={String(option.value)}
+                    >
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              ) : setting.type === "text" ? (
+                <input
+                  type="text"
+                  value={currentValue}
+                  placeholder={
+                    device === "mobile" && value?.tablet?.[setting.key] !== undefined
+                      ? `Inherit tablet (${value.tablet[setting.key]})`
+                      : "Inherit desktop setting"
+                  }
+                  onChange={(event) =>
+                    updateValue(setting.key, event.target.value)
+                  }
+                  style={{
+                    ...inputStyle,
+                    borderColor: isOverridden ? "#818cf8" : "#cbd5e1",
+                  }}
+                />
+              ) : (
+                <input
+                  type="number"
+                  min={setting.min}
+                  max={setting.max}
+                  step={setting.step ?? 1}
+                  value={currentValue}
+                  placeholder={
+                    device === "mobile" && value?.tablet?.[setting.key] !== undefined
+                      ? `Inherit tablet (${value.tablet[setting.key]})`
+                      : "Inherit desktop setting"
+                  }
+                  onChange={(event) => {
+                    const raw = event.target.value;
+                    updateValue(
+                      setting.key,
+                      raw === "" ? "" : Number(raw)
+                    );
+                  }}
+                  style={{
+                    ...inputStyle,
+                    borderColor: isOverridden ? "#818cf8" : "#cbd5e1",
+                  }}
+                />
+              )}
+            </label>
+          );
+        })}
+
+      {device !== "desktop" && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 4 }}>
+          <button
+            type="button"
+            onClick={clearDeviceOverrides}
+            style={{
+              padding: "6px 10px",
+              border: "1px solid #cbd5e1",
+              borderRadius: 6,
+              background: "#fff",
+              color: "#64748b",
+              fontSize: 11,
+              fontWeight: 500,
+              cursor: "pointer",
+            }}
+          >
+            Reset {device} overrides
+          </button>
+          <span style={{ color: "#94a3b8", fontSize: 10 }}>
+            Inherits automatically
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+

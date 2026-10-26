@@ -4,8 +4,18 @@ import React, { useState } from "react";
 import AnimationWrapper from "../animation/AnimationWrapper.jsx";
 import { animationFields, animationDefaults } from "../fields/animationFields.js";
 import { spacingFields, commonDesignDefaults } from "../fields/boxStyleFields.js";
-import { selectField, numberField, textField, textareaField, radioField, colorField } from "../fields/helpers.js";
+import {
+  selectField,
+  numberField,
+  textField,
+  textareaField,
+  radioField,
+  colorField,
+  imageField,
+  responsiveField,
+} from "../fields/helpers.js";
 import { getHoverClass } from "../layout/styleBuilders.js";
+import { buildResponsiveStyles } from "../layout/responsiveStyles.js";
 import { ALIGNMENT_OPTIONS, HOVER_EFFECT_OPTIONS, RADIUS_OPTIONS, SHADOW_PRESETS } from "../tokens/index.js";
 import { RenderIcon, ICON_PRESETS } from "./icons.jsx";
 
@@ -37,7 +47,7 @@ export const marketingComponents = {
         { label: "No", value: false },
       ]),
       ratingsText: textField("Rating label (e.g. 4.9/5 from 2,000+ reviews)"),
-      imageUrl: textField("Split visual / Hero image URL"),
+      imageUrl: imageField("Split visual / Hero image URL"),
       imageAlt: textField("Image alt text"),
       imageWidth: numberField("Split image width (%)", 30, 70),
       backgroundColor: colorField("Background color"),
@@ -47,12 +57,16 @@ export const marketingComponents = {
       ]),
       gradientFrom: colorField("Gradient color from"),
       gradientTo: colorField("Gradient color to"),
-      backgroundImage: textField("Background image URL"),
+      backgroundImage: imageField("Background image URL"),
       overlayOpacity: numberField("Background overlay opacity (%)", 0, 100),
       textColor: colorField("Text color"),
       accentColor: colorField("Accent highlight color"),
       paddingY: numberField("Vertical padding (px)", 40, 240),
       borderRadius: selectField("Corner radius", RADIUS_OPTIONS),
+      responsive: responsiveField("Responsive overrides", [
+        { name: "paddingY", label: "Vertical padding (px)", type: "number", min: 20, max: 240 },
+        { name: "imageWidth", label: "Split image width (%)", type: "number", min: 30, max: 100 },
+      ]),
       ...animationFields,
     },
     defaultProps: {
@@ -109,6 +123,7 @@ export const marketingComponents = {
       accentColor = "#6366f1",
       paddingY = 96,
       borderRadius = 0,
+      responsive,
       animTrigger,
       animPreset,
       animLoop,
@@ -134,6 +149,14 @@ export const marketingComponents = {
 
       const showOverlay = (hasBgImage || layout === "background" || overlayOpacity > 0) && overlayOpacity > 0;
 
+      const { className: respClass, css: respCss } = buildResponsiveStyles({
+        responsive,
+        variableMap: {
+          paddingY: "--puck-padding-y",
+          imageWidth: "--puck-image-width",
+        },
+      });
+
       return (
         <AnimationWrapper
           as="section"
@@ -153,12 +176,13 @@ export const marketingComponents = {
             backgroundPosition: hasBgImage ? "center" : undefined,
             backgroundRepeat: hasBgImage ? "no-repeat" : undefined,
             color: textColor || "#ffffff",
-            paddingTop: `${paddingY}px`,
-            paddingBottom: `${paddingY}px`,
+            paddingTop: `var(--puck-padding-y, ${paddingY}px)`,
+            paddingBottom: `var(--puck-padding-y, ${paddingY}px)`,
             borderRadius: `${borderRadius}px`,
             overflow: "hidden",
           }}
         >
+          {respCss && <style dangerouslySetInnerHTML={{ __html: respCss }} />}
           {showOverlay && (
             <div
               aria-hidden="true"
@@ -174,6 +198,7 @@ export const marketingComponents = {
           )}
 
           <div
+            className={respClass}
             style={{
               position: "relative",
               zIndex: 1,
@@ -189,7 +214,7 @@ export const marketingComponents = {
               flexWrap: "wrap",
             }}
           >
-            <div style={{ flex: 1, minWidth: 300, maxWidth: isCentered ? 800 : 640 }}>
+            <div style={{ flex: 1, minWidth: 260, maxWidth: isCentered ? 800 : 640 }}>
               {eyebrow && (
                 <span
                   style={{
@@ -310,7 +335,7 @@ export const marketingComponents = {
             </div>
 
             {isSplit && imageUrl && (
-              <div style={{ width: `${imageWidth}%`, flexShrink: 0, minWidth: 280 }}>
+              <div style={{ width: `var(--puck-image-width, ${imageWidth}%)`, flexShrink: 0, minWidth: 260, maxWidth: "100%" }}>
                 <img
                   src={imageUrl}
                   alt={imageAlt || "Hero visual"}
@@ -353,6 +378,10 @@ export const marketingComponents = {
       textColor: colorField("Text color"),
       borderRadius: selectField("Corner radius", RADIUS_OPTIONS),
       boxShadow: selectField("Shadow preset", SHADOW_PRESETS),
+      responsive: responsiveField("Responsive overrides", [
+        { name: "paddingY", label: "Vertical padding (px)", type: "number", min: 20, max: 160 },
+        { name: "paddingX", label: "Horizontal padding (px)", type: "number", min: 12, max: 80 },
+      ]),
       ...spacingFields,
       ...animationFields,
     },
@@ -393,6 +422,7 @@ export const marketingComponents = {
       boxShadow,
       marginTop,
       marginBottom,
+      responsive,
       animTrigger,
       animPreset,
       animLoop,
@@ -404,6 +434,14 @@ export const marketingComponents = {
       const ctaBgImage = backgroundGradient
         ? `linear-gradient(135deg, ${gradientFrom || "#1e1b4b"}, ${gradientTo || "#0f172a"})`
         : undefined;
+
+      const { className: respClass, css: respCss } = buildResponsiveStyles({
+        responsive,
+        variableMap: {
+          paddingY: "--puck-padding-y",
+          paddingX: "--puck-padding-x",
+        },
+      });
 
       return (
         <AnimationWrapper
@@ -421,14 +459,16 @@ export const marketingComponents = {
             color: textColor || "#ffffff",
             borderRadius: `${borderRadius}px`,
             boxShadow: boxShadow === "none" ? undefined : boxShadow,
-            padding: "56px 40px",
+            padding: "var(--puck-padding-y, 56px) var(--puck-padding-x, 40px)",
             textAlign: "center",
             marginTop,
             marginBottom,
             position: "relative",
             overflow: "hidden",
           }}
+          className={respClass}
         >
+          {respCss && <style dangerouslySetInnerHTML={{ __html: respCss }} />}
           {badgeText && (
             <span
               style={{
@@ -1568,7 +1608,7 @@ export const marketingComponents = {
         label: "Logos list",
         arrayFields: {
           name: textField("Company name"),
-          imageUrl: textField("Logo image URL (SVG/PNG)"),
+          imageUrl: imageField("Logo image URL (SVG/PNG)"),
         },
         defaultItemProps: {
           name: "Partner",

@@ -11,6 +11,7 @@ import {
   textareaField,
   radioField,
   colorField,
+  imageField,
 } from "../fields/helpers.js";
 import { buildBoxStyle, getHoverClass } from "../layout/styleBuilders.js";
 import { RenderIcon, ICON_PRESETS } from "./icons.jsx";
@@ -23,7 +24,7 @@ export const contentComponents = {
     label: "Card (Slot & Content)",
     fields: {
       content: { type: "slot" },
-      imageUrl: textField("Header image URL (Optional)"),
+      imageUrl: imageField("Header image URL (Optional)"),
       imageHeight: numberField("Image height (px)", 100, 600),
       imageFit: selectField("Image object-fit", [
         { label: "Cover (Fill)", value: "cover" },

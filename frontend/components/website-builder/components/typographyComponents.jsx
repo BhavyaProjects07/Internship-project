@@ -4,10 +4,19 @@ import React from "react";
 import AnimationWrapper from "../animation/AnimationWrapper.jsx";
 import { animationFields, animationDefaults } from "../fields/animationFields.js";
 import { boxStyleFields, spacingFields, commonDesignDefaults } from "../fields/boxStyleFields.js";
-import { selectField, numberField, textField, textareaField, radioField, colorField } from "../fields/helpers.js";
+import {
+  selectField,
+  numberField,
+  textField,
+  textareaField,
+  radioField,
+  colorField,
+  responsiveField,
+} from "../fields/helpers.js";
 import { typographyFields, typographyDefaults } from "../fields/typographyFields.js";
 import { buildElementStyle, getHoverClass } from "../layout/styleBuilders.js";
-import { RADIUS_OPTIONS } from "../tokens/index.js";
+import { buildResponsiveStyles } from "../layout/responsiveStyles.js";
+import { RADIUS_OPTIONS, ALIGNMENT_OPTIONS, SPACING_OPTIONS } from "../tokens/index.js";
 import { RenderIcon, ICON_PRESETS } from "./icons.jsx";
 
 export const typographyComponents = {
@@ -27,6 +36,13 @@ export const typographyComponents = {
         { label: "H6 — Micro Title", value: "h6" },
       ]),
       ...typographyFields,
+      responsive: responsiveField("Responsive overrides", [
+        { name: "fontSize", label: "Font size (px)", type: "number", min: 8, max: 160 },
+        { name: "lineHeight", label: "Line height", type: "number", min: 0.5, max: 3, step: 0.1 },
+        { name: "letterSpacing", label: "Letter spacing (px)", type: "number", min: -10, max: 30, step: 0.5 },
+        { name: "textAlign", label: "Text align", type: "select", options: ALIGNMENT_OPTIONS },
+        { name: "marginBottom", label: "Bottom margin", type: "select", options: SPACING_OPTIONS },
+      ]),
       ...spacingFields,
       ...boxStyleFields,
       ...animationFields,
@@ -54,9 +70,12 @@ export const typographyComponents = {
       animDuration,
       animDelay,
       animEasing,
+      responsive,
       ...props
     }) => {
       const Tag = ["h1", "h2", "h3", "h4", "h5", "h6"].includes(level) ? level : "h2";
+      const { className: respClass, css: respCss } = buildResponsiveStyles({ responsive });
+
       return (
         <AnimationWrapper
           trigger={animTrigger}
@@ -66,7 +85,8 @@ export const typographyComponents = {
           delay={animDelay}
           easing={animEasing}
         >
-          <Tag className={getHoverClass(hoverEffect)} style={buildElementStyle(props)}>
+          {respCss && <style dangerouslySetInnerHTML={{ __html: respCss }} />}
+          <Tag className={`${getHoverClass(hoverEffect)} ${respClass}`.trim()} style={buildElementStyle(props)}>
             {text}
           </Tag>
         </AnimationWrapper>
@@ -86,6 +106,12 @@ export const typographyComponents = {
         { label: "Enabled", value: true },
       ]),
       ...typographyFields,
+      responsive: responsiveField("Responsive overrides", [
+        { name: "fontSize", label: "Font size (px)", type: "number", min: 8, max: 80 },
+        { name: "lineHeight", label: "Line height", type: "number", min: 0.5, max: 3, step: 0.1 },
+        { name: "textAlign", label: "Text align", type: "select", options: ALIGNMENT_OPTIONS },
+        { name: "marginBottom", label: "Bottom margin", type: "select", options: SPACING_OPTIONS },
+      ]),
       ...spacingFields,
       ...boxStyleFields,
       ...animationFields,
@@ -111,9 +137,11 @@ export const typographyComponents = {
       animDuration,
       animDelay,
       animEasing,
+      responsive,
       ...props
     }) => {
       const style = buildElementStyle(props);
+      const { className: respClass, css: respCss } = buildResponsiveStyles({ responsive });
 
       if (dropCap && text && text.length > 1) {
         const firstLetter = text[0];
@@ -127,7 +155,8 @@ export const typographyComponents = {
             delay={animDelay}
             easing={animEasing}
           >
-            <p className={getHoverClass(hoverEffect)} style={style}>
+            {respCss && <style dangerouslySetInnerHTML={{ __html: respCss }} />}
+            <p className={`${getHoverClass(hoverEffect)} ${respClass}`.trim()} style={style}>
               <span
                 style={{
                   float: "left",
@@ -156,7 +185,8 @@ export const typographyComponents = {
           delay={animDelay}
           easing={animEasing}
         >
-          <p className={getHoverClass(hoverEffect)} style={style}>
+          {respCss && <style dangerouslySetInnerHTML={{ __html: respCss }} />}
+          <p className={`${getHoverClass(hoverEffect)} ${respClass}`.trim()} style={style}>
             {text}
           </p>
         </AnimationWrapper>
@@ -172,6 +202,11 @@ export const typographyComponents = {
     fields: {
       text: textareaField("Rich content (accepts HTML or paragraphs)"),
       ...typographyFields,
+      responsive: responsiveField("Responsive overrides", [
+        { name: "fontSize", label: "Font size (px)", type: "number", min: 8, max: 80 },
+        { name: "textAlign", label: "Text align", type: "select", options: ALIGNMENT_OPTIONS },
+        { name: "marginBottom", label: "Bottom margin", type: "select", options: SPACING_OPTIONS },
+      ]),
       ...spacingFields,
       ...boxStyleFields,
       ...animationFields,
@@ -194,21 +229,27 @@ export const typographyComponents = {
       animDuration,
       animDelay,
       animEasing,
+      responsive,
       ...props
-    }) => (
-      <AnimationWrapper
-        trigger={animTrigger}
-        preset={animPreset}
-        loop={animLoop}
-        duration={animDuration}
-        delay={animDelay}
-        easing={animEasing}
-      >
-        <div style={buildElementStyle(props)}>
-          {text}
-        </div>
-      </AnimationWrapper>
-    ),
+    }) => {
+      const { className: respClass, css: respCss } = buildResponsiveStyles({ responsive });
+
+      return (
+        <AnimationWrapper
+          trigger={animTrigger}
+          preset={animPreset}
+          loop={animLoop}
+          duration={animDuration}
+          delay={animDelay}
+          easing={animEasing}
+        >
+          {respCss && <style dangerouslySetInnerHTML={{ __html: respCss }} />}
+          <div className={respClass} style={buildElementStyle(props)}>
+            {text}
+          </div>
+        </AnimationWrapper>
+      );
+    },
   },
 
   // ------------------------------------------------------------------------
@@ -233,6 +274,9 @@ export const typographyComponents = {
       customBorder: colorField("Custom border color"),
       borderRadius: selectField("Corner radius", RADIUS_OPTIONS),
       fontSize: numberField("Font size (px)", 8, 30),
+      responsive: responsiveField("Responsive overrides", [
+        { name: "fontSize", label: "Font size (px)", type: "number", min: 8, max: 30 },
+      ]),
       ...spacingFields,
       ...animationFields,
     },
@@ -260,6 +304,7 @@ export const typographyComponents = {
       fontSize,
       marginTop,
       marginBottom,
+      responsive,
       animTrigger,
       animPreset,
       animLoop,
@@ -278,6 +323,7 @@ export const typographyComponents = {
       };
 
       const current = presets[pillStyle] || presets.violet;
+      const { className: respClass, css: respCss } = buildResponsiveStyles({ responsive });
 
       return (
         <AnimationWrapper
@@ -289,13 +335,15 @@ export const typographyComponents = {
           easing={animEasing}
           style={{ display: "inline-flex", marginTop, marginBottom }}
         >
+          {respCss && <style dangerouslySetInnerHTML={{ __html: respCss }} />}
           <span
+            className={respClass}
             style={{
               display: "inline-flex",
               alignItems: "center",
               gap: 6,
               padding: "6px 14px",
-              fontSize: `${fontSize}px`,
+              fontSize: `var(--puck-font-size, ${fontSize}px)`,
               fontWeight: 700,
               letterSpacing: 1.2,
               textTransform: "uppercase",
@@ -327,6 +375,9 @@ export const typographyComponents = {
       avatarUrl: textField("Author avatar image URL"),
       accentColor: colorField("Accent border color"),
       quoteSize: numberField("Quote font size (px)", 14, 48),
+      responsive: responsiveField("Responsive overrides", [
+        { name: "fontSize", label: "Quote size (px)", type: "number", min: 12, max: 60 },
+      ]),
       ...spacingFields,
       ...animationFields,
     },
@@ -351,82 +402,89 @@ export const typographyComponents = {
       quoteSize,
       marginTop,
       marginBottom,
+      responsive,
       animTrigger,
       animPreset,
       animLoop,
       animDuration,
       animDelay,
       animEasing,
-    }) => (
-      <AnimationWrapper
-        as="figure"
-        trigger={animTrigger}
-        preset={animPreset}
-        loop={animLoop}
-        duration={animDuration}
-        delay={animDelay}
-        easing={animEasing}
-        style={{
-          margin: 0,
-          marginTop,
-          marginBottom,
-          padding: "24px 32px",
-          borderLeft: `4px solid ${accentColor || "#6366f1"}`,
-          backgroundColor: "#f8fafc",
-          borderRadius: "0 16px 16px 0",
-        }}
-      >
-        <blockquote
+    }) => {
+      const { className: respClass, css: respCss } = buildResponsiveStyles({ responsive });
+
+      return (
+        <AnimationWrapper
+          as="figure"
+          trigger={animTrigger}
+          preset={animPreset}
+          loop={animLoop}
+          duration={animDuration}
+          delay={animDelay}
+          easing={animEasing}
           style={{
             margin: 0,
-            fontSize: `${quoteSize}px`,
-            lineHeight: 1.6,
-            fontWeight: 600,
-            fontStyle: "italic",
-            color: "#0f172a",
+            marginTop,
+            marginBottom,
+            padding: "24px 32px",
+            borderLeft: `4px solid ${accentColor || "#6366f1"}`,
+            backgroundColor: "#f8fafc",
+            borderRadius: "0 16px 16px 0",
           }}
         >
-          &ldquo;{quote}&rdquo;
-        </blockquote>
-        {(author || role) && (
-          <figcaption
+          {respCss && <style dangerouslySetInnerHTML={{ __html: respCss }} />}
+          <blockquote
+            className={respClass}
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              marginTop: 16,
+              margin: 0,
+              fontSize: `var(--puck-font-size, ${quoteSize}px)`,
+              lineHeight: 1.6,
+              fontWeight: 600,
+              fontStyle: "italic",
+              color: "#0f172a",
             }}
           >
-            {avatarUrl && (
-              <img
-                src={avatarUrl}
-                alt={author}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: "50%",
-                  objectFit: "cover",
-                }}
-              />
-            )}
-            <div>
-              <p
-                style={{
-                  margin: 0,
-                  fontWeight: 700,
-                  fontSize: 15,
-                  color: "#1e293b",
-                }}
-              >
-                {author}
-              </p>
-              <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>
-                {role}
-              </p>
-            </div>
-          </figcaption>
-        )}
-      </AnimationWrapper>
-    ),
+            &ldquo;{quote}&rdquo;
+          </blockquote>
+          {(author || role) && (
+            <figcaption
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                marginTop: 16,
+              }}
+            >
+              {avatarUrl && (
+                <img
+                  src={avatarUrl}
+                  alt={author}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                  }}
+                />
+              )}
+              <div>
+                <p
+                  style={{
+                    margin: 0,
+                    fontWeight: 700,
+                    fontSize: 15,
+                    color: "#1e293b",
+                  }}
+                >
+                  {author}
+                </p>
+                <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>
+                  {role}
+                </p>
+              </div>
+            </figcaption>
+          )}
+        </AnimationWrapper>
+      );
+    },
   },
 };

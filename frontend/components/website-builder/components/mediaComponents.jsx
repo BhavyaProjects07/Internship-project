@@ -4,8 +4,18 @@ import React from "react";
 import AnimationWrapper from "../animation/AnimationWrapper.jsx";
 import { animationFields, animationDefaults } from "../fields/animationFields.js";
 import { spacingFields, commonDesignDefaults } from "../fields/boxStyleFields.js";
-import { selectField, numberField, textField, textareaField, radioField, colorField } from "../fields/helpers.js";
+import {
+  selectField,
+  numberField,
+  textField,
+  textareaField,
+  radioField,
+  colorField,
+  imageField,
+  responsiveField,
+} from "../fields/helpers.js";
 import { buildBoxStyle, getHoverClass } from "../layout/styleBuilders.js";
+import { buildResponsiveStyles } from "../layout/responsiveStyles.js";
 import {
   ALIGNMENT_OPTIONS,
   HOVER_EFFECT_OPTIONS,
@@ -21,7 +31,7 @@ export const mediaComponents = {
   Image: {
     label: "Image (Single)",
     fields: {
-      src: textField("Image URL"),
+      src: imageField("Image URL"),
       alt: textField("Alternative text"),
       caption: textField("Image caption (Optional)"),
       aspectRatio: selectField("Aspect ratio", [
@@ -42,6 +52,32 @@ export const mediaComponents = {
       boxShadow: selectField("Shadow preset", SHADOW_PRESETS),
       opacity: numberField("Opacity (%)", 0, 100),
       hoverEffect: selectField("Hover micro-animation", HOVER_EFFECT_OPTIONS),
+      responsive: responsiveField("Responsive overrides", [
+        {
+          name: "aspectRatio",
+          label: "Aspect ratio",
+          type: "select",
+          options: [
+            { label: "Auto (Natural)", value: "auto" },
+            { label: "16:9 (Landscape)", value: "16 / 9" },
+            { label: "4:3 (Classic)", value: "4 / 3" },
+            { label: "1:1 (Square)", value: "1 / 1" },
+            { label: "9:16 (Story / Vertical)", value: "9 / 16" },
+            { label: "21:9 (Cinematic)", value: "21 / 9" },
+          ],
+        },
+        { name: "height", label: "Height (px, 0 for auto)", type: "number", min: 0, max: 1600 },
+        {
+          name: "objectFit",
+          label: "Image fit",
+          type: "select",
+          options: [
+            { label: "Cover", value: "cover" },
+            { label: "Contain", value: "contain" },
+            { label: "Fill", value: "fill" },
+          ],
+        },
+      ]),
       ...spacingFields,
       ...animationFields,
     },
@@ -70,6 +106,7 @@ export const mediaComponents = {
       boxShadow,
       opacity,
       hoverEffect,
+      responsive,
       animTrigger,
       animPreset,
       animLoop,
@@ -77,60 +114,72 @@ export const mediaComponents = {
       animDelay,
       animEasing,
       ...spacing
-    }) => (
-      <AnimationWrapper
-        as="figure"
-        trigger={animTrigger}
-        preset={animPreset}
-        loop={animLoop}
-        duration={animDuration}
-        delay={animDelay}
-        easing={animEasing}
-        style={{
-          ...buildBoxStyle(spacing),
-          margin: 0,
-          width: "100%",
-          boxSizing: "border-box",
-        }}
-      >
-        <div
-          className={getHoverClass(hoverEffect)}
+    }) => {
+      const { className: respClass, css: respCss } = buildResponsiveStyles({
+        responsive,
+        variableMap: {
+          height: "--puck-image-height",
+          aspectRatio: "--puck-aspect-ratio",
+          objectFit: "--puck-object-fit",
+        },
+      });
+
+      return (
+        <AnimationWrapper
+          as="figure"
+          trigger={animTrigger}
+          preset={animPreset}
+          loop={animLoop}
+          duration={animDuration}
+          delay={animDelay}
+          easing={animEasing}
           style={{
-            overflow: "hidden",
-            borderRadius: `${borderRadius}px`,
-            boxShadow: boxShadow === "none" ? undefined : boxShadow,
-            aspectRatio: aspectRatio === "auto" ? undefined : aspectRatio,
-            height: height > 0 ? `${height}px` : "auto",
+            ...buildBoxStyle(spacing),
+            margin: 0,
             width: "100%",
+            boxSizing: "border-box",
           }}
         >
-          <img
-            src={src || "https://placehold.co/1200x700?text=Select+Image"}
-            alt={alt || ""}
-            loading="lazy"
+          {respCss && <style dangerouslySetInnerHTML={{ __html: respCss }} />}
+          <div
+            className={`${getHoverClass(hoverEffect)} ${respClass}`.trim()}
             style={{
-              display: "block",
+              overflow: "hidden",
+              borderRadius: `${borderRadius}px`,
+              boxShadow: boxShadow === "none" ? undefined : boxShadow,
+              aspectRatio: aspectRatio === "auto" ? "var(--puck-aspect-ratio, auto)" : `var(--puck-aspect-ratio, ${aspectRatio})`,
+              height: height > 0 ? `var(--puck-image-height, ${height}px)` : "var(--puck-image-height, auto)",
               width: "100%",
-              height: "100%",
-              objectFit,
-              opacity: opacity / 100,
-            }}
-          />
-        </div>
-        {caption && (
-          <figcaption
-            style={{
-              marginTop: 8,
-              color: "#64748b",
-              fontSize: 13,
-              textAlign: "center",
             }}
           >
-            {caption}
-          </figcaption>
-        )}
-      </AnimationWrapper>
-    ),
+            <img
+              src={src || "https://placehold.co/1200x700?text=Select+Image"}
+              alt={alt || ""}
+              loading="lazy"
+              style={{
+                display: "block",
+                width: "100%",
+                height: "100%",
+                objectFit: `var(--puck-object-fit, ${objectFit})`,
+                opacity: opacity / 100,
+              }}
+            />
+          </div>
+          {caption && (
+            <figcaption
+              style={{
+                marginTop: 8,
+                color: "#64748b",
+                fontSize: 13,
+                textAlign: "center",
+              }}
+            >
+              {caption}
+            </figcaption>
+          )}
+        </AnimationWrapper>
+      );
+    },
   },
 
   // ------------------------------------------------------------------------
@@ -140,6 +189,7 @@ export const mediaComponents = {
     label: "Image Gallery Grid",
     fields: {
       columns: selectField("Gallery columns", [
+        { label: "1 Column (Mobile)", value: "1" },
         { label: "2 Columns", value: "2" },
         { label: "3 Columns", value: "3" },
         { label: "4 Columns", value: "4" },
@@ -149,7 +199,7 @@ export const mediaComponents = {
         type: "array",
         label: "Gallery images list",
         arrayFields: {
-          url: textField("Image URL"),
+          url: imageField("Image URL"),
           alt: textField("Alt description"),
           caption: textField("Caption"),
         },
@@ -166,6 +216,20 @@ export const mediaComponents = {
         { label: "Widescreen (16:9)", value: "16 / 9" },
       ]),
       borderRadius: selectField("Corner radius", RADIUS_OPTIONS),
+      responsive: responsiveField("Responsive overrides", [
+        {
+          name: "columns",
+          label: "Gallery columns",
+          type: "select",
+          options: [
+            { label: "1 Column (Stacked)", value: "1" },
+            { label: "2 Columns", value: "2" },
+            { label: "3 Columns", value: "3" },
+            { label: "4 Columns", value: "4" },
+          ],
+        },
+        { name: "gap", label: "Grid gap (px)", type: "number", min: 4, max: 60 },
+      ]),
       ...spacingFields,
       ...animationFields,
     },
@@ -203,6 +267,7 @@ export const mediaComponents = {
       borderRadius,
       marginTop,
       marginBottom,
+      responsive,
       animTrigger,
       animPreset,
       animLoop,
@@ -211,6 +276,14 @@ export const mediaComponents = {
       animEasing,
     }) => {
       const count = Number(columns) || 3;
+      const { className: respClass, css: respCss } = buildResponsiveStyles({
+        responsive,
+        variableMap: {
+          columns: "--puck-columns",
+          gap: "--puck-gap",
+        },
+      });
+
       return (
         <AnimationWrapper
           trigger={animTrigger}
@@ -220,53 +293,61 @@ export const mediaComponents = {
           delay={animDelay}
           easing={animEasing}
           style={{
-            display: "grid",
-            gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))`,
-            gap: `${gap}px`,
             width: "100%",
             marginTop,
             marginBottom,
           }}
         >
-          {images.map((img, idx) => (
-            <div
-              key={`gallery-${idx}`}
-              className="group relative overflow-hidden transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg"
-              style={{
-                borderRadius: `${borderRadius}px`,
-                aspectRatio,
-              }}
-            >
-              <img
-                src={img.url}
-                alt={img.alt || ""}
+          {respCss && <style dangerouslySetInnerHTML={{ __html: respCss }} />}
+          <div
+            className={respClass}
+            style={{
+              display: "grid",
+              gridTemplateColumns: `repeat(var(--puck-columns, ${count}), minmax(0, 1fr))`,
+              gap: `var(--puck-gap, ${gap}px)`,
+              width: "100%",
+            }}
+          >
+            {images.map((img, idx) => (
+              <div
+                key={`gallery-${idx}`}
+                className="group relative overflow-hidden transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg"
                 style={{
-                  display: "block",
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
+                  borderRadius: `${borderRadius}px`,
+                  aspectRatio,
                 }}
-              />
-              {img.caption && (
-                <div
+              >
+                <img
+                  src={img.url}
+                  alt={img.alt || ""}
                   style={{
-                    position: "absolute",
-                    inset: 0,
-                    backgroundImage:
-                      "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)",
-                    display: "flex",
-                    alignItems: "flex-end",
-                    padding: 16,
-                    color: "#ffffff",
-                    fontSize: 14,
-                    fontWeight: 600,
+                    display: "block",
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
                   }}
-                >
-                  {img.caption}
-                </div>
-              )}
-            </div>
-          ))}
+                />
+                {img.caption && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      backgroundImage:
+                        "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)",
+                      display: "flex",
+                      alignItems: "flex-end",
+                      padding: 16,
+                      color: "#ffffff",
+                      fontSize: 14,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {img.caption}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </AnimationWrapper>
       );
     },
@@ -291,6 +372,19 @@ export const mediaComponents = {
         { label: "No", value: false },
         { label: "Yes", value: true },
       ]),
+      responsive: responsiveField("Responsive overrides", [
+        {
+          name: "aspectRatio",
+          label: "Aspect ratio",
+          type: "select",
+          options: [
+            { label: "16:9 (Standard Widescreen)", value: "16 / 9" },
+            { label: "4:3 (Classic TV)", value: "4 / 3" },
+            { label: "1:1 (Square)", value: "1 / 1" },
+            { label: "9:16 (Shorts / Reels)", value: "9 / 16" },
+          ],
+        },
+      ]),
       ...spacingFields,
       ...animationFields,
     },
@@ -312,6 +406,7 @@ export const mediaComponents = {
       autoplay,
       marginTop,
       marginBottom,
+      responsive,
       animTrigger,
       animPreset,
       animLoop,
@@ -324,6 +419,14 @@ export const mediaComponents = {
         (url.includes("youtube") ||
           url.includes("vimeo") ||
           url.includes("embed"));
+
+      const { className: respClass, css: respCss } = buildResponsiveStyles({
+        responsive,
+        variableMap: {
+          aspectRatio: "--puck-aspect-ratio",
+        },
+      });
+
       return (
         <AnimationWrapper
           trigger={animTrigger}
@@ -334,43 +437,51 @@ export const mediaComponents = {
           easing={animEasing}
           style={{
             width: "100%",
-            aspectRatio,
-            borderRadius: `${borderRadius}px`,
-            boxShadow: boxShadow === "none" ? undefined : boxShadow,
-            overflow: "hidden",
             marginTop,
             marginBottom,
-            backgroundColor: "#000000",
           }}
         >
-          {isEmbed ? (
-            <iframe
-              src={`${url}${autoplay ? "?autoplay=1&mute=1" : ""}`}
-              title="Video player"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              style={{
-                width: "100%",
-                height: "100%",
-                border: 0,
-                display: "block",
-              }}
-            />
-          ) : (
-            <video
-              src={url}
-              controls
-              autoPlay={autoplay}
-              muted={autoplay}
-              playsInline
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                display: "block",
-              }}
-            />
-          )}
+          {respCss && <style dangerouslySetInnerHTML={{ __html: respCss }} />}
+          <div
+            className={respClass}
+            style={{
+              width: "100%",
+              aspectRatio: `var(--puck-aspect-ratio, ${aspectRatio})`,
+              borderRadius: `${borderRadius}px`,
+              boxShadow: boxShadow === "none" ? undefined : boxShadow,
+              overflow: "hidden",
+              backgroundColor: "#000000",
+            }}
+          >
+            {isEmbed ? (
+              <iframe
+                src={`${url}${autoplay ? "?autoplay=1&mute=1" : ""}`}
+                title="Video player"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  border: 0,
+                  display: "block",
+                }}
+              />
+            ) : (
+              <video
+                src={url}
+                controls
+                autoPlay={autoplay}
+                muted={autoplay}
+                playsInline
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  display: "block",
+                }}
+              />
+            )}
+          </div>
         </AnimationWrapper>
       );
     },
@@ -399,6 +510,9 @@ export const mediaComponents = {
       borderColor: colorField("Border ring color"),
       alignment: selectField("Alignment", ALIGNMENT_OPTIONS),
       hoverEffect: selectField("Hover micro-animation", HOVER_EFFECT_OPTIONS),
+      responsive: responsiveField("Responsive overrides", [
+        { name: "iconSize", label: "Icon size (px)", type: "number", min: 12, max: 120 },
+      ]),
       ...spacingFields,
       ...animationFields,
     },
@@ -428,6 +542,7 @@ export const mediaComponents = {
       hoverEffect,
       marginTop,
       marginBottom,
+      responsive,
       animTrigger,
       animPreset,
       animLoop,
@@ -443,6 +558,13 @@ export const mediaComponents = {
           ? "14px"
           : "0px";
       const padding = isNone ? 0 : iconSize * 0.55;
+
+      const { className: respClass, css: respCss } = buildResponsiveStyles({
+        responsive,
+        variableMap: {
+          iconSize: "--puck-icon-size",
+        },
+      });
 
       return (
         <AnimationWrapper
@@ -465,8 +587,9 @@ export const mediaComponents = {
             marginBottom,
           }}
         >
+          {respCss && <style dangerouslySetInnerHTML={{ __html: respCss }} />}
           <div
-            className={getHoverClass(hoverEffect)}
+            className={`${getHoverClass(hoverEffect)} ${respClass}`.trim()}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -494,6 +617,9 @@ export const mediaComponents = {
       zoom: numberField("Zoom level", 1, 20),
       height: numberField("Height (px)", 150, 800),
       borderRadius: selectField("Corner radius", RADIUS_OPTIONS),
+      responsive: responsiveField("Responsive overrides", [
+        { name: "height", label: "Height (px)", type: "number", min: 150, max: 800 },
+      ]),
       ...spacingFields,
       ...animationFields,
     },
@@ -513,6 +639,7 @@ export const mediaComponents = {
       borderRadius,
       marginTop,
       marginBottom,
+      responsive,
       animTrigger,
       animPreset,
       animLoop,
@@ -522,6 +649,13 @@ export const mediaComponents = {
     }) => {
       const encoded = encodeURIComponent(location || "San Francisco, CA");
       const mapUrl = `https://maps.google.com/maps?q=${encoded}&z=${zoom || 14}&output=embed`;
+
+      const { className: respClass, css: respCss } = buildResponsiveStyles({
+        responsive,
+        variableMap: {
+          height: "--puck-min-height",
+        },
+      });
 
       return (
         <AnimationWrapper
@@ -533,20 +667,28 @@ export const mediaComponents = {
           easing={animEasing}
           style={{
             width: "100%",
-            height: `${height}px`,
-            borderRadius: `${borderRadius}px`,
-            overflow: "hidden",
-            border: "1px solid #e2e8f0",
             marginTop,
             marginBottom,
           }}
         >
-          <iframe
-            src={mapUrl}
-            title="Interactive map"
-            style={{ width: "100%", height: "100%", border: 0 }}
-            loading="lazy"
-          />
+          {respCss && <style dangerouslySetInnerHTML={{ __html: respCss }} />}
+          <div
+            className={respClass}
+            style={{
+              width: "100%",
+              height: `var(--puck-min-height, ${height}px)`,
+              borderRadius: `${borderRadius}px`,
+              overflow: "hidden",
+              border: "1px solid #e2e8f0",
+            }}
+          >
+            <iframe
+              src={mapUrl}
+              title="Interactive map"
+              style={{ width: "100%", height: "100%", border: 0 }}
+              loading="lazy"
+            />
+          </div>
         </AnimationWrapper>
       );
     },
@@ -567,6 +709,9 @@ export const mediaComponents = {
         { label: "Clean White", value: "light" },
       ]),
       fontSize: numberField("Font size (px)", 10, 24),
+      responsive: responsiveField("Responsive overrides", [
+        { name: "fontSize", label: "Font size (px)", type: "number", min: 10, max: 24 },
+      ]),
       ...spacingFields,
       ...animationFields,
     },
@@ -588,6 +733,7 @@ export const mediaComponents = {
       fontSize,
       marginTop,
       marginBottom,
+      responsive,
       animTrigger,
       animPreset,
       animLoop,
@@ -599,6 +745,13 @@ export const mediaComponents = {
         theme === "black" ? "#000000" : theme === "light" ? "#f8fafc" : "#0f172a";
       const textClr = theme === "light" ? "#0f172a" : "#e2e8f0";
       const borderClr = theme === "light" ? "#e2e8f0" : "#1e293b";
+
+      const { className: respClass, css: respCss } = buildResponsiveStyles({
+        responsive,
+        variableMap: {
+          fontSize: "--puck-font-size",
+        },
+      });
 
       return (
         <AnimationWrapper
@@ -619,6 +772,7 @@ export const mediaComponents = {
             marginBottom,
           }}
         >
+          {respCss && <style dangerouslySetInnerHTML={{ __html: respCss }} />}
           <div
             style={{
               display: "flex",
@@ -670,11 +824,12 @@ export const mediaComponents = {
             </span>
           </div>
           <pre
+            className={respClass}
             style={{
               margin: 0,
               padding: 20,
               fontFamily: "var(--font-geist-mono), 'JetBrains Mono', monospace",
-              fontSize: `${fontSize}px`,
+              fontSize: `var(--puck-font-size, ${fontSize}px)`,
               lineHeight: 1.6,
               color: textClr,
               overflowX: "auto",

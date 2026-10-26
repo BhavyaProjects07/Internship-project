@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import MediaInput from "@/components/media/MediaInput";
 
 const API_URL = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
@@ -300,25 +301,13 @@ export default function CreateTemplatePage() {
                 </div>
 
                 <div className="mt-6">
-                  <label
-                    htmlFor="thumbnail"
-                    className="mb-2 block text-sm font-medium text-gray-800"
-                  >
-                    Thumbnail image URL
-                  </label>
-                  <input
-                    id="thumbnail"
-                    name="thumbnail"
-                    type="url"
+                  <MediaInput
+                    label="Thumbnail image URL"
                     value={form.thumbnail}
-                    onChange={updateField}
-                    placeholder="https://example.com/template-preview.jpg"
-                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-950 outline-none transition placeholder:text-gray-400 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10"
+                    onChange={(url) => setForm((curr) => ({ ...curr, thumbnail: url }))}
+                    placeholder="https://... or choose/upload from Media Library"
+                    description="Paste an external image URL or choose/upload an asset via your ImageKit Media Library."
                   />
-                  <p className="mt-2 text-xs leading-5 text-gray-500">
-                    Use a publicly accessible image URL. We can add a media
-                    library and image upload workflow later.
-                  </p>
                 </div>
               </section>
             </div>
