@@ -136,10 +136,18 @@ export const TEXT_TRANSFORM_OPTIONS = [
   { label: "Capitalize", value: "capitalize" },
 ];
 
-export const ICON_PRESETS = [
+export const ICON_NAMES = [
   "star", "zap", "check", "shield", "rocket", "sparkles", "heart", "globe",
   "layers", "code", "cpu", "chart", "mail", "phone", "lock", "camera",
   "video", "message", "bell", "settings", "download", "shopping-bag", "user",
   "award", "flame", "lightbulb", "compass", "book", "search", "arrow-right",
   "briefcase", "terminal", "package", "credit-card", "tag", "eye"
+];
+
+export const ICON_PRESETS = [
+  { label: "None", value: "none" },
+  ...ICON_NAMES.map((name) => ({
+    label: name.charAt(0).toUpperCase() + name.slice(1).replace(/-/g, " "),
+    value: name,
+  })),
 ];

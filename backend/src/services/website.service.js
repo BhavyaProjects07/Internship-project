@@ -20,6 +20,27 @@ const websiteInclude = {
   },
 };
 
+const DEFAULT_PAGE_RESPONSIVE = {
+  desktop: {
+    maxWidth: "1280px",
+    paddingX: "24px",
+    paddingY: "40px",
+    baseFontSize: "16px",
+  },
+  tablet: {
+    maxWidth: "768px",
+    paddingX: "20px",
+    paddingY: "32px",
+    baseFontSize: "15px",
+  },
+  mobile: {
+    maxWidth: "100%",
+    paddingX: "16px",
+    paddingY: "24px",
+    baseFontSize: "14px",
+  },
+};
+
 const httpError = (message, statusCode = 400) => {
   const error = new Error(message);
   error.statusCode = statusCode;
@@ -309,6 +330,10 @@ const createWebsiteFromTemplate = async ({
                 page.slug ||
                 (index === 0 ? "home" : `page-${index + 1}`),
               order: page.order ?? index,
+              responsive:
+                page.responsive ??
+                page.editorData?.root?.props?.responsive ??
+                DEFAULT_PAGE_RESPONSIVE,
               editorData: page.editorData ?? undefined,
 
               sections: {
@@ -489,9 +514,15 @@ const createWebsitePage = async (
           -1
         ) + 1,
 
+      responsive: DEFAULT_PAGE_RESPONSIVE,
       editorData: {
         content: [],
-        root: { props: {} },
+        root: {
+          props: {
+            title: name.trim(),
+            responsive: DEFAULT_PAGE_RESPONSIVE,
+          },
+        },
       },
     },
     include: {
@@ -583,6 +614,265 @@ const deleteWebsitePage = async (pageId, userId) => {
       id: pageId,
       deleted: true,
     };
+  });
+};
+
+const MAX_EDITOR_DOCUMENT_BYTES = 1_000_000;
+
+const validateEditorDocument = (document) => {
+  if (
+    !document ||
+    typeof document !== "object" ||
+    Array.isArray(document) ||
+    !Array.isArray(document.content) ||
+    !document.root ||
+    typeof document.root !== "object" ||
+    Array.isArray(document.root)
+  ) {
+    const error = new Error("Invalid Puck editor document");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  let serialized;
+
+  try {
+    serialized = JSON.stringify(document);
+  } catch {
+    const error = new Error("Editor document must be valid JSON");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (Buffer.byteLength(serialized, "utf8") > MAX_EDITOR_DOCUMENT_BYTES) {
+    const error = new Error("Editor document exceeds the 1 MB limit");
+    error.statusCode = 413;
+    throw error;
+  }
+
+  return document;
+};
+
+const getWebsitePageEditorData = async (websiteId, pageId, userId) => {
+  const page = await prisma.websitePage.findFirst({
+    where: {
+      id: pageId,
+      websiteId,
+      website: { userId },
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      order: true,
+      responsive: true,
+      editorData: true,
+      sections: {
+        orderBy: { order: "asc" },
+      },
+    },
+  });
+
+  if (!page) {
+    throw httpError("Page not found in this website or unauthorized", 404);
+  }
+
+  if (!page.responsive) {
+    page.responsive =
+      page.editorData?.root?.props?.responsive || DEFAULT_PAGE_RESPONSIVE;
+  }
+
+  return page;
+};
+
+const saveWebsitePageEditorData = async (
+  websiteId,
+  pageId,
+  document,
+  explicitResponsive,
+  userId
+) => {
+  validateEditorDocument(document);
+
+  const page = await prisma.websitePage.findFirst({
+    where: {
+      id: pageId,
+      websiteId,
+      website: { userId },
+    },
+    select: { id: true, responsive: true },
+  });
+
+  if (!page) {
+    throw httpError("Page not found in this website or unauthorized", 404);
+  }
+
+  const pageResponsive =
+    explicitResponsive && typeof explicitResponsive === "object"
+      ? explicitResponsive
+      : document.root?.props?.responsive &&
+        typeof document.root.props.responsive === "object"
+      ? document.root.props.responsive
+      : (page.responsive || DEFAULT_PAGE_RESPONSIVE);
+
+  if (document.root && document.root.props) {
+    document.root.props.responsive = pageResponsive;
+  }
+
+  return prisma.websitePage.update({
+    where: { id: pageId },
+    data: {
+      editorData: document,
+      responsive: pageResponsive,
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      order: true,
+      responsive: true,
+      editorData: true,
+    },
+  });
+};
+
+const duplicateWebsitePage = async (websiteId, pageId, userId) => {
+  const source = await prisma.websitePage.findFirst({
+    where: {
+      id: pageId,
+      websiteId,
+      website: { userId },
+    },
+    include: {
+      sections: { orderBy: { order: "asc" } },
+    },
+  });
+
+  if (!source) {
+    throw httpError("Page not found in this website or unauthorized", 404);
+  }
+
+  const baseSlug = slugify(`${source.slug}-copy`);
+  let slug = baseSlug;
+  let suffix = 2;
+
+  while (
+    await prisma.websitePage.findUnique({
+      where: { websiteId_slug: { websiteId, slug } },
+      select: { id: true },
+    })
+  ) {
+    slug = `${baseSlug}-${suffix++}`;
+  }
+
+  const lastPage = await prisma.websitePage.findFirst({
+    where: { websiteId },
+    orderBy: { order: "desc" },
+    select: { order: true },
+  });
+
+  const editorData =
+    source.editorData == null
+      ? undefined
+      : JSON.parse(JSON.stringify(source.editorData));
+
+  const responsive =
+    source.responsive == null
+      ? (editorData?.root?.props?.responsive || DEFAULT_PAGE_RESPONSIVE)
+      : JSON.parse(JSON.stringify(source.responsive));
+
+  if (editorData?.root?.props) {
+    editorData.root.props.responsive = responsive;
+  }
+
+  return prisma.websitePage.create({
+    data: {
+      websiteId,
+      name: `${source.name} (Copy)`,
+      slug,
+      order: (lastPage?.order ?? -1) + 1,
+      responsive,
+      ...(editorData !== undefined ? { editorData } : {}),
+      sections: {
+        create: source.sections.map((section) => ({
+          type: section.type,
+          order: section.order,
+          content: section.content,
+          ...(section.config != null ? { config: section.config } : {}),
+        })),
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      order: true,
+      responsive: true,
+      editorData: true,
+    },
+  });
+};
+
+const reorderWebsitePages = async (websiteId, pageIds, userId) => {
+  if (
+    !Array.isArray(pageIds) ||
+    pageIds.some((id) => typeof id !== "string" || !id) ||
+    new Set(pageIds).size !== pageIds.length
+  ) {
+    throw httpError("pageIds must be an array of unique page IDs", 400);
+  }
+
+  const website = await prisma.website.findFirst({
+    where: { id: websiteId, userId },
+    select: { id: true },
+  });
+
+  if (!website) {
+    throw httpError("Website not found or unauthorized", 404);
+  }
+
+  const currentPages = await prisma.websitePage.findMany({
+    where: { websiteId },
+    select: { id: true },
+  });
+
+  const currentIds = new Set(currentPages.map((page) => page.id));
+
+  if (
+    currentIds.size !== pageIds.length ||
+    pageIds.some((id) => !currentIds.has(id))
+  ) {
+    throw httpError(
+      "pageIds must contain every page in this website exactly once",
+      400
+    );
+  }
+
+  await prisma.$transaction(async (tx) => {
+    for (let index = 0; index < pageIds.length; index++) {
+      await tx.websitePage.update({
+        where: { id: pageIds[index] },
+        data: { order: -(index + 1) },
+      });
+    }
+
+    for (let index = 0; index < pageIds.length; index++) {
+      await tx.websitePage.update({
+        where: { id: pageIds[index] },
+        data: { order: index },
+      });
+    }
+  });
+
+  return prisma.websitePage.findMany({
+    where: { websiteId },
+    orderBy: { order: "asc" },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      order: true,
+    },
   });
 };
 
@@ -921,6 +1211,9 @@ const saveWebsiteDraft = async (
         }
 
         pageUpdate.editorData = document;
+        if (document.root?.props?.responsive) {
+          pageUpdate.responsive = document.root.props.responsive;
+        }
       }
 
       if (Object.keys(pageUpdate).length > 0) {
@@ -1107,6 +1400,7 @@ const publishWebsite = async (websiteId, userId) => {
         order: page.order,
 
         editorData: page.editorData ?? null,
+        responsive: page.responsive ?? null,
 
         sections: (page.sections || []).map(
           (section) => ({
@@ -1185,4 +1479,8 @@ module.exports = {
   saveWebsiteDraft,
   publishWebsite,
   getPublishedWebsiteBySlug,
+  getWebsitePageEditorData,
+  saveWebsitePageEditorData,
+  duplicateWebsitePage,
+  reorderWebsitePages,
 };

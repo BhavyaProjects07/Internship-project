@@ -4,6 +4,7 @@
 import React, { Component } from "react";
 import { Render } from "@puckeditor/core";
 import puckConfig from "./puck-config";
+import { StudioProvider } from "./context/StudioContext.jsx";
 
 class PuckErrorBoundary extends Component {
   constructor(props) {
@@ -41,7 +42,14 @@ class PuckErrorBoundary extends Component {
   }
 }
 
-export default function PuckPublicRenderer({ data }) {
+export default function PuckPublicRenderer({
+  data,
+  pages = [],
+  activePageId = "",
+  templateId = "",
+  websiteId = "",
+  templateName = "",
+}) {
   let parsedData = data;
 
   if (typeof data === "string") {
@@ -63,20 +71,28 @@ export default function PuckPublicRenderer({ data }) {
 
   return (
     <PuckErrorBoundary>
-      <div
-        className="puck-public-responsive-container"
-        style={{
-          width: "100%",
-          minWidth: 0,
-          containerType: "inline-size",
-          containerName: "studio-preview",
-        }}
+      <StudioProvider
+        pages={pages}
+        activePageId={activePageId}
+        templateId={templateId}
+        websiteId={websiteId}
+        templateName={templateName}
       >
-        <Render
-          config={puckConfig}
-          data={parsedData}
-        />
-      </div>
+        <div
+          className="puck-public-responsive-container"
+          style={{
+            width: "100%",
+            minWidth: 0,
+            containerType: "inline-size",
+            containerName: "studio-preview",
+          }}
+        >
+          <Render
+            config={puckConfig}
+            data={parsedData}
+          />
+        </div>
+      </StudioProvider>
     </PuckErrorBoundary>
   );
 }

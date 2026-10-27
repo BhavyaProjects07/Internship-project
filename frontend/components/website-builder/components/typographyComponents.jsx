@@ -58,6 +58,15 @@ export const typographyComponents = {
       color: "#0f172a",
       ...commonDesignDefaults,
       marginBottom: "16px",
+      responsive: {
+        tablet: {
+          fontSize: 32,
+        },
+        mobile: {
+          fontSize: 24,
+          textAlign: "center",
+        },
+      },
       ...animationDefaults,
     },
     render: ({
@@ -125,6 +134,14 @@ export const typographyComponents = {
       lineHeight: 1.75,
       ...commonDesignDefaults,
       marginBottom: "20px",
+      responsive: {
+        tablet: {
+          fontSize: 16,
+        },
+        mobile: {
+          fontSize: 15,
+        },
+      },
       ...animationDefaults,
     },
     render: ({
@@ -219,6 +236,7 @@ export const typographyComponents = {
       lineHeight: 1.8,
       ...commonDesignDefaults,
       marginBottom: "16px",
+      responsive: {},
       ...animationDefaults,
     },
     render: ({
@@ -259,7 +277,7 @@ export const typographyComponents = {
     label: "Badge / Eyebrow Text",
     fields: {
       text: textField("Badge text"),
-      icon: selectField("Icon (Optional)", ["none", ...ICON_PRESETS]),
+      icon: selectField("Icon (Optional)", ICON_PRESETS),
       pillStyle: selectField("Style preset", [
         { label: "Modern Violet", value: "violet" },
         { label: "Emerald Success", value: "emerald" },
@@ -291,6 +309,7 @@ export const typographyComponents = {
       fontSize: 12,
       marginTop: "0px",
       marginBottom: "12px",
+      responsive: {},
       ...animationDefaults,
     },
     render: ({
@@ -391,6 +410,7 @@ export const typographyComponents = {
       quoteSize: 22,
       marginTop: "16px",
       marginBottom: "24px",
+      responsive: {},
       ...animationDefaults,
     },
     render: ({

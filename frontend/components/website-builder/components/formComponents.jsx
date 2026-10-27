@@ -51,6 +51,16 @@ export const formComponents = {
       includeSubject: true,
       marginTop: "16px",
       marginBottom: "28px",
+      responsive: {
+        tablet: {
+          paddingY: 36,
+          paddingX: 20,
+        },
+        mobile: {
+          paddingY: 24,
+          paddingX: 16,
+        },
+      },
       ...animationDefaults,
     },
     render: function RenderContactForm({
@@ -311,6 +321,11 @@ export const formComponents = {
       accentColor: "#0f172a",
       marginTop: "20px",
       marginBottom: "24px",
+      responsive: {
+        mobile: {
+          paddingY: 20,
+        },
+      },
       ...animationDefaults,
     },
     render: function RenderNewsletter({

@@ -7,10 +7,27 @@ import MediaLibraryModal from "@/components/media/MediaLibraryModal";
  * Reusable Puck Field Builders with Interactive Visual Controls
  */
 
+export const normalizeOptions = (options) => {
+  if (!Array.isArray(options)) return [];
+  return options.map((opt) => {
+    if (typeof opt === "string" || typeof opt === "number" || typeof opt === "boolean") {
+      const str = String(opt);
+      const label = str ? str.charAt(0).toUpperCase() + str.slice(1).replace(/[-_]/g, " ") : "None";
+      return { label, value: opt };
+    }
+    if (opt && typeof opt === "object") {
+      const val = opt.value !== undefined ? opt.value : opt.label;
+      const lbl = opt.label !== undefined ? String(opt.label) : String(val);
+      return { label: lbl, value: val };
+    }
+    return { label: String(opt), value: opt };
+  });
+};
+
 export const selectField = (label, options) => ({
   type: "select",
   label,
-  options,
+  options: normalizeOptions(options),
 });
 
 export const numberField = (label, min = 0, max = 2000, step = 1) => ({
@@ -34,7 +51,7 @@ export const textareaField = (label) => ({
 export const radioField = (label, options) => ({
   type: "radio",
   label,
-  options,
+  options: normalizeOptions(options),
 });
 
 export const arrayField = (label, itemFields, defaultItemProps = {}) => ({
@@ -401,6 +418,10 @@ export const imageField = (label) => ({
 
 /**
  * Reusable responsive settings field for Puck Inspector.
+ * Supports both signatures:
+ * - responsiveField(settingsArray, labelString)
+ * - responsiveField(labelString, settingsArray)
+ *
  * Stores values as:
  * {
  *   tablet: { ... },
@@ -409,30 +430,45 @@ export const imageField = (label) => ({
  *
  * Desktop continues to use the component's existing base properties.
  */
-/**
- * Reusable responsive settings field for Puck Inspector.
- * Stores values as:
- * {
- *   tablet: { ... },
- *   mobile: { ... }
- * }
- *
- * Desktop continues to use the component's existing base properties.
- */
-export const responsiveField = (settings = [], label = "Responsive overrides") => ({
-  type: "custom",
-  label,
-  render: ({ value, onChange }) => (
-    <ResponsiveSettingsInput
-      settings={settings}
-      value={value || {}}
-      onChange={onChange}
-    />
-  ),
-});
+export const responsiveField = (arg1 = [], arg2 = "Responsive overrides") => {
+  let settings = [];
+  let label = "Responsive overrides";
+
+  if (Array.isArray(arg1)) {
+    settings = arg1;
+    if (typeof arg2 === "string") {
+      label = arg2;
+    }
+  } else if (typeof arg1 === "string") {
+    label = arg1;
+    if (Array.isArray(arg2)) {
+      settings = arg2;
+    }
+  } else if (arg1 && typeof arg1 === "object") {
+    if (Array.isArray(arg1.settings)) {
+      settings = arg1.settings;
+    }
+    if (typeof arg1.label === "string") {
+      label = arg1.label;
+    }
+  }
+
+  return {
+    type: "custom",
+    label,
+    render: ({ value, onChange }) => (
+      <ResponsiveSettingsInput
+        settings={settings}
+        value={value || {}}
+        onChange={onChange}
+      />
+    ),
+  };
+};
 
 function ResponsiveSettingsInput({ settings = [], value = {}, onChange }) {
   const [device, setDevice] = useState("mobile");
+  const safeSettings = Array.isArray(settings) ? settings : [];
 
   const tabletOverridesCount = Object.keys(value?.tablet || {}).filter(
     (k) => value.tablet[k] !== undefined && value.tablet[k] !== null && value.tablet[k] !== ""
@@ -563,14 +599,33 @@ function ResponsiveSettingsInput({ settings = [], value = {}, onChange }) {
         </div>
       )}
 
+      {device !== "desktop" && safeSettings.length === 0 && (
+        <div
+          style={{
+            padding: 10,
+            borderRadius: 7,
+            background: "#f8fafc",
+            color: "#64748b",
+            fontSize: 12,
+            lineHeight: 1.5,
+            border: "1px solid #e2e8f0",
+          }}
+        >
+          No responsive overrides configured for this component.
+        </div>
+      )}
+
       {device !== "desktop" &&
-        settings.map((setting) => {
-          const currentValue = value?.[device]?.[setting.key] ?? "";
+        safeSettings.map((setting) => {
+          const settingKey = setting.key || setting.name;
+          if (!settingKey) return null;
+
+          const currentValue = value?.[device]?.[settingKey] ?? "";
           const isOverridden = currentValue !== "";
 
           return (
             <label
-              key={setting.key}
+              key={settingKey}
               style={{
                 display: "grid",
                 gap: 5,
@@ -580,7 +635,7 @@ function ResponsiveSettingsInput({ settings = [], value = {}, onChange }) {
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span>{setting.label}</span>
+                <span>{setting.label || settingKey}</span>
                 {isOverridden && (
                   <span style={{ fontSize: 10, color: "#4f46e5", fontWeight: 700 }}>
                     Customized
@@ -592,7 +647,7 @@ function ResponsiveSettingsInput({ settings = [], value = {}, onChange }) {
                 <select
                   value={String(currentValue)}
                   onChange={(event) =>
-                    updateValue(setting.key, event.target.value)
+                    updateValue(settingKey, event.target.value)
                   }
                   style={{
                     ...inputStyle,
@@ -601,13 +656,13 @@ function ResponsiveSettingsInput({ settings = [], value = {}, onChange }) {
                   }}
                 >
                   <option value="">
-                    {device === "mobile" && value?.tablet?.[setting.key] !== undefined
-                      ? `Inherit tablet (${value.tablet[setting.key]})`
+                    {device === "mobile" && value?.tablet?.[settingKey] !== undefined
+                      ? `Inherit tablet (${value.tablet[settingKey]})`
                       : "Inherit desktop setting"}
                   </option>
-                  {setting.options.map((option) => (
+                  {(Array.isArray(setting.options) ? normalizeOptions(setting.options) : []).map((option) => (
                     <option
-                      key={String(option.value)}
+                      key={`resp-opt-${String(option.value)}`}
                       value={String(option.value)}
                     >
                       {option.label}
@@ -619,12 +674,12 @@ function ResponsiveSettingsInput({ settings = [], value = {}, onChange }) {
                   type="text"
                   value={currentValue}
                   placeholder={
-                    device === "mobile" && value?.tablet?.[setting.key] !== undefined
-                      ? `Inherit tablet (${value.tablet[setting.key]})`
+                    device === "mobile" && value?.tablet?.[settingKey] !== undefined
+                      ? `Inherit tablet (${value.tablet[settingKey]})`
                       : "Inherit desktop setting"
                   }
                   onChange={(event) =>
-                    updateValue(setting.key, event.target.value)
+                    updateValue(settingKey, event.target.value)
                   }
                   style={{
                     ...inputStyle,
@@ -639,14 +694,14 @@ function ResponsiveSettingsInput({ settings = [], value = {}, onChange }) {
                   step={setting.step ?? 1}
                   value={currentValue}
                   placeholder={
-                    device === "mobile" && value?.tablet?.[setting.key] !== undefined
-                      ? `Inherit tablet (${value.tablet[setting.key]})`
+                    device === "mobile" && value?.tablet?.[settingKey] !== undefined
+                      ? `Inherit tablet (${value.tablet[settingKey]})`
                       : "Inherit desktop setting"
                   }
                   onChange={(event) => {
                     const raw = event.target.value;
                     updateValue(
-                      setting.key,
+                      settingKey,
                       raw === "" ? "" : Number(raw)
                     );
                   }}

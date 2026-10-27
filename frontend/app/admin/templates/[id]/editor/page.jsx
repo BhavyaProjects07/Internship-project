@@ -98,9 +98,86 @@ export default function TemplateEditorPage() {
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
   const [template, setTemplate] = useState(null);
-  const [activePageId, setActivePageId] = useState("");
+  const [activePageId, setActivePageId] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const urlParam = new URLSearchParams(window.location.search).get("pageId");
+        if (urlParam) return urlParam;
+        if (id) {
+          const stored = sessionStorage.getItem(`active_page_${id}`);
+          if (stored) return stored;
+        }
+      } catch {
+        return "";
+      }
+    }
+    return "";
+  });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+
+  const switchActivePage = useCallback(
+    (nextPageId) => {
+      setActivePageId(nextPageId);
+      if (typeof window !== "undefined") {
+        try {
+          if (nextPageId) {
+            if (id) {
+              sessionStorage.setItem(`active_page_${id}`, nextPageId);
+            }
+            const url = new URL(window.location.href);
+            if (url.searchParams.get("pageId") !== nextPageId) {
+              url.searchParams.set("pageId", nextPageId);
+              window.history.replaceState(null, "", url.toString());
+            }
+          } else {
+            if (id) {
+              sessionStorage.removeItem(`active_page_${id}`);
+            }
+            const url = new URL(window.location.href);
+            if (url.searchParams.has("pageId")) {
+              url.searchParams.delete("pageId");
+              window.history.replaceState(null, "", url.toString());
+            }
+          }
+        } catch {
+          // ignore storage/history errors
+        }
+      }
+    },
+    [id]
+  );
+
+  useEffect(() => {
+    if (!activePageId || typeof window === "undefined") return;
+
+    try {
+      if (id) {
+        sessionStorage.setItem(`active_page_${id}`, activePageId);
+      }
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("pageId") !== activePageId) {
+        url.searchParams.set("pageId", activePageId);
+        window.history.replaceState(null, "", url.toString());
+      }
+    } catch {
+      // ignore storage/history errors
+    }
+  }, [id, activePageId]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      try {
+        const urlParam = new URLSearchParams(window.location.search).get("pageId");
+        if (urlParam) {
+          setActivePageId(urlParam);
+        }
+      } catch {}
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
   
 
 
@@ -232,11 +309,42 @@ const runPageAction = useCallback(
         pages: sortedPages,
       });
 
-      setActivePageId((currentPageId) =>
-        sortedPages.some((page) => page.id === currentPageId)
-          ? currentPageId
-          : sortedPages[0].id
-      );
+      setActivePageId((currentPageId) => {
+        if (
+          currentPageId &&
+          sortedPages.some((page) => page.id === currentPageId)
+        ) {
+          return currentPageId;
+        }
+
+        if (typeof window !== "undefined") {
+          try {
+            const urlPageId = new URLSearchParams(window.location.search).get(
+              "pageId"
+            );
+            if (
+              urlPageId &&
+              sortedPages.some((page) => page.id === urlPageId)
+            ) {
+              return urlPageId;
+            }
+
+            if (id) {
+              const storedPageId = sessionStorage.getItem(`active_page_${id}`);
+              if (
+                storedPageId &&
+                sortedPages.some((page) => page.id === storedPageId)
+              ) {
+                return storedPageId;
+              }
+            }
+          } catch {
+            // ignore
+          }
+        }
+
+        return sortedPages[0].id;
+      });
     } catch (loadError) {
       setError(
         loadError instanceof Error
@@ -279,10 +387,10 @@ const createPage = useCallback(() => {
       { name: name.trim() }
     );
 
-    setActivePageId(page.id);
+    switchActivePage(page.id);
     await loadTemplate();
   });
-}, [id, requestPageAction, runPageAction, loadTemplate]);
+}, [id, requestPageAction, runPageAction, loadTemplate, switchActivePage]);
 
 const renamePage = useCallback(() => {
   if (!activePage) return;
@@ -310,10 +418,10 @@ const duplicatePage = useCallback(() => {
       "POST"
     );
 
-    setActivePageId(page.id);
+    switchActivePage(page.id);
     await loadTemplate();
   });
-}, [id, activePage, requestPageAction, runPageAction, loadTemplate]);
+}, [id, activePage, requestPageAction, runPageAction, loadTemplate, switchActivePage]);
 
 const deletePage = useCallback(() => {
   if (!activePage || !template) return;
@@ -339,10 +447,10 @@ const deletePage = useCallback(() => {
       (page) => page.id !== activePage.id
     );
 
-    setActivePageId(remainingPages[0]?.id ?? "");
+    switchActivePage(remainingPages[0]?.id ?? "");
     await loadTemplate();
   });
-}, [id, activePage, template, requestPageAction, runPageAction, loadTemplate]);
+}, [id, activePage, template, requestPageAction, runPageAction, loadTemplate, switchActivePage]);
 
 const movePage = useCallback(
   (direction) => {
@@ -439,7 +547,7 @@ return (
 
           <select
             value={activePageId}
-            onChange={(event) => setActivePageId(event.target.value)}
+            onChange={(event) => switchActivePage(event.target.value)}
             disabled={pageActionLoading}
             className="max-w-[180px] bg-transparent text-sm font-semibold text-gray-800 outline-none disabled:opacity-50"
             aria-label="Select page to edit"
@@ -591,9 +699,11 @@ return (
       ) : (
         <div className="h-full min-h-0 min-w-0 overflow-hidden">
           <PuckEditorClient
-            key={`${template.id}:${activePageId}`}
+            key={`puck-${template?.id || id || "tmpl"}-${activePageId || "page"}`}
             templateId={id}
             pageId={activePageId}
+            pages={template.pages}
+            templateName={template.name}
             getToken={getToken}
             headersHidden={headersHidden}
             onHeaderVisibilityChange={setHeadersHidden}

@@ -216,7 +216,13 @@ export default async function TemplatePage({ params, searchParams }) {
       {/* Main Canvas / Content */}
       <main className="flex-1">
         {hasPuckDocument ? (
-          <PuckPublicRenderer data={activePage.editorData} />
+          <PuckPublicRenderer
+            data={activePage.editorData}
+            pages={template.pages}
+            activePageId={activePage.id}
+            templateId={template.id}
+            templateName={template.name}
+          />
         ) : hasLegacySections ? (
           <div className="space-y-0">
             {activePage.sections.map((section) => (

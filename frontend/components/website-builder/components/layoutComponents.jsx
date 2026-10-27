@@ -5,8 +5,14 @@ import AnimationWrapper from "../animation/AnimationWrapper.jsx";
 import { animationFields, animationDefaults } from "../fields/animationFields.js";
 import { boxStyleFields, spacingFields, commonDesignDefaults } from "../fields/boxStyleFields.js";
 import { buildBoxStyle, getHoverClass } from "../layout/styleBuilders.js";
-import { SPACING_OPTIONS, VERTICAL_ALIGN_OPTIONS, BORDER_STYLE_OPTIONS, WIDTH_OPTIONS } from "../tokens/index.js";
 import { buildResponsiveStyles } from "../layout/responsiveStyles.js";
+import {
+  SPACING_OPTIONS,
+  VERTICAL_ALIGN_OPTIONS,
+  BORDER_STYLE_OPTIONS,
+  WIDTH_OPTIONS,
+  RADIUS_OPTIONS,
+} from "../tokens/index.js";
 
 import {
   selectField,
@@ -107,7 +113,16 @@ export const layoutComponents = {
       overlayOpacity: 0,
       borderBottom: false,
       borderColor: "#e5e7eb",
-      responsive: {},
+      responsive: {
+        tablet: {
+          paddingY: "48px",
+          paddingX: "20px",
+        },
+        mobile: {
+          paddingY: "32px",
+          paddingX: "16px",
+        },
+      },
       ...animationDefaults,
     },
     render: ({
@@ -225,6 +240,21 @@ export const layoutComponents = {
         { label: "Flex row", value: "flex-row" },
         { label: "Block", value: "block" },
       ]),
+      widthMode: selectField("Width Mode", [
+        { label: "Full Width (100%)", value: "100%" },
+        { label: "Custom Width (px)", value: "custom" },
+        { label: "Fit Content", value: "fit-content" },
+        { label: "Auto", value: "auto" },
+      ]),
+      customWidth: numberField("Custom Width (px)", 40, 1600),
+      rotateAngle: numberField("Rotation Angle (deg: -45° to +45°)", -45, 45),
+      tiltAngle: numberField("Tilt Angle (deg: -15° to +15°)", -15, 15),
+      skewAngle: numberField("Skew Angle (deg: -20° to +20°)", -20, 20),
+      overflow: selectField("Content Overflow", [
+        { label: "Visible", value: "visible" },
+        { label: "Hidden (Clip Corners)", value: "hidden" },
+        { label: "Auto Scroll", value: "auto" },
+      ]),
       justifyContent: selectField("Justify content", [
         { label: "Start", value: "flex-start" },
         { label: "Center", value: "center" },
@@ -277,15 +307,40 @@ export const layoutComponents = {
       paddingLeft: "24px",
       borderRadius: 12,
       display: "flex-col",
+      widthMode: "100%",
+      customWidth: 800,
+      rotateAngle: 0,
+      tiltAngle: 0,
+      skewAngle: 0,
+      overflow: "visible",
       justifyContent: "flex-start",
       alignItems: "stretch",
       gap: 16,
-      responsive: {},
+      responsive: {
+        tablet: {
+          paddingTop: "20px",
+          paddingBottom: "20px",
+          paddingLeft: "16px",
+          paddingRight: "16px",
+        },
+        mobile: {
+          paddingTop: "16px",
+          paddingBottom: "16px",
+          paddingLeft: "12px",
+          paddingRight: "12px",
+        },
+      },
       ...animationDefaults,
     },
     render: ({
       content: Content,
       display,
+      widthMode = "100%",
+      customWidth = 800,
+      rotateAngle = 0,
+      tiltAngle = 0,
+      skewAngle = 0,
+      overflow = "visible",
       justifyContent,
       alignItems,
       gap,
@@ -309,6 +364,11 @@ export const layoutComponents = {
         },
       });
 
+      const resolvedWidth =
+        widthMode === "custom" && customWidth
+          ? `${customWidth}px`
+          : widthMode || "100%";
+
       return (
         <>
           {respCss && <style>{respCss}</style>}
@@ -321,7 +381,14 @@ export const layoutComponents = {
             easing={animEasing}
             className={`${getHoverClass(hoverEffect)} ${respClass}`}
             style={{
-              ...buildBoxStyle(props),
+              ...buildBoxStyle({
+                ...props,
+                width: resolvedWidth,
+                rotateAngle,
+                tiltAngle,
+                skewAngle,
+              }),
+              width: resolvedWidth,
               display: display === "block" ? "block" : "flex",
               flexDirection: display === "flex-row" ? "row" : "column",
               justifyContent: display !== "block" ? justifyContent : undefined,
@@ -329,6 +396,7 @@ export const layoutComponents = {
               flexWrap: display === "flex-row" ? "wrap" : undefined,
               gap: `var(--puck-gap, ${gap}px)`,
               minWidth: 0,
+              overflow,
             }}
           >
             <Content
@@ -343,6 +411,496 @@ export const layoutComponents = {
             />
           </AnimationWrapper>
         </>
+      );
+    },
+  },
+
+  // ------------------------------------------------------------------------
+  // FLEX COLUMNS (ASYMMETRIC & SIZED MULTI-ANGLE COLUMNS)
+  // ------------------------------------------------------------------------
+  FlexColumns: {
+    label: "Flex Columns (Asymmetric & Sized)",
+    fields: {
+      col1: { type: "slot" },
+      col2: { type: "slot" },
+      col3: { type: "slot" },
+      col4: { type: "slot" },
+
+      layoutRatio: selectField("Column Widths & Ratio", [
+        { label: "50% / 50% (Equal Halves)", value: "50-50" },
+        { label: "33% / 67% (1/3 Left Sidebar + 2/3 Main)", value: "33-67" },
+        { label: "67% / 33% (2/3 Main + 1/3 Right Sidebar)", value: "67-33" },
+        { label: "25% / 75% (Narrow Left + Wide Content)", value: "25-75" },
+        { label: "75% / 25% (Wide Content + Narrow Right)", value: "75-25" },
+        { label: "33% / 33% / 33% (3 Equal)", value: "33-33-33" },
+        { label: "25% / 50% / 25% (Hero Center Spotlight)", value: "25-50-25" },
+        { label: "20% / 60% / 20% (Wide Center Focus)", value: "20-60-20" },
+        { label: "25% / 25% / 25% / 25% (4 Equal)", value: "25-25-25-25" },
+        { label: "Custom CSS Grid Ratio", value: "custom" },
+      ]),
+      customGrid: textField("Custom Ratio (e.g. 300px 1fr, 40% 60%, 2fr 1fr)"),
+      gap: numberField("Column Gap (px)", 0, 100),
+      verticalAlign: selectField("Vertical Alignment", VERTICAL_ALIGN_OPTIONS),
+      reverseOnMobile: radioField("Stack Reverse on Mobile", [
+        { label: "No (Left on top)", value: false },
+        { label: "Yes (Right on top)", value: true },
+      ]),
+      tiltAngle: numberField("Container Tilt Angle (deg: -15° to +15°)", -15, 15),
+
+      // Col 1 Styling
+      col1Bg: colorField("Col 1 Background"),
+      col1Padding: selectField("Col 1 Inner Padding", SPACING_OPTIONS),
+      col1Radius: selectField("Col 1 Corner Radius", RADIUS_OPTIONS),
+
+      // Col 2 Styling
+      col2Bg: colorField("Col 2 Background"),
+      col2Padding: selectField("Col 2 Inner Padding", SPACING_OPTIONS),
+      col2Radius: selectField("Col 2 Corner Radius", RADIUS_OPTIONS),
+
+      ...spacingFields,
+      ...boxStyleFields,
+      ...animationFields,
+    },
+    defaultProps: {
+      col1: [],
+      col2: [],
+      col3: [],
+      col4: [],
+      layoutRatio: "33-67",
+      customGrid: "",
+      gap: 24,
+      verticalAlign: "stretch",
+      reverseOnMobile: false,
+      tiltAngle: 0,
+      col1Bg: "transparent",
+      col1Padding: "0px",
+      col1Radius: 0,
+      col2Bg: "transparent",
+      col2Padding: "0px",
+      col2Radius: 0,
+      ...commonDesignDefaults,
+      ...animationDefaults,
+    },
+    render: ({
+      col1: Col1,
+      col2: Col2,
+      col3: Col3,
+      col4: Col4,
+      layoutRatio = "33-67",
+      customGrid,
+      gap = 24,
+      verticalAlign = "stretch",
+      reverseOnMobile = false,
+      tiltAngle = 0,
+      col1Bg,
+      col1Padding,
+      col1Radius,
+      col2Bg,
+      col2Padding,
+      col2Radius,
+      animTrigger,
+      animPreset,
+      animLoop,
+      animDuration,
+      animDelay,
+      animEasing,
+      ...props
+    }) => {
+      let gridTemplate = "1fr 2fr";
+      let activeCols = 2;
+
+      switch (layoutRatio) {
+        case "50-50":
+          gridTemplate = "1fr 1fr";
+          activeCols = 2;
+          break;
+        case "33-67":
+          gridTemplate = "1fr 2fr";
+          activeCols = 2;
+          break;
+        case "67-33":
+          gridTemplate = "2fr 1fr";
+          activeCols = 2;
+          break;
+        case "25-75":
+          gridTemplate = "1fr 3fr";
+          activeCols = 2;
+          break;
+        case "75-25":
+          gridTemplate = "3fr 1fr";
+          activeCols = 2;
+          break;
+        case "33-33-33":
+          gridTemplate = "1fr 1fr 1fr";
+          activeCols = 3;
+          break;
+        case "25-50-25":
+          gridTemplate = "1fr 2fr 1fr";
+          activeCols = 3;
+          break;
+        case "20-60-20":
+          gridTemplate = "1fr 3fr 1fr";
+          activeCols = 3;
+          break;
+        case "25-25-25-25":
+          gridTemplate = "1fr 1fr 1fr 1fr";
+          activeCols = 4;
+          break;
+        case "custom":
+          gridTemplate = customGrid || "1fr 1fr";
+          activeCols = 4;
+          break;
+        default:
+          gridTemplate = "1fr 2fr";
+          activeCols = 2;
+      }
+
+      const allColSlots = [
+        { slot: Col1, bg: col1Bg, pad: col1Padding, rad: col1Radius },
+        { slot: Col2, bg: col2Bg, pad: col2Padding, rad: col2Radius },
+        { slot: Col3, bg: "transparent", pad: "0px", rad: 0 },
+        { slot: Col4, bg: "transparent", pad: "0px", rad: 0 },
+      ];
+
+      return (
+        <AnimationWrapper
+          trigger={animTrigger}
+          preset={animPreset}
+          loop={animLoop}
+          duration={animDuration}
+          delay={animDelay}
+          easing={animEasing}
+          style={{
+            ...buildBoxStyle({ ...props, tiltAngle }),
+            width: "100%",
+            minWidth: 0,
+          }}
+        >
+          <div
+            className="puck-flex-columns-grid"
+            style={{
+              display: "grid",
+              gridTemplateColumns: gridTemplate,
+              alignItems: verticalAlign,
+              gap: `${gap}px`,
+              width: "100%",
+              minWidth: 0,
+            }}
+          >
+            {allColSlots.slice(0, activeCols).map((colItem, idx) => {
+              const SlotComp = colItem.slot;
+              return (
+                <div
+                  key={`flex-col-${idx}`}
+                  style={{
+                    minWidth: 0,
+                    width: "100%",
+                    backgroundColor: colItem.bg || "transparent",
+                    padding: colItem.pad || "0px",
+                    borderRadius: colItem.rad ? `${colItem.rad}px` : undefined,
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <SlotComp minEmptyHeight="80px" />
+                </div>
+              );
+            })}
+          </div>
+        </AnimationWrapper>
+      );
+    },
+  },
+
+  // ------------------------------------------------------------------------
+  // FREE BOX (POSITIONED ANYWHERE WITH ANY SIZE & ANGLE)
+  // ------------------------------------------------------------------------
+  FreeBox: {
+    label: "Free Box (Any Size & Angle)",
+    fields: {
+      content: { type: "slot" },
+      widthMode: selectField("Width Mode", [
+        { label: "Contained Percentage (%)", value: "percent" },
+        { label: "Fixed Width (px)", value: "fixed" },
+        { label: "Full Width (100%)", value: "full" },
+        { label: "Auto (Fit Content)", value: "auto" },
+      ]),
+      percentWidth: numberField("Width Percentage (%)", 10, 100),
+      fixedWidth: numberField("Fixed Width (px)", 40, 1600),
+      heightMode: selectField("Height Mode", [
+        { label: "Auto (Grows with content)", value: "auto" },
+        { label: "Minimum Height (px)", value: "min" },
+        { label: "Fixed Height (px)", value: "fixed" },
+      ]),
+      customHeight: numberField("Height (px)", 20, 1200),
+      alignment: selectField("Alignment / Float", [
+        { label: "Center", value: "center" },
+        { label: "Left Aligned", value: "left" },
+        { label: "Right Aligned", value: "right" },
+      ]),
+      rotateAngle: numberField("Rotation Angle (deg: -45° to +45°)", -45, 45),
+      skewAngle: numberField("Skew / Slant Angle (deg: -30° to +30°)", -30, 30),
+      offsetX: numberField("Nudge Offset X (px)", -300, 300),
+      offsetY: numberField("Nudge Offset Y / Overlap (px)", -300, 300),
+      zIndex: numberField("Layer Z-Index", 0, 50),
+      overflow: selectField("Content Overflow", [
+        { label: "Visible", value: "visible" },
+        { label: "Hidden (Clip Corners)", value: "hidden" },
+        { label: "Auto Scroll", value: "auto" },
+      ]),
+      ...spacingFields,
+      ...boxStyleFields,
+      ...animationFields,
+    },
+    defaultProps: {
+      content: [],
+      widthMode: "percent",
+      percentWidth: 80,
+      fixedWidth: 600,
+      heightMode: "auto",
+      customHeight: 200,
+      alignment: "center",
+      rotateAngle: 0,
+      skewAngle: 0,
+      offsetX: 0,
+      offsetY: 0,
+      zIndex: 1,
+      overflow: "visible",
+      backgroundColor: "#ffffff",
+      paddingTop: "24px",
+      paddingRight: "24px",
+      paddingBottom: "24px",
+      paddingLeft: "24px",
+      borderRadius: 16,
+      boxShadow: "0 10px 15px -3px rgba(0,0,0,0.09), 0 4px 6px -4px rgba(0,0,0,0.05)",
+      ...commonDesignDefaults,
+      ...animationDefaults,
+    },
+    render: ({
+      content: Content,
+      widthMode = "percent",
+      percentWidth = 80,
+      fixedWidth = 600,
+      heightMode = "auto",
+      customHeight = 200,
+      alignment = "center",
+      rotateAngle = 0,
+      skewAngle = 0,
+      offsetX = 0,
+      offsetY = 0,
+      zIndex = 1,
+      overflow = "visible",
+      animTrigger,
+      animPreset,
+      animLoop,
+      animDuration,
+      animDelay,
+      animEasing,
+      ...props
+    }) => {
+      let resolvedWidth = "80%";
+      if (widthMode === "percent") {
+        resolvedWidth = `${percentWidth}%`;
+      } else if (widthMode === "fixed") {
+        resolvedWidth = `${fixedWidth}px`;
+      } else if (widthMode === "full") {
+        resolvedWidth = "100%";
+      } else if (widthMode === "auto") {
+        resolvedWidth = "fit-content";
+      }
+
+      let resolvedHeight = undefined;
+      let resolvedMinHeight = undefined;
+      if (heightMode === "fixed") {
+        resolvedHeight = `${customHeight}px`;
+      } else if (heightMode === "min") {
+        resolvedMinHeight = `${customHeight}px`;
+      }
+
+      const marginInline =
+        alignment === "center"
+          ? "auto"
+          : alignment === "right"
+          ? "auto 0"
+          : "0 auto";
+
+      return (
+        <div
+          style={{
+            width: "100%",
+            display: "flex",
+            justifyContent:
+              alignment === "center"
+                ? "center"
+                : alignment === "right"
+                ? "flex-end"
+                : "flex-start",
+            zIndex,
+            position: "relative",
+          }}
+        >
+          <AnimationWrapper
+            trigger={animTrigger}
+            preset={animPreset}
+            loop={animLoop}
+            duration={animDuration}
+            delay={animDelay}
+            easing={animEasing}
+            style={{
+              ...buildBoxStyle({
+                ...props,
+                width: resolvedWidth,
+                rotateAngle,
+                skewAngle,
+                offsetX,
+                offsetY,
+              }),
+              width: resolvedWidth,
+              height: resolvedHeight,
+              minHeight: resolvedMinHeight,
+              marginInline,
+              overflow,
+              zIndex,
+              position: "relative",
+            }}
+          >
+            <Content minEmptyHeight="80px" />
+          </AnimationWrapper>
+        </div>
+      );
+    },
+  },
+
+  // ------------------------------------------------------------------------
+  // ANGLED SECTION (SLANTED & DIAGONAL DIVIDERS)
+  // ------------------------------------------------------------------------
+  AngledSection: {
+    label: "Angled Section (Slanted Dividers)",
+    fields: {
+      content: { type: "slot" },
+      angleType: selectField("Divider Angle Shape", [
+        { label: "Top Slanted Down-Right", value: "top-right" },
+        { label: "Top Slanted Down-Left", value: "top-left" },
+        { label: "Bottom Slanted Down-Right", value: "bottom-right" },
+        { label: "Bottom Slanted Down-Left", value: "bottom-left" },
+        { label: "Both Top & Bottom Angles", value: "both" },
+        { label: "Full Container Skew Angle", value: "skew" },
+      ]),
+      angleHeight: numberField("Slant Slope Height (px)", 10, 160),
+      skewDegrees: numberField("Skew Angle (deg: -15° to +15°)", -15, 15),
+      slantFillColor: colorField("Adjacent Background Match Color"),
+      backgroundColor: colorField("Section Background Color"),
+      backgroundGradient: radioField("Linear Gradient", [
+        { label: "Disabled", value: false },
+        { label: "Enabled", value: true },
+      ]),
+      gradientAngle: numberField("Gradient Angle (deg)", 0, 360),
+      gradientFrom: colorField("Gradient Color 1"),
+      gradientTo: colorField("Gradient Color 2"),
+      maxWidth: selectField("Inner Container Width", [
+        { label: "Standard (1240px)", value: "1240px" },
+        { label: "Medium (1024px)", value: "1024px" },
+        { label: "Wide (1440px)", value: "1440px" },
+        { label: "Narrow (760px)", value: "760px" },
+        { label: "Full Width (100%)", value: "100%" },
+      ]),
+      paddingY: selectField("Vertical Padding", SPACING_OPTIONS),
+      paddingX: selectField("Horizontal Padding", SPACING_OPTIONS),
+      ...animationFields,
+    },
+    defaultProps: {
+      content: [],
+      angleType: "bottom-right",
+      angleHeight: 60,
+      skewDegrees: -3,
+      slantFillColor: "#ffffff",
+      backgroundColor: "#0f172a",
+      backgroundGradient: false,
+      gradientAngle: 135,
+      gradientFrom: "#0f172a",
+      gradientTo: "#1e1b4b",
+      maxWidth: "1240px",
+      paddingY: "64px",
+      paddingX: "24px",
+      ...animationDefaults,
+    },
+    render: ({
+      content: Content,
+      angleType = "bottom-right",
+      angleHeight = 60,
+      skewDegrees = -3,
+      slantFillColor = "#ffffff",
+      backgroundColor = "#0f172a",
+      backgroundGradient,
+      gradientAngle = 135,
+      gradientFrom = "#0f172a",
+      gradientTo = "#1e1b4b",
+      maxWidth = "1240px",
+      paddingY = "64px",
+      paddingX = "24px",
+      animTrigger,
+      animPreset,
+      animLoop,
+      animDuration,
+      animDelay,
+      animEasing,
+    }) => {
+      const bg = backgroundGradient
+        ? `linear-gradient(${gradientAngle}deg, ${gradientFrom}, ${gradientTo})`
+        : backgroundColor;
+
+      let clipPath = undefined;
+      const h = Number(angleHeight) || 60;
+
+      if (angleType === "top-right") {
+        clipPath = `polygon(0 ${h}px, 100% 0, 100% 100%, 0 100%)`;
+      } else if (angleType === "top-left") {
+        clipPath = `polygon(0 0, 100% ${h}px, 100% 100%, 0 100%)`;
+      } else if (angleType === "bottom-right") {
+        clipPath = `polygon(0 0, 100% 0, 100% calc(100% - ${h}px), 0 100%)`;
+      } else if (angleType === "bottom-left") {
+        clipPath = `polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - ${h}px))`;
+      } else if (angleType === "both") {
+        clipPath = `polygon(0 ${h}px, 100% 0, 100% calc(100% - ${h}px), 0 100%)`;
+      }
+
+      const isSkew = angleType === "skew";
+
+      return (
+        <AnimationWrapper
+          as="section"
+          trigger={animTrigger}
+          preset={animPreset}
+          loop={animLoop}
+          duration={animDuration}
+          delay={animDelay}
+          easing={animEasing}
+          style={{
+            position: "relative",
+            width: "100%",
+            background: bg,
+            clipPath: !isSkew ? clipPath : undefined,
+            transform: isSkew ? `skewY(${skewDegrees}deg)` : undefined,
+            paddingTop: `calc(${paddingY} + ${angleType.includes("top") || angleType === "both" ? `${h}px` : "0px"})`,
+            paddingBottom: `calc(${paddingY} + ${angleType.includes("bottom") || angleType === "both" ? `${h}px` : "0px"})`,
+            overflow: "hidden",
+            boxSizing: "border-box",
+          }}
+        >
+          <div
+            style={{
+              transform: isSkew ? `skewY(${-skewDegrees}deg)` : undefined,
+              maxWidth,
+              marginInline: "auto",
+              paddingInline: paddingX,
+              boxSizing: "border-box",
+              width: "100%",
+              position: "relative",
+              zIndex: 1,
+            }}
+          >
+            <Content minEmptyHeight="100px" />
+          </div>
+        </AnimationWrapper>
       );
     },
   },
@@ -369,7 +927,26 @@ export const layoutComponents = {
         { label: "6 Equal Columns", value: "6" },
       ]),
 
+      layoutRatio: selectField("Width Ratio / Proportions", [
+        { label: "Equal Distribution", value: "equal" },
+        { label: "50% / 50% (Equal Halves)", value: "50-50" },
+        { label: "33% / 67% (1/3 Left, 2/3 Right)", value: "33-67" },
+        { label: "67% / 33% (2/3 Left, 1/3 Right)", value: "67-33" },
+        { label: "25% / 75% (1/4 Left, 3/4 Right)", value: "25-75" },
+        { label: "75% / 25% (3/4 Left, 1/4 Right)", value: "75-25" },
+        { label: "25% / 50% / 25% (Center Spotlight)", value: "25-50-25" },
+        { label: "20% / 60% / 20% (Wide Center)", value: "20-60-20" },
+        { label: "Custom Ratio", value: "custom" },
+      ]),
+      customRatio: textField("Custom Ratio (e.g. 320px 1fr, 30% 70%)"),
+
       gap: numberField("Column gap (px)", 0, 100),
+
+      rotateAngle: numberField("Rotation Angle (deg: -45° to +45°)", -45, 45),
+      tiltAngle: numberField("Tilt Angle (deg: -15° to +15°)", -15, 15),
+      skewAngle: numberField("Skew Angle (deg: -30° to +30°)", -30, 30),
+      offsetX: numberField("Offset X (px)", -200, 200),
+      offsetY: numberField("Offset Y (px)", -200, 200),
 
       responsive: responsiveField([
         {
@@ -414,9 +991,25 @@ export const layoutComponents = {
       column6: [],
 
       columns: "3",
+      layoutRatio: "equal",
+      customRatio: "",
       gap: 24,
+      rotateAngle: 0,
+      tiltAngle: 0,
+      skewAngle: 0,
+      offsetX: 0,
+      offsetY: 0,
       alignItems: "stretch",
-      responsive: {},
+      responsive: {
+        tablet: {
+          columns: "2",
+          gap: 16,
+        },
+        mobile: {
+          columns: "1",
+          gap: 12,
+        },
+      },
 
       ...commonDesignDefaults,
       ...animationDefaults,
@@ -431,7 +1024,14 @@ export const layoutComponents = {
       column6: Column6,
 
       columns,
+      layoutRatio = "equal",
+      customRatio,
       gap,
+      rotateAngle = 0,
+      tiltAngle = 0,
+      skewAngle = 0,
+      offsetX = 0,
+      offsetY = 0,
       alignItems,
       responsive,
 
@@ -466,6 +1066,25 @@ export const layoutComponents = {
         },
       });
 
+      let gridTemplate = `repeat(var(--puck-columns, ${count}), minmax(0, 1fr))`;
+      if (layoutRatio === "50-50") {
+        gridTemplate = "1fr 1fr";
+      } else if (layoutRatio === "33-67") {
+        gridTemplate = "1fr 2fr";
+      } else if (layoutRatio === "67-33") {
+        gridTemplate = "2fr 1fr";
+      } else if (layoutRatio === "25-75") {
+        gridTemplate = "1fr 3fr";
+      } else if (layoutRatio === "75-25") {
+        gridTemplate = "3fr 1fr";
+      } else if (layoutRatio === "25-50-25") {
+        gridTemplate = "1fr 2fr 1fr";
+      } else if (layoutRatio === "20-60-20") {
+        gridTemplate = "1fr 3fr 1fr";
+      } else if (layoutRatio === "custom" && customRatio?.trim()) {
+        gridTemplate = customRatio.trim();
+      }
+
       return (
         <>
           {css && <style>{css}</style>}
@@ -485,10 +1104,16 @@ export const layoutComponents = {
               delay={animDelay}
               easing={animEasing}
               style={{
-                ...buildBoxStyle(props),
+                ...buildBoxStyle({
+                  ...props,
+                  rotateAngle,
+                  tiltAngle,
+                  skewAngle,
+                  offsetX,
+                  offsetY,
+                }),
                 display: "grid",
-                gridTemplateColumns:
-                  `repeat(var(--puck-columns, ${count}), minmax(0, 1fr))`,
+                gridTemplateColumns: gridTemplate,
                 alignItems,
                 gap: `var(--puck-gap, ${Number(gap) || 0}px)`,
                 width: "100%",
@@ -546,7 +1171,15 @@ export const layoutComponents = {
       content: [],
       minItemWidth: 280,
       gap: 24,
-      responsive: {},
+      responsive: {
+        tablet: {
+          gap: 16,
+        },
+        mobile: {
+          minItemWidth: 240,
+          gap: 12,
+        },
+      },
       ...commonDesignDefaults,
       ...animationDefaults,
     },

@@ -1,0 +1,1 @@
+copy(window.__swaggerToken)

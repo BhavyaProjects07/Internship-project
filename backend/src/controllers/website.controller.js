@@ -245,6 +245,135 @@ const deleteWebsitePage = async (req, res) => {
   }
 };
 
+const getPageEditorData = async (req, res) => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    const { id: websiteId, pageId } = req.params;
+    const page = await websiteService.getWebsitePageEditorData(
+      websiteId,
+      pageId,
+      userId
+    );
+
+    return res.json({
+      success: true,
+      data: page,
+    });
+  } catch (error) {
+    console.error("Get website page editor data error:", error);
+    const status = error.statusCode || 500;
+    return res.status(status).json({
+      success: false,
+      message: error.message || "Failed to load page editor data",
+    });
+  }
+};
+
+const savePageEditorData = async (req, res) => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    const { id: websiteId, pageId } = req.params;
+    const page = await websiteService.saveWebsitePageEditorData(
+      websiteId,
+      pageId,
+      req.body?.editorData,
+      req.body?.responsive,
+      userId
+    );
+
+    return res.json({
+      success: true,
+      message: "Page document saved successfully",
+      data: page,
+    });
+  } catch (error) {
+    console.error("Save website page editor data error:", error);
+    const status = error.statusCode || 500;
+    return res.status(status).json({
+      success: false,
+      message: error.message || "Failed to save page editor data",
+    });
+  }
+};
+
+const duplicateWebsitePage = async (req, res) => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    const { id: websiteId, pageId } = req.params;
+    const page = await websiteService.duplicateWebsitePage(
+      websiteId,
+      pageId,
+      userId
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: "Page duplicated successfully",
+      data: page,
+    });
+  } catch (error) {
+    console.error("Duplicate website page error:", error);
+    const status = error.statusCode || 500;
+    return res.status(status).json({
+      success: false,
+      message: error.message || "Failed to duplicate page",
+    });
+  }
+};
+
+const reorderWebsitePages = async (req, res) => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    const { id: websiteId } = req.params;
+    const pages = await websiteService.reorderWebsitePages(
+      websiteId,
+      req.body?.pageIds,
+      userId
+    );
+
+    return res.json({
+      success: true,
+      message: "Pages reordered successfully",
+      data: pages,
+    });
+  } catch (error) {
+    console.error("Reorder website pages error:", error);
+    const status = error.statusCode || 500;
+    return res.status(status).json({
+      success: false,
+      message: error.message || "Failed to reorder pages",
+    });
+  }
+};
+
 
 
 // Get website by ID
@@ -609,6 +738,10 @@ module.exports = {
   publishWebsite,
   getPublicWebsite,
   createWebsitePage,
-updateWebsitePage,
-deleteWebsitePage,
+  updateWebsitePage,
+  deleteWebsitePage,
+  getPageEditorData,
+  savePageEditorData,
+  duplicateWebsitePage,
+  reorderWebsitePages,
 };

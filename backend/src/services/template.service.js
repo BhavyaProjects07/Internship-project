@@ -13,6 +13,27 @@ const templateInclude = {
   },
 };
 
+const DEFAULT_PAGE_RESPONSIVE = {
+  desktop: {
+    maxWidth: "1280px",
+    paddingX: "24px",
+    paddingY: "40px",
+    baseFontSize: "16px",
+  },
+  tablet: {
+    maxWidth: "768px",
+    paddingX: "20px",
+    paddingY: "32px",
+    baseFontSize: "15px",
+  },
+  mobile: {
+    maxWidth: "100%",
+    paddingX: "16px",
+    paddingY: "24px",
+    baseFontSize: "14px",
+  },
+};
+
 const getAllTemplates = async ({ includeDrafts = false } = {}) => {
   return prisma.template.findMany({
     where: includeDrafts ? {} : { status: "PUBLISHED" },
@@ -81,6 +102,16 @@ const createTemplate = async ({
           name: "Home",
           slug: "home",
           order: 0,
+          responsive: DEFAULT_PAGE_RESPONSIVE,
+          editorData: {
+            content: [],
+            root: {
+              props: {
+                title: "Home",
+                responsive: DEFAULT_PAGE_RESPONSIVE,
+              },
+            },
+          },
         },
       },
     },
@@ -366,6 +397,7 @@ const getPageEditorData = async (templateId, pageId) => {
       name: true,
       slug: true,
       order: true,
+      responsive: true,
       editorData: true,
       sections: {
         orderBy: { order: "asc" },
@@ -379,10 +411,16 @@ const getPageEditorData = async (templateId, pageId) => {
     throw error;
   }
 
+  // Ensure responsive object is initialized if not set
+  if (!page.responsive) {
+    page.responsive =
+      page.editorData?.root?.props?.responsive || DEFAULT_PAGE_RESPONSIVE;
+  }
+
   return page;
 };
 
-const savePageEditorData = async (templateId, pageId, document) => {
+const savePageEditorData = async (templateId, pageId, document, explicitResponsive) => {
   validateEditorDocument(document);
 
   const page = await prisma.templatePage.findFirst({
@@ -390,7 +428,7 @@ const savePageEditorData = async (templateId, pageId, document) => {
       id: pageId,
       templateId,
     },
-    select: { id: true },
+    select: { id: true, responsive: true },
   });
 
   if (!page) {
@@ -399,24 +437,35 @@ const savePageEditorData = async (templateId, pageId, document) => {
     throw error;
   }
 
+  // Extract page-level responsive settings from explicit argument or document root
+  const pageResponsive =
+    explicitResponsive && typeof explicitResponsive === "object"
+      ? explicitResponsive
+      : document.root?.props?.responsive &&
+        typeof document.root.props.responsive === "object"
+      ? document.root.props.responsive
+      : (page.responsive || DEFAULT_PAGE_RESPONSIVE);
+
+  // Synchronize document root props
+  if (document.root && document.root.props) {
+    document.root.props.responsive = pageResponsive;
+  }
+
   return prisma.templatePage.update({
     where: { id: pageId },
     data: {
       editorData: document,
+      responsive: pageResponsive,
     },
     select: {
       id: true,
       name: true,
       slug: true,
+      responsive: true,
       editorData: true,
-      
     },
   });
 };
-
-
-
-
 
 const makePageSlug = (value) =>
   value
@@ -431,8 +480,8 @@ const pageError = (message, statusCode) => {
   return error;
 };
 
-// Create a page with a valid, empty Puck document.
-const createPage = async (templateId, { name, slug }) => {
+// Create a page with a valid, empty Puck document and dedicated responsive configuration.
+const createPage = async (templateId, { name, slug, responsive }) => {
   if (typeof name !== "string" || !name.trim()) {
     throw pageError("Page name is required", 400);
   }
@@ -466,15 +515,26 @@ const createPage = async (templateId, { name, slug }) => {
     select: { order: true },
   });
 
+  const pageResponsive =
+    responsive && typeof responsive === "object"
+      ? responsive
+      : DEFAULT_PAGE_RESPONSIVE;
+
   return prisma.templatePage.create({
     data: {
       templateId,
       name: pageName,
       slug: pageSlug,
       order: (lastPage?.order ?? -1) + 1,
+      responsive: pageResponsive,
       editorData: {
         content: [],
-        root: { props: {} },
+        root: {
+          props: {
+            title: pageName,
+            responsive: pageResponsive,
+          },
+        },
       },
     },
     select: {
@@ -482,6 +542,7 @@ const createPage = async (templateId, { name, slug }) => {
       name: true,
       slug: true,
       order: true,
+      responsive: true,
       editorData: true,
     },
   });
@@ -575,12 +636,21 @@ const duplicatePage = async (templateId, pageId) => {
     ? undefined
     : JSON.parse(JSON.stringify(source.editorData));
 
+  const responsive = source.responsive == null
+    ? (editorData?.root?.props?.responsive || DEFAULT_PAGE_RESPONSIVE)
+    : JSON.parse(JSON.stringify(source.responsive));
+
+  if (editorData?.root?.props) {
+    editorData.root.props.responsive = responsive;
+  }
+
   return prisma.templatePage.create({
     data: {
       templateId,
       name: `${source.name} (Copy)`,
       slug,
       order: (lastPage?.order ?? -1) + 1,
+      responsive,
       ...(editorData !== undefined ? { editorData } : {}),
       sections: {
         create: source.sections.map((section) => ({
@@ -596,6 +666,7 @@ const duplicatePage = async (templateId, pageId) => {
       name: true,
       slug: true,
       order: true,
+      responsive: true,
       editorData: true,
     },
   });

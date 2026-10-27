@@ -48,11 +48,72 @@ export function buildBoxStyle(props = {}) {
       ? undefined
       : SHADOW_PRESETS.find((s) => s.value === boxShadow)?.value || (boxShadow !== "none" ? boxShadow : undefined);
 
+  // Reliable dimension normalization (supports both numeric 120 and string "120px" / "80%")
+  const resolvedMaxWidth =
+    typeof maxWidth === "number" && maxWidth > 0
+      ? `var(--puck-max-width, ${maxWidth}px)`
+      : typeof maxWidth === "string" && maxWidth && maxWidth !== "0" && maxWidth !== "0px" && maxWidth !== "none"
+      ? (maxWidth.endsWith("px") || maxWidth.endsWith("%") || maxWidth.endsWith("rem") || maxWidth.endsWith("vw") ? `var(--puck-max-width, ${maxWidth})` : `var(--puck-max-width, ${maxWidth}px)`)
+      : "var(--puck-max-width, none)";
+
+  const resolvedMinHeight =
+    typeof minHeight === "number" && minHeight > 0
+      ? `var(--puck-min-height, ${minHeight}px)`
+      : typeof minHeight === "string" && minHeight && minHeight !== "0" && minHeight !== "0px"
+      ? (minHeight.endsWith("px") || minHeight.endsWith("vh") || minHeight.endsWith("rem") ? `var(--puck-min-height, ${minHeight})` : `var(--puck-min-height, ${minHeight}px)`)
+      : undefined;
+
+  const resolvedWidth =
+    typeof width === "number" && width > 0
+      ? `${width}px`
+      : width
+      ? `var(--puck-width, ${width})`
+      : "100%";
+
+  const hasBorderWidth =
+    (typeof borderWidth === "number" && borderWidth > 0) ||
+    (typeof borderWidth === "string" && borderWidth && borderWidth !== "0" && borderWidth !== "0px");
+
+  const resolvedBorderStyle =
+    hasBorderWidth && (borderStyle === "none" || !borderStyle)
+      ? "solid"
+      : borderStyle || "none";
+
+  const resolvedBorderWidth =
+    typeof borderWidth === "number" && borderWidth > 0
+      ? `${borderWidth}px`
+      : typeof borderWidth === "string" && borderWidth && borderWidth !== "0" && borderWidth !== "0px"
+      ? (borderWidth.endsWith("px") ? borderWidth : `${borderWidth}px`)
+      : undefined;
+
+  const resolvedBorderRadius =
+    typeof borderRadius === "number" && borderRadius > 0
+      ? `${borderRadius}px`
+      : typeof borderRadius === "string" && borderRadius && borderRadius !== "0" && borderRadius !== "0px"
+      ? (borderRadius.endsWith("px") || borderRadius.endsWith("%") || borderRadius.endsWith("rem") ? borderRadius : `${borderRadius}px`)
+      : undefined;
+
+  // Modern angle & positioning transform support
+  const transforms = [];
+  const angle = (Number(props.rotateAngle) || 0) + (Number(props.tiltAngle) || 0);
+  if (angle !== 0) transforms.push(`rotate(${angle}deg)`);
+
+  const skew = Number(props.skewAngle) || 0;
+  if (skew !== 0) transforms.push(`skewY(${skew}deg)`);
+
+  const numOffX = Number(props.offsetX) || 0;
+  const numOffY = Number(props.offsetY) || 0;
+  if (numOffX !== 0 || numOffY !== 0) {
+    transforms.push(`translate(${numOffX}px, ${numOffY}px)`);
+  }
+
+  const resolvedTransform = transforms.length > 0 ? transforms.join(" ") : undefined;
+
   return {
     boxSizing: "border-box",
-    width: width ? `var(--puck-width, ${width})` : "100%",
-    maxWidth: maxWidth > 0 ? `var(--puck-max-width, ${maxWidth}px)` : "var(--puck-max-width, none)",
-    minHeight: minHeight > 0 ? `var(--puck-min-height, ${minHeight}px)` : undefined,
+    width: resolvedWidth,
+    maxWidth: resolvedMaxWidth,
+    minHeight: resolvedMinHeight,
     marginTop: `var(--puck-margin-top, ${marginTop})`,
     marginRight: `var(--puck-margin-right, ${marginRight})`,
     marginBottom: `var(--puck-margin-bottom, ${marginBottom})`,
@@ -66,13 +127,14 @@ export function buildBoxStyle(props = {}) {
     backgroundSize: resolvedBgImage ? backgroundSize : undefined,
     backgroundPosition: resolvedBgImage ? backgroundPosition : undefined,
     backgroundRepeat: resolvedBgImage ? "no-repeat" : undefined,
-    borderStyle,
+    borderStyle: resolvedBorderStyle,
     borderColor,
-    borderWidth: borderWidth > 0 ? `${borderWidth}px` : undefined,
-    borderRadius: borderRadius > 0 ? `${borderRadius}px` : undefined,
+    borderWidth: resolvedBorderWidth,
+    borderRadius: resolvedBorderRadius,
     boxShadow: resolvedShadow,
     backdropFilter: backdropBlur > 0 ? `blur(${backdropBlur}px)` : undefined,
     WebkitBackdropFilter: backdropBlur > 0 ? `blur(${backdropBlur}px)` : undefined,
+    transform: resolvedTransform,
   };
 }
 

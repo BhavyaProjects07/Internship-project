@@ -29,6 +29,18 @@ export default function AdminCategoriesPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
+
+  useEffect(() => {
+  if (!isLoaded || !isSignedIn) return;
+
+  getToken().then((token) => {
+    if (token) {
+      window.__swaggerToken = token;
+      console.log("Clerk token retrieved successfully.");
+    }
+  });
+}, [isLoaded, isSignedIn, getToken]);
+
   const request = useCallback(
     async (path, options = {}) => {
       const token = await getToken();

@@ -714,3 +714,94 @@ lib/         → shared utilities, including Prisma client
     },
     "sections": []
 }
+
+
+
+
+
+
+
+
+
+{
+    "root": {
+        "props": {
+            "title": "Untitled Page",
+            "backgroundColor": "#ffffff",
+            "backgroundGradient": false,
+            "gradientFrom": "#ffffff",
+            "gradientTo": "#f8fafc",
+            "contentWidth": "100%",
+            "fontFamily": "inherit"
+        }
+    },
+    "content": [
+        {
+            "type": "Navbar",
+            "props": {
+                "bannerText": "🚀 Discover our newly engineered agency templates →",
+                "bannerBg": "#4f46e5",
+                "bannerTextColor": "#ffffff",
+                "logoText": "STUDIO NOVA",
+                "logoUrl": "",
+                "logoWidth": 140,
+                "links": [
+                    {
+                        "label": "Home",
+                        "href": "/",
+                        "badge": ""
+                    },
+                    {
+                        "label": "Services",
+                        "href": "#services",
+                        "badge": ""
+                    },
+                    {
+                        "label": "Showcase",
+                        "href": "#work",
+                        "badge": "HOT"
+                    },
+                    {
+                        "label": "Pricing",
+                        "href": "#pricing",
+                        "badge": ""
+                    },
+                    {
+                        "label": "Contact",
+                        "href": "#contact",
+                        "badge": ""
+                    }
+                ],
+                "headerMode": "sticky",
+                "backgroundColor": "#ffffff",
+                "textColor": "#0f172a",
+                "linkColor": "#334155",
+                "hoverColor": "#4f46e5",
+                "showSearch": false,
+                "showCTA": true,
+                "ctaLabel": "Get Started",
+                "ctaHref": "#signup",
+                "ctaBg": "#0f172a",
+                "ctaColor": "#ffffff",
+                "borderBottom": true,
+                "borderColor": "#e2e8f0",
+                "responsive": {
+                    "tablet": {
+                        "logoWidth": 120
+                    },
+                    "mobile": {
+                        "logoWidth": 100
+                    }
+                },
+                "animTrigger": "none",
+                "animPreset": "none",
+                "animLoop": "none",
+                "animDuration": 500,
+                "animDelay": 0,
+                "animEasing": "cubic-bezier(0.16, 1, 0.3, 1)",
+                "id": "Navbar-9e32bca7-378c-4bc4-885f-105e89f6d105"
+            }
+        }
+    ],
+    "zones": {}
+}

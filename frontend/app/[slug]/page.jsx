@@ -123,7 +123,13 @@ export default async function PublicWebsitePage({ params }) {
       className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)]"
     >
       {hasPuckDocument ? (
-        <PuckPublicRenderer data={homePage.editorData} />
+        <PuckPublicRenderer
+          data={homePage.editorData}
+          pages={pages}
+          activePageId={homePage.id}
+          websiteId={website.id}
+          templateName={website.name}
+        />
       ) : (
         sections.map((section) => (
           <SectionRenderer

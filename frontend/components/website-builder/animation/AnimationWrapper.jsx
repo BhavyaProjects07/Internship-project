@@ -77,9 +77,36 @@ export default function AnimationWrapper({
     };
   }, [trigger, preset]);
 
+function sanitizeStyle(style) {
+  if (!style || typeof style !== "object") return style;
+  const hasLonghandBorder =
+    style.borderTop !== undefined ||
+    style.borderRight !== undefined ||
+    style.borderBottom !== undefined ||
+    style.borderLeft !== undefined;
+
+  if (style.border !== undefined && hasLonghandBorder) {
+    const clean = { ...style };
+    if (!clean.border) {
+      delete clean.border;
+    } else {
+      const borderVal = clean.border;
+      delete clean.border;
+      if (clean.borderTop === undefined) clean.borderTop = borderVal;
+      if (clean.borderRight === undefined) clean.borderRight = borderVal;
+      if (clean.borderBottom === undefined) clean.borderBottom = borderVal;
+      if (clean.borderLeft === undefined) clean.borderLeft = borderVal;
+    }
+    return clean;
+  }
+  return style;
+}
+
+  const safeStyle = sanitizeStyle(style);
+
   if (!hasEntrance && !hasLoop) {
     return (
-      <Component className={className} style={style}>
+      <Component className={className} style={safeStyle}>
         {children}
       </Component>
     );
@@ -87,7 +114,7 @@ export default function AnimationWrapper({
 
   // Construct animation classes and styles
   const animClasses = [className];
-  const combinedStyle = { ...style };
+  const combinedStyle = { ...safeStyle };
 
   if (hasEntrance) {
     animClasses.push("wb-animated-target");

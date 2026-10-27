@@ -1,4 +1,4 @@
-﻿
+
 "use client";
 
 import {
@@ -8,7 +8,8 @@ import {
   useState,
 } from "react";
 import { Puck, useGetPuck } from "@puckeditor/core";
-import puckConfig from "./puck-config";
+import puckConfig, { DEFAULT_PAGE_RESPONSIVE } from "./puck-config";
+import { StudioProvider } from "./context/StudioContext.jsx";
 
 const API_URL = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
@@ -16,7 +17,11 @@ const API_URL = (
 
 const createEmptyDocument = () => ({
   content: [],
-  root: { props: {} },
+  root: {
+    props: {
+      responsive: DEFAULT_PAGE_RESPONSIVE,
+    },
+  },
 });
 
 function Icon({ name, size = 18 }) {
@@ -143,9 +148,11 @@ function PuckSaveBridge({ onRegister }) {
 export default function PuckEditorClient({
   templateId,
   pageId,
+  pages = [],
+  templateName = "",
+  websiteId = "",
   getToken,
   onHeaderVisibilityChange,
-  
 }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
@@ -241,6 +248,11 @@ useEffect(() => {
   let cancelled = false;
 
   async function loadGlobalLayout() {
+    if (!templateId) {
+      setGlobalLayoutLoading(false);
+      return;
+    }
+
     setGlobalLayoutLoading(true);
     setGlobalLayoutError("");
 
@@ -306,9 +318,7 @@ useEffect(() => {
     }
   }
 
-  if (templateId && getToken) {
-    void loadGlobalLayout();
-  }
+  
 
   return () => {
     cancelled = true;
@@ -370,15 +380,14 @@ useEffect(() => {
           headers.Authorization = `Bearer ${token}`;
         }
 
-        const response = await fetch(
-          `${API_URL}/templates/admin/${encodeURIComponent(
-            templateId
-          )}/pages/${encodeURIComponent(pageId)}/editor-data`,
-          {
-            headers,
-            cache: "no-store",
-          }
-        );
+        const endpoint = websiteId
+          ? `${API_URL}/websites/${encodeURIComponent(websiteId)}/pages/${encodeURIComponent(pageId)}/editor-data`
+          : `${API_URL}/templates/admin/${encodeURIComponent(templateId)}/pages/${encodeURIComponent(pageId)}/editor-data`;
+
+        const response = await fetch(endpoint, {
+          headers,
+          cache: "no-store",
+        });
 
         const result = await response.json().catch(() => null);
 
@@ -389,8 +398,24 @@ useEffect(() => {
           );
         }
 
-        const document =
+        const rawDocument =
           result.data?.editorData ?? createEmptyDocument();
+
+        const pageResponsive =
+          result.data?.responsive ||
+          rawDocument.root?.props?.responsive ||
+          DEFAULT_PAGE_RESPONSIVE;
+
+        const document = {
+          ...rawDocument,
+          root: {
+            ...(rawDocument.root || {}),
+            props: {
+              ...(rawDocument.root?.props || {}),
+              responsive: pageResponsive,
+            },
+          },
+        };
 
         const serialized = JSON.stringify(document);
 
@@ -420,13 +445,13 @@ useEffect(() => {
       }
     }
 
-    if (templateId && pageId && getToken) {
+    if ((templateId || websiteId) && pageId && getToken) {
       void loadDocument();
     } else {
       const timer = setTimeout(() => {
         if (!cancelled) {
           setData(null);
-          setError("Template ID, page ID, or authentication is missing.");
+          setError("Template ID, website ID, page ID, or authentication is missing.");
         }
       }, 0);
       return () => {
@@ -438,7 +463,7 @@ useEffect(() => {
     return () => {
       cancelled = true;
     };
-  }, [templateId, pageId, getToken]);
+  }, [templateId, websiteId, pageId, getToken]);
 
   useEffect(() => {
     const handleBeforeUnload = (event) => {
@@ -524,18 +549,19 @@ useEffect(() => {
           headers.Authorization = `Bearer ${token}`;
         }
 
-        const response = await fetch(
-          `${API_URL}/templates/admin/${encodeURIComponent(
-            templateId
-          )}/pages/${encodeURIComponent(pageId)}/editor-data`,
-          {
-            method: "PUT",
-            headers,
-            body: JSON.stringify({
-              editorData: document,
-            }),
-          }
-        );
+        const endpoint = websiteId
+          ? `${API_URL}/websites/${encodeURIComponent(websiteId)}/pages/${encodeURIComponent(pageId)}/editor-data`
+          : `${API_URL}/templates/admin/${encodeURIComponent(templateId)}/pages/${encodeURIComponent(pageId)}/editor-data`;
+
+        const response = await fetch(endpoint, {
+          method: "PUT",
+          headers,
+          body: JSON.stringify({
+            editorData: document,
+            responsive:
+              document.root?.props?.responsive || DEFAULT_PAGE_RESPONSIVE,
+          }),
+        });
 
         const result = await response.json().catch(() => null);
 
@@ -593,7 +619,7 @@ useEffect(() => {
         }
       }
     },
-    [templateId, pageId, getToken]
+    [templateId, websiteId, pageId, getToken]
   );
 
   useEffect(() => {
@@ -649,6 +675,11 @@ useEffect(() => {
 
   
 const saveGlobalLayout = useCallback(async () => {
+  if (!templateId) {
+    setGlobalLayoutSaving(false);
+    return;
+  }
+
   setGlobalLayoutSaving(true);
   setGlobalLayoutError("");
   setGlobalLayoutSaved(false);
@@ -888,15 +919,22 @@ const saveGlobalLayout = useCallback(async () => {
       </div>
     )}
 
-    <div className="studio-editor-grid">
-      <Puck
-  config={puckConfig}
-  data={data}
-  onChange={handleEditorChange}
-  onPublish={saveDocument}
-  height="100%"
-  iframe={{ enabled: false }}
->
+    <StudioProvider
+      pages={pages}
+      activePageId={pageId}
+      templateId={templateId}
+      websiteId={websiteId}
+      templateName={templateName}
+    >
+      <div className="studio-editor-grid">
+        <Puck
+    config={puckConfig}
+    data={data}
+    onChange={handleEditorChange}
+    onPublish={saveDocument}
+    height="100%"
+    iframe={{ enabled: false }}
+  >
         <PuckSaveBridge onRegister={registerCurrentDataGetter} />
 
         <div className="studio-composition">
@@ -1263,6 +1301,7 @@ const saveGlobalLayout = useCallback(async () => {
         </div>
       </Puck>
     </div>
+  </StudioProvider>
   </div>
 );
 }

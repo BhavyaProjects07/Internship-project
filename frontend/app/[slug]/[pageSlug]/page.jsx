@@ -71,8 +71,14 @@ export default async function PublicSubPage({ params }) {
   return (
     <div style={themeVars} className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)]">
       {targetPage.editorData ? (
-  <PuckPublicRenderer data={targetPage.editorData} />
-) : (
+        <PuckPublicRenderer
+          data={targetPage.editorData}
+          pages={pages}
+          activePageId={targetPage.id}
+          websiteId={website.id}
+          templateName={website.name}
+        />
+      ) : (
   [...(targetPage.sections || [])]
     .sort((a, b) => a.order - b.order)
     .map((section) => (

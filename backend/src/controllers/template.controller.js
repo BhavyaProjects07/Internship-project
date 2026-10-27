@@ -291,7 +291,8 @@ const savePageEditorData = async (req, res) => {
     const page = await templateService.savePageEditorData(
       req.params.id,
       req.params.pageId,
-      req.body?.editorData
+      req.body?.editorData,
+      req.body?.responsive
     );
 
     return res.json({

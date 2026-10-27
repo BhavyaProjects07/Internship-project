@@ -9,10 +9,32 @@ const websiteRoutes = require("./routes/website.route");
 const mediaRoutes = require("./routes/media.route");
 const categoryRoutes = require("./routes/category.route");
 
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./config/swagger");
+
+
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+
+
+/**
+ * @swagger
+ * /api/health:
+ *   get:
+ *     summary: Check API health
+ *     tags:
+ *       - Health
+ *     responses:
+ *       200:
+ *         description: API is running
+ */
+
+
 
 // IMPORTANT: Clerk middleware must run before API routes.
 app.use(clerkMiddleware());

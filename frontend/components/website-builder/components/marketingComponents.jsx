@@ -16,40 +16,125 @@ import {
 } from "../fields/helpers.js";
 import { getHoverClass } from "../layout/styleBuilders.js";
 import { buildResponsiveStyles } from "../layout/responsiveStyles.js";
-import { ALIGNMENT_OPTIONS, HOVER_EFFECT_OPTIONS, RADIUS_OPTIONS, SHADOW_PRESETS } from "../tokens/index.js";
+import { ALIGNMENT_OPTIONS, HOVER_EFFECT_OPTIONS, RADIUS_OPTIONS, SHADOW_PRESETS, SPACING_OPTIONS } from "../tokens/index.js";
 import { RenderIcon, ICON_PRESETS } from "./icons.jsx";
 
 export const marketingComponents = {
   // ------------------------------------------------------------------------
-  // HERO SECTION (ADVANCED)
+  // HERO SECTION (ADVANCED COMPOSABLE & DYNAMIC)
   // ------------------------------------------------------------------------
   Hero: {
     label: "Hero Section (Advanced)",
     fields: {
+      contentMode: selectField("Hero Building Mode", [
+        { label: "⚡ Preset Layout (Fast High-Converting Hero)", value: "preset" },
+        { label: "🎨 Build from Scratch (Full Drag & Drop Slots)", value: "custom" },
+      ]),
+
+      // Slots for Full Composable Drag-and-Drop Freedom
+      leftSlot: { type: "slot" },
+      rightSlot: { type: "slot" },
+      heroContent: { type: "slot" },
+      heroMediaSlot: { type: "slot" },
+
       layout: selectField("Layout arrangement", [
         { label: "Split (Content Left, Visual Right)", value: "split" },
         { label: "Centered Hero", value: "centered" },
+        { label: "Full Height 100vh Hero (With scroll indicator)", value: "fullHeight" },
         { label: "Full Background Visual", value: "background" },
       ]),
-      eyebrow: textField("Eyebrow badge / category"),
+      columnRatio: selectField("Column Width Ratio (Split Mode)", [
+        { label: "50% / 50% (Equal Split)", value: "50-50" },
+        { label: "60% Content / 40% Visual", value: "60-40" },
+        { label: "40% Content / 60% Visual", value: "40-60" },
+        { label: "70% Content / 30% Visual", value: "70-30" },
+      ]),
+      reverseColumns: radioField("Reverse Columns (Visual Left, Content Right)", [
+        { label: "No", value: false },
+        { label: "Yes", value: true },
+      ]),
+      verticalAlign: selectField("Vertical Column Alignment", [
+        { label: "Center Aligned", value: "center" },
+        { label: "Top Aligned", value: "start" },
+        { label: "Bottom Aligned", value: "end" },
+      ]),
+
+      // Eyebrow Badge
+      showBadgePill: radioField("Show Eyebrow Badge", [
+        { label: "Yes", value: true },
+        { label: "No", value: false },
+      ]),
+      eyebrow: textField("Eyebrow badge / category text"),
+      pulseDot: radioField("Pulsing Live Beacon Dot", [
+        { label: "Yes", value: true },
+        { label: "No", value: false },
+      ]),
+
+      // Headline & Highlight
       title: textField("Main hero headline"),
+      highlightText: textField("Headline Gradient Highlight Word(s)"),
+      highlightGradient: textField("Highlight Gradient (CSS, e.g. linear-gradient(135deg, #818cf8, #c084fc))"),
       description: textareaField("Supporting description"),
+
+      // Primary CTA Button
       primaryButtonText: textField("Primary CTA button text"),
       primaryButtonUrl: textField("Primary link URL"),
+      primaryButtonVariant: selectField("Primary Button Style", [
+        { label: "Solid Color", value: "solid" },
+        { label: "Gradient Aurora", value: "gradient" },
+        { label: "Ambient Glow", value: "glow" },
+        { label: "Outline", value: "outline" },
+      ]),
+
+      // Secondary Button
       showSecondaryButton: radioField("Show secondary button", [
         { label: "Yes", value: true },
         { label: "No", value: false },
       ]),
       secondaryButtonText: textField("Secondary CTA label"),
       secondaryButtonUrl: textField("Secondary link URL"),
-      showRatings: radioField("Show 5-star customer rating bar", [
+      showPlayIcon: radioField("Show Video Play Icon on Secondary Button", [
+        { label: "No", value: false },
+        { label: "Yes", value: true },
+      ]),
+
+      // Social Proof & Ratings
+      showRatings: radioField("Show Customer Social Proof Bar", [
         { label: "Yes", value: true },
         { label: "No", value: false },
       ]),
-      ratingsText: textField("Rating label (e.g. 4.9/5 from 2,000+ reviews)"),
+      showAvatarStack: radioField("Show Verified Customer Avatars", [
+        { label: "Yes", value: true },
+        { label: "No", value: false },
+      ]),
+      ratingsText: textField("Rating label (e.g. 4.95 / 5 from 3,400+ satisfied builders)"),
+
+      // Visual Media Column
       imageUrl: imageField("Split visual / Hero image URL"),
       imageAlt: textField("Image alt text"),
-      imageWidth: numberField("Split image width (%)", 30, 70),
+      imageWidth: numberField("Split visual width (%)", 30, 70),
+      mockupFrame: selectField("Visual Presentation Frame", [
+        { label: "Modern Card with Ambient Shadow", value: "card" },
+        { label: "Browser Safari Window Mockup", value: "browser" },
+        { label: "Glass Floating Canvas", value: "glass" },
+        { label: "Raw Unstyled Image", value: "raw" },
+      ]),
+
+      // Floating Metric Stat Cards
+      showFloatingCard1: radioField("Show Floating Stat Card 1", [
+        { label: "Yes", value: true },
+        { label: "No", value: false },
+      ]),
+      floatingCard1Title: textField("Card 1 Title"),
+      floatingCard1Value: textField("Card 1 Stat Value"),
+      showFloatingCard2: radioField("Show Floating Stat Card 2", [
+        { label: "Yes", value: true },
+        { label: "No", value: false },
+      ]),
+      floatingCard2Title: textField("Card 2 Title"),
+      floatingCard2Value: textField("Card 2 Stat Value"),
+
+      // Background Aesthetics
       backgroundColor: colorField("Background color"),
       backgroundGradient: radioField("Enable gradient overlay", [
         { label: "Disabled", value: false },
@@ -59,10 +144,23 @@ export const marketingComponents = {
       gradientTo: colorField("Gradient color to"),
       backgroundImage: imageField("Background image URL"),
       overlayOpacity: numberField("Background overlay opacity (%)", 0, 100),
+      patternOverlay: selectField("Background Grid Texture", [
+        { label: "None", value: "none" },
+        { label: "Subtle Dot Matrix", value: "dots" },
+        { label: "Architectural Grid Lines", value: "grid" },
+      ]),
+      enableMeshGlow: radioField("Ambient Aurora / Mesh Glow", [
+        { label: "Enabled", value: true },
+        { label: "Disabled", value: false },
+      ]),
+      meshGlowColor: colorField("Mesh Glow Accent Color"),
+
+      // Colors & Sizing
       textColor: colorField("Text color"),
       accentColor: colorField("Accent highlight color"),
       paddingY: numberField("Vertical padding (px)", 40, 240),
       borderRadius: selectField("Corner radius", RADIUS_OPTIONS),
+
       responsive: responsiveField("Responsive overrides", [
         { name: "paddingY", label: "Vertical padding (px)", type: "number", min: 20, max: 240 },
         { name: "imageWidth", label: "Split image width (%)", type: "number", min: 30, max: 100 },
@@ -70,58 +168,114 @@ export const marketingComponents = {
       ...animationFields,
     },
     defaultProps: {
+      contentMode: "preset",
       layout: "split",
+      columnRatio: "50-50",
+      reverseColumns: false,
+      verticalAlign: "center",
+      showBadgePill: true,
       eyebrow: "NEXT GENERATION WEB EXPERIENCES",
+      pulseDot: true,
       title: "Digital Products Built for Ambitious Brands",
+      highlightText: "Ambitious Brands",
+      highlightGradient: "linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #f472b6 100%)",
       description:
         "We architect, design, and engineer high-performance platforms that transform industry standards and convert visitors into loyal advocates.",
       primaryButtonText: "Explore Templates",
       primaryButtonUrl: "#explore",
+      primaryButtonVariant: "glow",
       showSecondaryButton: true,
       secondaryButtonText: "Book Discovery Call",
       secondaryButtonUrl: "#contact",
+      showPlayIcon: false,
       showRatings: true,
+      showAvatarStack: true,
       ratingsText: "4.95 / 5 from 3,400+ satisfied builders",
       imageUrl:
         "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80",
       imageAlt: "Digital platform dashboard",
-      imageWidth: 48,
+      imageWidth: 50,
+      mockupFrame: "browser",
+      showFloatingCard1: true,
+      floatingCard1Title: "Conversion Rate",
+      floatingCard1Value: "🚀 +240%",
+      showFloatingCard2: true,
+      floatingCard2Title: "Uptime SLA",
+      floatingCard2Value: "⚡ 99.99%",
       backgroundColor: "#090d16",
       backgroundGradient: true,
       gradientFrom: "#090d16",
-      gradientTo: "#131b2e",
+      gradientTo: "#111827",
       backgroundImage: "",
       overlayOpacity: 40,
+      patternOverlay: "dots",
+      enableMeshGlow: true,
+      meshGlowColor: "#6366f1",
       textColor: "#ffffff",
       accentColor: "#6366f1",
-      paddingY: 96,
+      paddingY: 100,
       borderRadius: 0,
+      responsive: {
+        tablet: {
+          paddingY: 64,
+          imageWidth: 80,
+        },
+        mobile: {
+          paddingY: 40,
+          imageWidth: 100,
+        },
+      },
       ...animationDefaults,
     },
     render: ({
+      contentMode = "preset",
+      leftSlot: LeftSlot,
+      rightSlot: RightSlot,
+      heroContent: HeroContent,
+      heroMediaSlot: HeroMediaSlot,
       layout = "split",
+      columnRatio = "50-50",
+      reverseColumns = false,
+      verticalAlign = "center",
+      showBadgePill = true,
       eyebrow,
+      pulseDot = true,
       title,
+      highlightText,
+      highlightGradient,
       description,
       primaryButtonText,
       primaryButtonUrl,
+      primaryButtonVariant = "glow",
       showSecondaryButton,
       secondaryButtonText,
       secondaryButtonUrl,
+      showPlayIcon = false,
       showRatings,
+      showAvatarStack = true,
       ratingsText,
       imageUrl,
       imageAlt,
-      imageWidth = 48,
+      imageWidth = 50,
+      mockupFrame = "browser",
+      showFloatingCard1 = false,
+      floatingCard1Title,
+      floatingCard1Value,
+      showFloatingCard2 = false,
+      floatingCard2Title,
+      floatingCard2Value,
       backgroundColor = "#090d16",
       backgroundGradient,
       gradientFrom,
       gradientTo,
       backgroundImage,
       overlayOpacity = 40,
+      patternOverlay = "dots",
+      enableMeshGlow = true,
+      meshGlowColor = "#6366f1",
       textColor = "#ffffff",
       accentColor = "#6366f1",
-      paddingY = 96,
+      paddingY = 100,
       borderRadius = 0,
       responsive,
       animTrigger,
@@ -133,6 +287,7 @@ export const marketingComponents = {
     }) => {
       const isCentered = layout === "centered";
       const isSplit = layout === "split";
+      const isFullHeight = layout === "fullHeight";
 
       const heroBgColor = backgroundColor || "#090d16";
       const cleanBgImage = (backgroundImage || "").trim().replace(/["\\\n\r]/g, "");
@@ -157,6 +312,91 @@ export const marketingComponents = {
         },
       });
 
+      // Split ratios
+      const contentRatioMap = {
+        "50-50": "1fr 1fr",
+        "60-40": "1.4fr 1fr",
+        "40-60": "1fr 1.4fr",
+        "70-30": "1.8fr 1fr",
+      };
+
+      // Headline renderer with gradient highlight
+      const renderHeadline = () => {
+        if (!title) return null;
+        if (!highlightText || !title.includes(highlightText)) {
+          return title;
+        }
+
+        const parts = title.split(highlightText);
+        return (
+          <>
+            {parts[0]}
+            <span
+              style={{
+                backgroundImage:
+                  highlightGradient ||
+                  "linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #f472b6 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                display: "inline-block",
+              }}
+            >
+              {highlightText}
+            </span>
+            {parts.slice(1).join(highlightText)}
+          </>
+        );
+      };
+
+      // Button variant styles
+      const getPrimaryBtnStyles = () => {
+        const base = {
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+          padding: "16px 34px",
+          borderRadius: 14,
+          fontSize: 15,
+          fontWeight: 700,
+          textDecoration: "none",
+          transition: "all 180ms ease",
+          cursor: "pointer",
+          whiteSpace: "nowrap",
+        };
+
+        if (primaryButtonVariant === "gradient") {
+          return {
+            ...base,
+            backgroundImage: "linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)",
+            color: "#ffffff",
+            boxShadow: "0 10px 25px -5px rgba(99, 102, 241, 0.45)",
+          };
+        }
+        if (primaryButtonVariant === "glow") {
+          return {
+            ...base,
+            backgroundColor: accentColor || "#6366f1",
+            color: "#ffffff",
+            boxShadow: `0 0 30px ${accentColor ? accentColor + "80" : "rgba(99, 102, 241, 0.6)"}`,
+          };
+        }
+        if (primaryButtonVariant === "outline") {
+          return {
+            ...base,
+            backgroundColor: "transparent",
+            color: accentColor || "#ffffff",
+            border: `2px solid ${accentColor || "#6366f1"}`,
+          };
+        }
+        return {
+          ...base,
+          backgroundColor: accentColor || "#6366f1",
+          color: "#ffffff",
+          boxShadow: "0 10px 25px -5px rgba(99, 102, 241, 0.4)",
+        };
+      };
+
       return (
         <AnimationWrapper
           as="section"
@@ -176,13 +416,69 @@ export const marketingComponents = {
             backgroundPosition: hasBgImage ? "center" : undefined,
             backgroundRepeat: hasBgImage ? "no-repeat" : undefined,
             color: textColor || "#ffffff",
-            paddingTop: `var(--puck-padding-y, ${paddingY}px)`,
-            paddingBottom: `var(--puck-padding-y, ${paddingY}px)`,
+            paddingTop: isFullHeight ? "120px" : `var(--puck-padding-y, ${paddingY}px)`,
+            paddingBottom: isFullHeight ? "100px" : `var(--puck-padding-y, ${paddingY}px)`,
+            minHeight: isFullHeight ? "100vh" : undefined,
+            display: isFullHeight ? "flex" : "block",
+            flexDirection: isFullHeight ? "column" : undefined,
+            justifyContent: isFullHeight ? "center" : undefined,
             borderRadius: `${borderRadius}px`,
             overflow: "hidden",
           }}
         >
           {respCss && <style dangerouslySetInnerHTML={{ __html: respCss }} />}
+
+          {/* Ambient Mesh Glow Aurora Effect */}
+          {enableMeshGlow && (
+            <div
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                top: "-15%",
+                left: isCentered ? "50%" : "30%",
+                transform: isCentered ? "translateX(-50%)" : "none",
+                width: "min(800px, 90vw)",
+                height: "min(600px, 80vh)",
+                borderRadius: "50%",
+                background: `radial-gradient(circle, ${meshGlowColor || "#6366f1"}38 0%, rgba(99, 102, 241, 0.12) 40%, transparent 70%)`,
+                filter: "blur(60px)",
+                pointerEvents: "none",
+                zIndex: 0,
+              }}
+            />
+          )}
+
+          {/* Pattern Texture Overlay */}
+          {patternOverlay === "dots" && (
+            <div
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                inset: 0,
+                backgroundImage: `radial-gradient(${textColor || "#ffffff"}22 1px, transparent 1px)`,
+                backgroundSize: "24px 24px",
+                opacity: 0.6,
+                pointerEvents: "none",
+                zIndex: 0,
+              }}
+            />
+          )}
+          {patternOverlay === "grid" && (
+            <div
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                inset: 0,
+                backgroundImage: `linear-gradient(${textColor || "#ffffff"}10 1px, transparent 1px), linear-gradient(90deg, ${textColor || "#ffffff"}10 1px, transparent 1px)`,
+                backgroundSize: "48px 48px",
+                opacity: 0.5,
+                pointerEvents: "none",
+                zIndex: 0,
+              }}
+            />
+          )}
+
+          {/* Dark Overlay */}
           {showOverlay && (
             <div
               aria-hidden="true"
@@ -197,159 +493,479 @@ export const marketingComponents = {
             />
           )}
 
+          {/* Main Container */}
           <div
             className={respClass}
             style={{
               position: "relative",
               zIndex: 1,
-              maxWidth: 1280,
+              maxWidth: 1320,
               margin: "0 auto",
-              padding: "0 24px",
-              display: "flex",
-              flexDirection: isSplit ? "row" : "column",
-              alignItems: "center",
-              justifyContent: "space-between",
-              textAlign: isCentered ? "center" : "left",
-              gap: 48,
-              flexWrap: "wrap",
+              padding: "0 28px",
+              width: "100%",
+              boxSizing: "border-box",
             }}
           >
-            <div style={{ flex: 1, minWidth: 260, maxWidth: isCentered ? 800 : 640 }}>
-              {eyebrow && (
-                <span
+            {/* -------------------------------------------------------- */}
+            {/* BUILD FROM SCRATCH MODE (Full Slot Composable Canvas)   */}
+            {/* -------------------------------------------------------- */}
+            {contentMode === "custom" ? (
+              isSplit ? (
+                <div
                   style={{
-                    display: "inline-block",
-                    padding: "6px 14px",
-                    borderRadius: 999,
-                    backgroundColor: "rgba(99, 102, 241, 0.15)",
-                    border: "1px solid rgba(99, 102, 241, 0.3)",
-                    color: "#a5b4fc",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: 1.5,
-                    textTransform: "uppercase",
-                    marginBottom: 20,
+                    display: "grid",
+                    gridTemplateColumns: contentRatioMap[columnRatio] || "1fr 1fr",
+                    gap: 48,
+                    alignItems: verticalAlign === "start" ? "start" : verticalAlign === "end" ? "end" : "center",
                   }}
                 >
-                  {eyebrow}
-                </span>
-              )}
-              <h1
-                style={{
-                  fontSize: "clamp(32px, 5vw, 58px)",
-                  fontWeight: 800,
-                  lineHeight: 1.1,
-                  letterSpacing: -1,
-                  margin: "0 0 20px",
-                  color: textColor,
-                }}
-              >
-                {title}
-              </h1>
-              {description && (
-                <p
-                  style={{
-                    fontSize: "clamp(16px, 2vw, 19px)",
-                    lineHeight: 1.65,
-                    color: textColor,
-                    opacity: 0.85,
-                    margin: isCentered ? "0 auto 36px" : "0 0 36px",
-                    maxWidth: 600,
-                  }}
-                >
-                  {description}
-                </p>
-              )}
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  alignItems: "center",
-                  justifyContent: isCentered ? "center" : "flex-start",
-                  gap: 16,
-                  marginBottom: showRatings ? 32 : 0,
-                }}
-              >
-                {primaryButtonText && (
-                  <a
-                    href={primaryButtonUrl || "#"}
-                    className="hover-lift-sm"
+                  <div
                     style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: "15px 32px",
-                      borderRadius: 12,
-                      backgroundColor: accentColor || "#6366f1",
-                      color: "#ffffff",
-                      fontSize: 15,
-                      fontWeight: 700,
-                      textDecoration: "none",
-                      boxShadow: "0 10px 25px -5px rgba(99, 102, 241, 0.4)",
+                      order: reverseColumns ? 2 : 1,
+                      minHeight: 120,
                     }}
                   >
-                    {primaryButtonText}
-                  </a>
-                )}
-                {showSecondaryButton && secondaryButtonText && (
-                  <a
-                    href={secondaryButtonUrl || "#"}
-                    className="hover-lift-sm"
+                    {LeftSlot && <LeftSlot minEmptyHeight="140px" />}
+                  </div>
+
+                  <div
                     style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: "15px 28px",
-                      borderRadius: 12,
-                      backgroundColor: "rgba(255, 255, 255, 0.08)",
-                      border: "1px solid rgba(255, 255, 255, 0.2)",
-                      color: "#ffffff",
-                      fontSize: 15,
-                      fontWeight: 600,
-                      textDecoration: "none",
+                      order: reverseColumns ? 1 : 2,
+                      minHeight: 120,
                     }}
                   >
-                    {secondaryButtonText}
-                  </a>
-                )}
-              </div>
-              {showRatings && (
+                    {RightSlot && <RightSlot minEmptyHeight="140px" />}
+                  </div>
+                </div>
+              ) : (
                 <div
                   style={{
                     display: "flex",
-                    alignItems: "center",
-                    justifyContent: isCentered ? "center" : "flex-start",
-                    gap: 10,
-                    fontSize: 13,
-                    opacity: 0.85,
+                    flexDirection: "column",
+                    alignItems: isCentered ? "center" : "flex-start",
+                    textAlign: isCentered ? "center" : "left",
+                    gap: 32,
+                    maxWidth: isCentered ? 960 : "100%",
+                    margin: isCentered ? "0 auto" : 0,
                   }}
                 >
-                  <div style={{ display: "flex", gap: 2 }}>
-                    {[0, 1, 2, 3, 4].map((i) => (
-                      <RenderIcon key={`star-rating-${i}`} name="star" size={15} color="#f59e0b" />
-                    ))}
-                  </div>
-                  <span>{ratingsText}</span>
+                  {HeroContent && <HeroContent minEmptyHeight="140px" />}
+                  {HeroMediaSlot && <HeroMediaSlot minEmptyHeight="140px" />}
                 </div>
-              )}
-            </div>
-
-            {isSplit && imageUrl && (
-              <div style={{ width: `var(--puck-image-width, ${imageWidth}%)`, flexShrink: 0, minWidth: 260, maxWidth: "100%" }}>
-                <img
-                  src={imageUrl}
-                  alt={imageAlt || "Hero visual"}
+              )
+            ) : (
+              /* -------------------------------------------------------- */
+              /* PRESET MODE (High-Impact Styled Hero)                   */
+              /* -------------------------------------------------------- */
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: isSplit ? (reverseColumns ? "row-reverse" : "row") : "column",
+                  alignItems: verticalAlign === "start" ? "flex-start" : verticalAlign === "end" ? "flex-end" : "center",
+                  justifyContent: "space-between",
+                  textAlign: isCentered ? "center" : "left",
+                  gap: 56,
+                  flexWrap: "wrap",
+                }}
+              >
+                {/* Content Column */}
+                <div
                   style={{
-                    width: "100%",
-                    borderRadius: 20,
-                    boxShadow: "0 25px 50px -12px rgba(0,0,0,0.45)",
-                    objectFit: "cover",
-                    display: "block",
+                    flex: 1,
+                    minWidth: 280,
+                    maxWidth: isCentered ? 840 : 660,
+                    margin: isCentered ? "0 auto" : undefined,
                   }}
-                />
+                >
+                  {/* Eyebrow Badge Pill */}
+                  {showBadgePill && eyebrow && (
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "6px 16px",
+                        borderRadius: 999,
+                        backgroundColor: "rgba(99, 102, 241, 0.14)",
+                        border: "1px solid rgba(99, 102, 241, 0.32)",
+                        color: "#a5b4fc",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: 1.2,
+                        textTransform: "uppercase",
+                        marginBottom: 24,
+                      }}
+                    >
+                      {pulseDot && (
+                        <span
+                          style={{
+                            width: 7,
+                            height: 7,
+                            borderRadius: "50%",
+                            backgroundColor: "#818cf8",
+                            boxShadow: "0 0 10px #818cf8",
+                            display: "inline-block",
+                          }}
+                        />
+                      )}
+                      <span>{eyebrow}</span>
+                    </div>
+                  )}
+
+                  {/* Headline */}
+                  <h1
+                    style={{
+                      fontSize: "clamp(34px, 5.2vw, 64px)",
+                      fontWeight: 850,
+                      lineHeight: 1.1,
+                      letterSpacing: -1.2,
+                      margin: "0 0 22px",
+                      color: textColor || "#ffffff",
+                    }}
+                  >
+                    {renderHeadline()}
+                  </h1>
+
+                  {/* Subtitle */}
+                  {description && (
+                    <p
+                      style={{
+                        fontSize: "clamp(16px, 1.8vw, 20px)",
+                        lineHeight: 1.65,
+                        color: textColor || "#ffffff",
+                        opacity: 0.85,
+                        margin: isCentered ? "0 auto 36px" : "0 0 36px",
+                        maxWidth: 620,
+                      }}
+                    >
+                      {description}
+                    </p>
+                  )}
+
+                  {/* Buttons Group */}
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      alignItems: "center",
+                      justifyContent: isCentered ? "center" : "flex-start",
+                      gap: 16,
+                      marginBottom: showRatings ? 36 : 0,
+                    }}
+                  >
+                    {primaryButtonText && (
+                      <a
+                        href={primaryButtonUrl || "#"}
+                        className="hover-lift-sm"
+                        style={getPrimaryBtnStyles()}
+                      >
+                        <span>{primaryButtonText}</span>
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.2"
+                        >
+                          <line x1="5" y1="12" x2="19" y2="12" />
+                          <polyline points="12 5 19 12 12 19" />
+                        </svg>
+                      </a>
+                    )}
+
+                    {showSecondaryButton && secondaryButtonText && (
+                      <a
+                        href={secondaryButtonUrl || "#"}
+                        className="hover-lift-sm"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 8,
+                          padding: "16px 30px",
+                          borderRadius: 14,
+                          backgroundColor: "rgba(255, 255, 255, 0.08)",
+                          border: "1px solid rgba(255, 255, 255, 0.2)",
+                          color: "#ffffff",
+                          fontSize: 15,
+                          fontWeight: 600,
+                          textDecoration: "none",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {showPlayIcon && (
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <polygon points="5 3 19 12 5 21 5 3" />
+                          </svg>
+                        )}
+                        <span>{secondaryButtonText}</span>
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Social Proof / Ratings */}
+                  {showRatings && (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: isCentered ? "center" : "flex-start",
+                        gap: 14,
+                        fontSize: 13,
+                        opacity: 0.9,
+                      }}
+                    >
+                      {showAvatarStack && (
+                        <div style={{ display: "flex", marginLeft: 4 }}>
+                          {[
+                            "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&q=80",
+                            "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&q=80",
+                            "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&q=80",
+                            "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=80&q=80",
+                          ].map((src, i) => (
+                            <img
+                              key={`avatar-${i}`}
+                              src={src}
+                              alt="Customer avatar"
+                              style={{
+                                width: 32,
+                                height: 32,
+                                borderRadius: "50%",
+                                border: "2px solid #090d16",
+                                marginLeft: i === 0 ? 0 : -8,
+                                objectFit: "cover",
+                                display: "inline-block",
+                              }}
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                        <div style={{ display: "flex", gap: 3 }}>
+                          {[0, 1, 2, 3, 4].map((i) => (
+                            <RenderIcon
+                              key={`star-rating-${i}`}
+                              name="star"
+                              size={15}
+                              color="#f59e0b"
+                            />
+                          ))}
+                        </div>
+                        <span style={{ fontSize: 12, fontWeight: 500, opacity: 0.85 }}>
+                          {ratingsText}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Optional Composable Content Drop Zone inside Preset Hero */}
+                  {HeroContent && (
+                    <div style={{ marginTop: 24 }}>
+                      <HeroContent minEmptyHeight="80px" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Visual / Media Column */}
+                {(isSplit || isCentered) && (imageUrl || HeroMediaSlot) && (
+                  <div
+                    style={{
+                      width: isSplit
+                        ? `var(--puck-image-width, ${imageWidth}%)`
+                        : "100%",
+                      maxWidth: isCentered ? 1040 : "100%",
+                      flexShrink: 0,
+                      minWidth: 280,
+                      position: "relative",
+                      marginTop: isCentered ? 40 : 0,
+                    }}
+                  >
+                    {mockupFrame === "browser" ? (
+                      /* Safari Window Mockup Frame */
+                      <div
+                        style={{
+                          borderRadius: 18,
+                          backgroundColor: "#1e293b",
+                          border: "1px solid rgba(255, 255, 255, 0.12)",
+                          boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.6)",
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            padding: "12px 16px",
+                            backgroundColor: "rgba(15, 23, 42, 0.8)",
+                            borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+                          }}
+                        >
+                          <div style={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#ef4444" }} />
+                          <div style={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#f59e0b" }} />
+                          <div style={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#10b981" }} />
+                          <div
+                            style={{
+                              marginLeft: 12,
+                              height: 20,
+                              borderRadius: 6,
+                              backgroundColor: "rgba(255, 255, 255, 0.06)",
+                              padding: "0 12px",
+                              display: "flex",
+                              alignItems: "center",
+                              fontSize: 10,
+                              color: "#94a3b8",
+                              flex: 1,
+                              maxWidth: 320,
+                            }}
+                          >
+                            https://preview.yourbrand.com
+                          </div>
+                        </div>
+
+                        {imageUrl && (
+                          <img
+                            src={imageUrl}
+                            alt={imageAlt || "Hero visual"}
+                            style={{
+                              width: "100%",
+                              display: "block",
+                              maxHeight: 520,
+                              objectFit: "cover",
+                            }}
+                          />
+                        )}
+
+                        {HeroMediaSlot && <HeroMediaSlot minEmptyHeight="100px" />}
+                      </div>
+                    ) : (
+                      /* Modern Card Frame */
+                      <div
+                        style={{
+                          borderRadius: 20,
+                          overflow: "hidden",
+                          boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
+                          border: "1px solid rgba(255, 255, 255, 0.1)",
+                        }}
+                      >
+                        {imageUrl && (
+                          <img
+                            src={imageUrl}
+                            alt={imageAlt || "Hero visual"}
+                            style={{
+                              width: "100%",
+                              display: "block",
+                              maxHeight: 520,
+                              objectFit: "cover",
+                            }}
+                          />
+                        )}
+                        {HeroMediaSlot && <HeroMediaSlot minEmptyHeight="100px" />}
+                      </div>
+                    )}
+
+                    {/* Floating Stat Card 1 */}
+                    {showFloatingCard1 && floatingCard1Value && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          bottom: 24,
+                          left: -16,
+                          padding: "12px 20px",
+                          borderRadius: 14,
+                          backgroundColor: "rgba(15, 23, 42, 0.9)",
+                          backdropFilter: "blur(12px)",
+                          border: "1px solid rgba(255, 255, 255, 0.16)",
+                          boxShadow: "0 14px 28px rgba(0, 0, 0, 0.35)",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 2,
+                          animation: "puckFadeIn 300ms ease",
+                        }}
+                      >
+                        <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>
+                          {floatingCard1Title || "Performance"}
+                        </span>
+                        <span style={{ fontSize: 18, color: "#ffffff", fontWeight: 800 }}>
+                          {floatingCard1Value}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Floating Stat Card 2 */}
+                    {showFloatingCard2 && floatingCard2Value && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 24,
+                          right: -16,
+                          padding: "12px 20px",
+                          borderRadius: 14,
+                          backgroundColor: "rgba(15, 23, 42, 0.9)",
+                          backdropFilter: "blur(12px)",
+                          border: "1px solid rgba(255, 255, 255, 0.16)",
+                          boxShadow: "0 14px 28px rgba(0, 0, 0, 0.35)",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 2,
+                          animation: "puckFadeIn 300ms ease",
+                        }}
+                      >
+                        <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>
+                          {floatingCard2Title || "Rating"}
+                        </span>
+                        <span style={{ fontSize: 18, color: "#ffffff", fontWeight: 800 }}>
+                          {floatingCard2Value}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
+
+          {/* Full Height Animated Scroll Indicator Arrow */}
+          {isFullHeight && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: 24,
+                left: "50%",
+                transform: "translateX(-50%)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 6,
+                color: textColor || "#ffffff",
+                opacity: 0.75,
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: 0.5,
+              }}
+            >
+              <span>Scroll to explore</span>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                style={{
+                  animation: "puckBounce 1.5s infinite",
+                }}
+              >
+                <path d="M12 5v14M19 12l-7 7-7-7" />
+              </svg>
+            </div>
+          )}
         </AnimationWrapper>
       );
     },
@@ -361,6 +977,7 @@ export const marketingComponents = {
   CallToAction: {
     label: "Call to Action Banner",
     fields: {
+      ctaSlot: { type: "slot" },
       headline: textField("Call to action headline"),
       description: textareaField("Supporting description"),
       badgeText: textField("Small top tag (Optional)"),
@@ -386,6 +1003,7 @@ export const marketingComponents = {
       ...animationFields,
     },
     defaultProps: {
+      ctaSlot: [],
       headline: "Ready to Transform Your Digital Presence?",
       description:
         "Join 10,000+ top designers and engineering teams who build modern, hyper-optimized web applications with our visual platform.",
@@ -403,9 +1021,20 @@ export const marketingComponents = {
       boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)",
       marginTop: "24px",
       marginBottom: "32px",
+      responsive: {
+        tablet: {
+          paddingY: 48,
+          paddingX: 24,
+        },
+        mobile: {
+          paddingY: 32,
+          paddingX: 16,
+        },
+      },
       ...animationDefaults,
     },
     render: ({
+      ctaSlot: CtaSlot,
       headline,
       description,
       badgeText,
@@ -555,6 +1184,11 @@ export const marketingComponents = {
               </a>
             )}
           </div>
+          {CtaSlot && (
+            <div style={{ marginTop: 24 }}>
+              <CtaSlot />
+            </div>
+          )}
         </AnimationWrapper>
       );
     },
@@ -566,6 +1200,7 @@ export const marketingComponents = {
   PricingTable: {
     label: "Pricing Plan Card",
     fields: {
+      customSlot: { type: "slot" },
       planName: textField("Tier title (e.g. Pro, Growth)"),
       badge: textField("Featured badge text (e.g. MOST POPULAR)"),
       isPopular: radioField("Highlight as Featured", [
@@ -594,10 +1229,15 @@ export const marketingComponents = {
       backgroundColor: colorField("Card background"),
       borderRadius: selectField("Corner radius", RADIUS_OPTIONS),
       hoverEffect: selectField("Hover micro-animation", HOVER_EFFECT_OPTIONS),
+      responsive: responsiveField("Responsive overrides", [
+        { name: "marginTop", label: "Top margin", type: "select", options: SPACING_OPTIONS },
+        { name: "marginBottom", label: "Bottom margin", type: "select", options: SPACING_OPTIONS },
+      ]),
       ...spacingFields,
       ...animationFields,
     },
     defaultProps: {
+      customSlot: [],
       planName: "Professional",
       badge: "MOST POPULAR",
       isPopular: true,
@@ -620,9 +1260,11 @@ export const marketingComponents = {
       hoverEffect: "lift-md",
       marginTop: "16px",
       marginBottom: "24px",
+      responsive: {},
       ...animationDefaults,
     },
     render: ({
+      customSlot: CustomSlot,
       planName,
       badge,
       isPopular,
@@ -762,6 +1404,11 @@ export const marketingComponents = {
             {buttonText}
           </a>
         )}
+        {CustomSlot && (
+          <div style={{ marginTop: 16 }}>
+            <CustomSlot />
+          </div>
+        )}
       </AnimationWrapper>
     ),
   },
@@ -788,6 +1435,10 @@ export const marketingComponents = {
         defaultItemProps: { name: "Custom Domain", p1: "No", p2: "Yes", p3: "Unlimited" },
         getItemSummary: (it) => it.name || "Feature",
       },
+      responsive: responsiveField("Responsive overrides", [
+        { name: "marginTop", label: "Top margin", type: "select", options: SPACING_OPTIONS },
+        { name: "marginBottom", label: "Bottom margin", type: "select", options: SPACING_OPTIONS },
+      ]),
       ...spacingFields,
       ...animationFields,
     },
@@ -805,6 +1456,7 @@ export const marketingComponents = {
       ],
       marginTop: "24px",
       marginBottom: "32px",
+      responsive: {},
       ...animationDefaults,
     },
     render: ({
@@ -1617,6 +2269,10 @@ export const marketingComponents = {
         },
         getItemSummary: (item) => item.name || "Logo",
       },
+      responsive: responsiveField("Responsive overrides", [
+        { name: "marginTop", label: "Top margin", type: "select", options: SPACING_OPTIONS },
+        { name: "marginBottom", label: "Bottom margin", type: "select", options: SPACING_OPTIONS },
+      ]),
       ...spacingFields,
       ...animationFields,
     },
@@ -1653,6 +2309,7 @@ export const marketingComponents = {
       ],
       marginTop: "20px",
       marginBottom: "28px",
+      responsive: {},
       ...animationDefaults,
     },
     render: ({

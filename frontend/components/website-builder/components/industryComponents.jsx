@@ -949,6 +949,14 @@ export const industryComponents = {
       ],
       marginTop: "24px",
       marginBottom: "48px",
+      responsive: {
+        tablet: {
+          columns: "2",
+        },
+        mobile: {
+          columns: "1",
+        },
+      },
       ...animationDefaults,
     },
     render: function RenderProductGrid({

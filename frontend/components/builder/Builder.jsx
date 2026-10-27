@@ -1,1521 +1,666 @@
 "use client";
-import SectionLibrary from "./SectionLibrary";
-import React, { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
-import {
-  createWebsiteSection,
-  deleteWebsiteSection,
-  saveWebsiteDraftAction,
-  publishWebsiteAction,
-  createWebsitePageAction,
-  updateWebsitePageAction,
-  deleteWebsitePageAction,
-} from "@/app/builder/actions";
-import SectionRenderer from "@/components/sections/SectionRenderer";
-import BuilderProperties from "./BuilderProperties";
-import { DEFAULT_THEME } from "@/lib/theme";
 
-import {
-  DndContext,
-  closestCenter,
-} from "@dnd-kit/core";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import PuckEditorClient from "@/components/website-builder/PuckEditorClient";
 
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  arrayMove,
-} from "@dnd-kit/sortable";
-import sectionRegistry from "@/components/sections/sectionRegistry";
-import SortableSection from "./SortableSection";
-import PuckPublicRenderer from "@/components/website-builder/PuckPublicRenderer";
+const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+).replace(/\/+$/, "");
 
-// --------------------------------
-// Deterministic Fingerprint Generation (Step 7F-2)
-// --------------------------------
-function canonicalize(obj) {
-  if (obj === null || typeof obj !== 'object') {
-    return obj;
-  }
-  if (Array.isArray(obj)) {
-    return obj.map(canonicalize); // Preserve array order natively
-  }
-  const keys = Object.keys(obj).sort(); // Sort object keys deterministically
-  const result = {};
-  for (const key of keys) {
-    result[key] = canonicalize(obj[key]);
-  }
-  return result;
-}
-
-function generateFingerprint(draft) {
-  // Extract strictly what is persisted by the backend endpoint
-  const payload = {
-    name: draft.name,
-    theme: draft.theme,
-    pages: (draft.pages || []).map(page => ({
-      id: page.id,
-      sections: (page.sections || []).map(section => ({
-        id: section.id,
-        type: section.type,
-        order: section.order,
-        content: section.content || {},
-        config: section.config || {},
-      }))
-    }))
-  };
-
-  return JSON.stringify(canonicalize(payload));
-}
-
-function generateUniqueId() {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
-}
-
-export default function Builder({ website }) {
-  // --------------------------------
-  // State
-  // --------------------------------
-  const lastSavedFingerprint = React.useRef(generateFingerprint(website));
-
-  const [selectedPageId, setSelectedPageId] = useState(
-    website.pages[0]?.id
+function BackIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      className="h-4 w-4"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path d="m15 18-6-6 6-6M9 12h12" />
+    </svg>
   );
-  const [showSectionLibrary, setShowSectionLibrary] = useState(false);
-  const [selectedSectionId, setSelectedSectionId] = useState(null);
-  
-  const [draftWebsite, setDraftWebsite] = useState(website);
+}
 
-  // Track the most recent draftWebsite state for async comparisons
-  const latestDraftWebsiteRef = React.useRef(website);
-  React.useEffect(() => {
-    latestDraftWebsiteRef.current = draftWebsite;
-  }, [draftWebsite]);
+function ExternalIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      className="h-3.5 w-3.5"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      <polyline points="15 3 21 3 21 9" />
+      <line x1="10" y1="14" x2="21" y2="3" />
+    </svg>
+  );
+}
 
-  const [dirtySectionIds, setDirtySectionIds] = useState([]);
-  const [dirtyPageIds, setDirtyPageIds] = useState([]);
-  const [isWebsiteDirty, setIsWebsiteDirty] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState("");
-  const [isPageActionInProgress, setIsPageActionInProgress] = useState(false);
-  const [isPublishing, setIsPublishing] = useState(false);
-  const [publishInfo, setPublishInfo] = useState({
-    isPublished: website.isPublished,
-    publishedAt: website.publishedAt,
-    publicUrl: website.isPublished ? `/${website.slug}` : null, // placeholder format
+function RocketIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      className="h-3.5 w-3.5"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
+      <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
+      <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" />
+      <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
+    </svg>
+  );
+}
+
+export default function Builder({ website: initialWebsite }) {
+  const router = useRouter();
+  const { getToken } = useAuth();
+  const [website, setWebsite] = useState(initialWebsite);
+  const [headersHidden, setHeadersHidden] = useState(false);
+  const [pageActionLoading, setPageActionLoading] = useState(false);
+  const [pageActionError, setPageActionError] = useState("");
+  const [publishLoading, setPublishLoading] = useState(false);
+  const [publishSuccess, setPublishSuccess] = useState(false);
+
+  const websiteId = website?.id;
+
+  const sortedPages = useMemo(() => {
+    return [...(website?.pages || [])].sort(
+      (a, b) => (a.order ?? 0) - (b.order ?? 0)
+    );
+  }, [website?.pages]);
+
+  const [activePageId, setActivePageId] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const urlParam = new URLSearchParams(window.location.search).get("pageId");
+        if (urlParam) return urlParam;
+        if (websiteId) {
+          const stored = sessionStorage.getItem(`active_page_${websiteId}`);
+          if (stored) return stored;
+        }
+      } catch {
+        return "";
+      }
+    }
+    return sortedPages[0]?.id || "";
   });
 
-  // UI Panels & Viewport Mode
-  const [leftTab, setLeftTab] = useState("layers"); // 'layers' | 'pages'
-  const [showLeftSidebar, setShowLeftSidebar] = useState(true);
-  const [showRightSidebar, setShowRightSidebar] = useState(true);
-  const [viewportMode, setViewportMode] = useState("desktop"); // 'desktop' | 'tablet' | 'mobile'
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
-
-  // --------------------------------
-  // Element Selection (Part D/G)
-  // --------------------------------
-  // selectedElement: null | { elementId, elementType, sectionId }
-  const [selectedElement, setSelectedElement] = useState(null);
-
-  // --------------------------------
-  // Selected page & section
-  // --------------------------------
-  const selectedPage = draftWebsite.pages.find(
-    (page) => page.id === selectedPageId
-  );
-
-  const selectedSection = selectedPage?.sections?.find(
-    (section) => section.id === selectedSectionId
-  );
-
-  const hasPuckDocument = Boolean(
-    selectedPage?.editorData &&
-    typeof selectedPage.editorData === "object" &&
-    Array.isArray(selectedPage.editorData.content) &&
-    selectedPage.editorData.content.length > 0
-  );
-
-  const hasLegacySections = Boolean(
-    Array.isArray(selectedPage?.sections) && selectedPage.sections.length > 0
-  );
-
-  const globalLayout = website.template?.globalLayout || null;
-
-  // --------------------------------
-  // --------------------------------
-  // Element Selection Handler
-  // --------------------------------
-  const handleElementSelect = useCallback((sectionId, elementId, elementType) => {
-    setSelectedSectionId(sectionId);
-    setSelectedElement({
-      elementId,
-      elementType,
-      sectionId,
-    });
-  }, []);
-
-  const handleSectionSelect = useCallback((sectionId) => {
-    if (isPreviewMode) return;
-    setSelectedSectionId(sectionId);
-    setSelectedElement(null); // Clear element selection when selecting a section
-  }, [isPreviewMode]);
-
-
-
-  // --------------------------------
-  // Update section content/config
-  // --------------------------------
-  const updateSection = useCallback((sectionId, updates) => {
-    setDraftWebsite((currentWebsite) => ({
-      ...currentWebsite,
-      pages: currentWebsite.pages.map((page) => ({
-        ...page,
-        sections: page.sections.map((section) => {
-          if (section.id !== sectionId) return section;
-          return {
-            ...section,
-            ...updates,
-          };
-        }),
-      })),
-    }));
-
-    setDirtySectionIds((currentIds) => {
-      if (currentIds.includes(sectionId)) return currentIds;
-      return [...currentIds, sectionId];
-    });
-
-    setSaveMessage("");
-  }, []);
-
-  const handleThemeChange = useCallback((themeUpdates) => {
-    setDraftWebsite((current) => ({
-      ...current,
-      ...themeUpdates,
-    }));
-    setIsWebsiteDirty(true);
-    setSaveMessage("");
-  }, []);
-
-  const handleDeleteSection = (sectionId) => {
-    if (!sectionId) {
-      return;
+  // Keep activePageId valid if pages change
+  useEffect(() => {
+    if (sortedPages.length === 0) return;
+    if (!activePageId || !sortedPages.some((p) => p.id === activePageId)) {
+      setActivePageId(sortedPages[0].id);
     }
+  }, [sortedPages, activePageId]);
 
-    const section = selectedPage?.sections?.find(
-      (item) => item.id === sectionId
-    );
-
-    if (!section) {
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `Delete the ${section.type} section?`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    /*
-     * Remove the section from the local builder state.
-     */
-    setDraftWebsite((currentWebsite) => ({
-      ...currentWebsite,
-      pages: currentWebsite.pages.map((page) =>
-        page.id === selectedPageId
-          ? {
-              ...page,
-              sections: page.sections
-                .filter((section) => section.id !== sectionId)
-                .map((section, index) => ({
-                  ...section,
-                  order: index + 1,
-                })),
+  const switchActivePage = useCallback(
+    (nextPageId) => {
+      setActivePageId(nextPageId);
+      if (typeof window !== "undefined") {
+        try {
+          if (nextPageId) {
+            if (websiteId) {
+              sessionStorage.setItem(`active_page_${websiteId}`, nextPageId);
             }
-          : page
-      ),
-    }));
-
-    /*
-     * Clear the selected section because it no longer exists.
-     */
-    if (selectedSectionId === sectionId) {
-      setSelectedSectionId(null);
-      setSelectedElement(null);
-    }
-
-    /*
-     * The page's section ordering has changed after deletion.
-     */
-    setDirtyPageIds((currentIds) => {
-      if (currentIds.includes(selectedPageId)) {
-        return currentIds;
+            const url = new URL(window.location.href);
+            if (url.searchParams.get("pageId") !== nextPageId) {
+              url.searchParams.set("pageId", nextPageId);
+              window.history.replaceState(null, "", url.toString());
+            }
+          } else {
+            if (websiteId) {
+              sessionStorage.removeItem(`active_page_${websiteId}`);
+            }
+            const url = new URL(window.location.href);
+            if (url.searchParams.has("pageId")) {
+              url.searchParams.delete("pageId");
+              window.history.replaceState(null, "", url.toString());
+            }
+          }
+        } catch {
+          // ignore storage/history errors
+        }
       }
-      return [...currentIds, selectedPageId];
-    });
+    },
+    [websiteId]
+  );
 
-    setSaveMessage("");
-  };
+  useEffect(() => {
+    if (!activePageId || typeof window === "undefined") return;
 
-  // --------------------------------
-  // Drag & Drop
-  // --------------------------------
-  const handleDragEnd = ({ active, over }) => {
-    if (!over || active.id === over.id) return;
-
-    const page = draftWebsite.pages.find((p) => p.id === selectedPageId);
-    if (!page) return;
-
-    const oldIndex = page.sections.findIndex((s) => s.id === active.id);
-    const newIndex = page.sections.findIndex((s) => s.id === over.id);
-
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    const reorderedSections = arrayMove(page.sections, oldIndex, newIndex);
-    const updatedSections = reorderedSections.map((section, index) => ({
-      ...section,
-      order: index + 1,
-    }));
-
-    setDraftWebsite((currentWebsite) => ({
-      ...currentWebsite,
-      pages: currentWebsite.pages.map((currentPage) => {
-        if (currentPage.id !== selectedPageId) return currentPage;
-        return {
-          ...currentPage,
-          sections: updatedSections,
-        };
-      }),
-    }));
-
-    setDirtyPageIds((currentIds) => {
-      if (currentIds.includes(selectedPageId)) return currentIds;
-      return [...currentIds, selectedPageId];
-    });
-
-    setSaveMessage("");
-  };
-
-
-  const handleAddSection = (type) => {
-    const definition = sectionRegistry[type];
-
-    if (!definition) {
-      console.error(`Unknown section type: ${type}`);
-      return;
+    try {
+      if (websiteId) {
+        sessionStorage.setItem(`active_page_${websiteId}`, activePageId);
+      }
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("pageId") !== activePageId) {
+        url.searchParams.set("pageId", activePageId);
+        window.history.replaceState(null, "", url.toString());
+      }
+    } catch {
+      // ignore storage/history errors
     }
+  }, [websiteId, activePageId]);
 
-    if (definition.canAdd === false) {
-      console.warn(`Section "${type}" cannot be added.`);
-      return;
-    }
-
-    if (!selectedPage) {
-      console.warn("No page selected.");
-      return;
-    }
-
-    const content = structuredClone(
-      definition.defaultContent || {}
-    );
-
-    const config = structuredClone(
-      definition.defaultConfig || {}
-    );
-
-    // Generate a temporary local ID
-    const tempSectionId = `temp_${generateUniqueId()}`;
-    const nextOrder = selectedPage.sections ? selectedPage.sections.length + 1 : 1;
-
-    const newSection = {
-      id: tempSectionId,
-      type,
-      content,
-      config,
-      order: nextOrder,
-      pageId: selectedPage.id,
+  useEffect(() => {
+    const handlePopState = () => {
+      try {
+        const urlParam = new URLSearchParams(window.location.search).get("pageId");
+        if (urlParam) {
+          setActivePageId(urlParam);
+        }
+      } catch {}
     };
 
-    /*
-     * Add the local section to the builder state.
-     */
-    setDraftWebsite((currentWebsite) => ({
-      ...currentWebsite,
-      pages: currentWebsite.pages.map((page) =>
-        page.id === selectedPage.id
-          ? {
-              ...page,
-              sections: [
-                ...(page.sections || []),
-                newSection,
-              ],
-            }
-          : page
-      ),
-    }));
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
-    /*
-     * Select the newly created section so its properties appear in the inspector.
-     */
-    setSelectedSectionId(newSection.id);
-    setSelectedElement(null);
-
-    setShowSectionLibrary(false);
-
-    setDirtyPageIds((currentIds) => {
-      if (currentIds.includes(selectedPage.id)) return currentIds;
-      return [...currentIds, selectedPage.id];
-    });
-
-    setSaveMessage("");
-  };
-
-
-  // --------------------------------
-  // Move Section Up / Down
-  // --------------------------------
-  const moveSection = (sectionId, direction) => {
-    const page = draftWebsite.pages.find((p) => p.id === selectedPageId);
-    if (!page) return;
-
-    const index = page.sections.findIndex((s) => s.id === sectionId);
-    if (index === -1) return;
-
-    const targetIndex = direction === "up" ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= page.sections.length) return;
-
-    const reorderedSections = arrayMove(page.sections, index, targetIndex);
-    const updatedSections = reorderedSections.map((section, idx) => ({
-      ...section,
-      order: idx + 1,
-    }));
-
-    setDraftWebsite((currentWebsite) => ({
-      ...currentWebsite,
-      pages: currentWebsite.pages.map((currentPage) => {
-        if (currentPage.id !== selectedPageId) return currentPage;
-        return {
-          ...currentPage,
-          sections: updatedSections,
-        };
-      }),
-    }));
-
-    setDirtyPageIds((currentIds) => {
-      if (currentIds.includes(selectedPageId)) return currentIds;
-      return [...currentIds, selectedPageId];
-    });
-
-    setSaveMessage("");
-  };
-
-  // --------------------------------
-  // Save changes
-  // --------------------------------
-  const saveChanges = async () => {
-    if (isSaving) return;
-
-    // Capture the exact snapshot being sent
-    const saveSnapshot = draftWebsite;
-    const saveFingerprint = generateFingerprint(saveSnapshot);
-
-    if (saveFingerprint === lastSavedFingerprint.current) {
-      setSaveMessage("All changes saved");
-      setDirtySectionIds([]);
-      setDirtyPageIds([]);
-      setIsWebsiteDirty(false);
-      return true;
-    }
-
-    if (
-      dirtySectionIds.length === 0 &&
-      dirtyPageIds.length === 0 &&
-      !isWebsiteDirty
-    ) {
-      setSaveMessage("All changes saved");
-      return true;
-    }
+  const refreshWebsite = useCallback(async () => {
+    if (!websiteId) return;
 
     try {
-      setIsSaving(true);
-      setSaveMessage("Saving...");
+      let token = null;
+      try {
+        token = await getToken();
+      } catch {
+        token = null;
+      }
 
-      const result = await saveWebsiteDraftAction(
-        saveSnapshot.id,
-        saveSnapshot
+      const headers = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_URL}/websites/${encodeURIComponent(websiteId)}`, {
+        headers,
+        cache: "no-store",
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (response.ok && result?.success && result?.data) {
+        setWebsite(result.data);
+      }
+    } catch (err) {
+      console.error("Failed to refresh website:", err);
+    }
+  }, [websiteId, getToken]);
+
+  const requestPageAction = useCallback(
+    async (path, method, body) => {
+      let token = null;
+      try {
+        token = await getToken();
+      } catch {
+        token = null;
+      }
+
+      if (!token && process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+        throw new Error("Your session has expired. Please sign in again.");
+      }
+
+      const headers = {
+        ...(body ? { "Content-Type": "application/json" } : {}),
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_URL}${path}`, {
+        method,
+        headers,
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok || !result?.success) {
+        throw new Error(
+          result?.message || `Page action failed (HTTP ${response.status}).`
+        );
+      }
+
+      return result.data;
+    },
+    [getToken]
+  );
+
+  const runPageAction = useCallback(
+    async (action) => {
+      if (pageActionLoading) return;
+
+      setPageActionLoading(true);
+      setPageActionError("");
+
+      try {
+        await action();
+      } catch (actionError) {
+        setPageActionError(
+          actionError instanceof Error
+            ? actionError.message
+            : "Page action failed."
+        );
+      } finally {
+        setPageActionLoading(false);
+      }
+    },
+    [pageActionLoading]
+  );
+
+  const activePage = useMemo(
+    () => sortedPages.find((page) => page.id === activePageId) ?? null,
+    [sortedPages, activePageId]
+  );
+
+  const createPage = useCallback(() => {
+    const name = window.prompt("Enter the new page name:", "New Page");
+    if (name === null || !name.trim()) return;
+
+    void runPageAction(async () => {
+      const page = await requestPageAction(
+        `/websites/${encodeURIComponent(websiteId)}/pages`,
+        "POST",
+        { name: name.trim() }
       );
 
-      if (!result.success) {
-        throw new Error(result.message);
-      }
+      switchActivePage(page.id);
+      await refreshWebsite();
+    });
+  }, [websiteId, requestPageAction, runPageAction, refreshWebsite, switchActivePage]);
 
-      let finalPersistedState = saveSnapshot;
+  const renamePage = useCallback(() => {
+    if (!activePage) return;
 
-      // Apply temporary ID mappings if there are new sections
-      if (result.idMappings && result.idMappings.length > 0) {
-        const mappingDict = {};
-        result.idMappings.forEach((mapping) => {
-          mappingDict[mapping.clientId] = mapping.databaseId;
-        });
+    const name = window.prompt("Enter the new page name:", activePage.name);
+    if (name === null || !name.trim()) return;
 
-        // Construct the explicitly saved payload with permanent IDs
-        finalPersistedState = {
-          ...saveSnapshot,
-          pages: saveSnapshot.pages.map((page) => ({
-            ...page,
-            sections: page.sections.map((section) => {
-              if (mappingDict[section.id]) {
-                return {
-                  ...section,
-                  id: mappingDict[section.id],
-                };
-              }
-              return section;
-            }),
-          })),
-        };
+    void runPageAction(async () => {
+      await requestPageAction(
+        `/websites/pages/${encodeURIComponent(activePage.id)}`,
+        "PATCH",
+        { name: name.trim() }
+      );
 
-        // Apply these mappings to the live React state without overwriting concurrent edits
-        setDraftWebsite((currentLiveState) => ({
-          ...currentLiveState,
-          pages: currentLiveState.pages.map((page) => ({
-            ...page,
-            sections: page.sections.map((section) => {
-              if (mappingDict[section.id]) {
-                return {
-                  ...section,
-                  id: mappingDict[section.id],
-                };
-              }
-              return section;
-            }),
-          })),
-        }));
-        
-        if (mappingDict[selectedSectionId]) {
-          setSelectedSectionId(mappingDict[selectedSectionId]);
-        }
-      }
+      await refreshWebsite();
+    });
+  }, [activePage, requestPageAction, runPageAction, refreshWebsite]);
 
-      // The invariant: this represents exactly what the backend just persisted
-      lastSavedFingerprint.current = generateFingerprint(finalPersistedState);
+  const duplicatePage = useCallback(() => {
+    if (!activePage) return;
 
-      // Determine if the user made changes while the request was in flight
-      const currentLiveFingerprint = generateFingerprint(latestDraftWebsiteRef.current);
-      const hasInFlightEdits = currentLiveFingerprint !== saveFingerprint;
+    void runPageAction(async () => {
+      const page = await requestPageAction(
+        `/websites/${encodeURIComponent(websiteId)}/pages/${encodeURIComponent(activePage.id)}/duplicate`,
+        "POST"
+      );
 
-      if (!hasInFlightEdits) {
-        // No changes occurred during the request
-        setDirtySectionIds([]);
-        setDirtyPageIds([]);
-        setIsWebsiteDirty(false);
-        setSaveMessage("Changes saved");
-      } else {
-        // User edited while saving. Do NOT clear dirty state.
-        setSaveMessage("Unsaved changes");
-      }
-      return true;
-    } catch (error) {
-      console.error("Save error:", error);
-      setSaveMessage("Failed to save");
-      return false;
-    } finally {
-      setIsSaving(false);
-    }
-  };
+      switchActivePage(page.id);
+      await refreshWebsite();
+    });
+  }, [websiteId, activePage, requestPageAction, runPageAction, refreshWebsite, switchActivePage]);
 
-  // --------------------------------
-  // Publish changes
-  // --------------------------------
-  const publishChanges = async () => {
-    if (isPublishing) return;
+  const deletePage = useCallback(() => {
+    if (!activePage || !website) return;
 
-    try {
-      setIsPublishing(true);
-      
-      const currentLiveFingerprint = generateFingerprint(draftWebsite);
-      const hasUnsavedChanges = currentLiveFingerprint !== lastSavedFingerprint.current;
-      
-      if (hasUnsavedChanges || isWebsiteDirty || dirtyPageIds.length > 0 || dirtySectionIds.length > 0) {
-        setSaveMessage("Saving before publish...");
-        const saveSuccess = await saveChanges();
-        
-        if (!saveSuccess) {
-          throw new Error("Failed to save draft before publishing");
-        }
-        
-        // Correctness Fix: Re-check fingerprint after save to ensure no in-flight edits occurred.
-        // If the live state changed while the save request was in flight, the persisted draft
-        // is now stale relative to the screen. Do NOT publish stale data.
-        const postSaveFingerprint = generateFingerprint(latestDraftWebsiteRef.current);
-        if (postSaveFingerprint !== lastSavedFingerprint.current) {
-          throw new Error("Publish cancelled: draft was modified during save. Please publish again.");
-        }
-      }
-
-      setSaveMessage("Publishing...");
-      
-      const result = await publishWebsiteAction(draftWebsite.id);
-      
-      if (!result.success) {
-        throw new Error(result.message || "Failed to publish");
-      }
-      
-      setPublishInfo({
-        isPublished: result.isPublished,
-        publishedAt: result.publishedAt,
-        publicUrl: result.publicUrl,
-      });
-      
-      setSaveMessage("Published successfully!");
-      
-      // Clear the success message after a bit
-      setTimeout(() => setSaveMessage(""), 3000);
-      
-    } catch (error) {
-      console.error("Publish error:", error);
-      setSaveMessage(error.message || "Failed to publish");
-      // Clear the error message after a bit so they know it's not permanently stuck
-      setTimeout(() => setSaveMessage(""), 4000);
-    } finally {
-      setIsPublishing(false);
-    }
-  };
-
-  
-  const createPage = async () => {
-    if (isPageActionInProgress || isSaving || isPublishing) return;
-
-    const name = window.prompt("Enter the new page name:");
-    if (!name?.trim()) return;
-
-    try {
-      setIsPageActionInProgress(true);
-      setSaveMessage("Creating page...");
-
-      // Preserve pending edits before changing the page structure.
-      const hasUnsavedChanges =
-        generateFingerprint(latestDraftWebsiteRef.current) !==
-          lastSavedFingerprint.current ||
-        isWebsiteDirty ||
-        dirtyPageIds.length > 0 ||
-        dirtySectionIds.length > 0;
-
-      if (hasUnsavedChanges) {
-        const saved = await saveChanges();
-        if (!saved) throw new Error("Save your current changes before creating a page.");
-      }
-
-      const result = await createWebsitePageAction(draftWebsite.id, {
-        name: name.trim(),
-      });
-
-      if (!result.success) throw new Error(result.message);
-
-      const newPage = result.data;
-      if (!newPage?.id) throw new Error("The server did not return the created page.");
-
-      setDraftWebsite((current) => ({
-        ...current,
-        pages: [...current.pages, { ...newPage, sections: newPage.sections || [] }],
-      }));
-
-      setSelectedPageId(newPage.id);
-      setSelectedSectionId(null);
-      setSelectedElement(null);
-      setLeftTab("pages");
-      setSaveMessage("Page created successfully");
-    } catch (error) {
-      console.error("Create page error:", error);
-      setSaveMessage(error.message || "Failed to create page");
-    } finally {
-      setIsPageActionInProgress(false);
-    }
-  };
-
-  const renamePage = async (page) => {
-    if (isPageActionInProgress || isSaving || isPublishing) return;
-
-    const name = window.prompt("Enter the new page name:", page.name);
-    if (!name?.trim() || name.trim() === page.name) return;
-
-    try {
-      setIsPageActionInProgress(true);
-      setSaveMessage("Renaming page...");
-
-      const result = await updateWebsitePageAction(page.id, {
-        name: name.trim(),
-      });
-
-      if (!result.success) throw new Error(result.message);
-
-      const updatedPage = result.data;
-
-      setDraftWebsite((current) => ({
-        ...current,
-        pages: current.pages.map((item) =>
-          item.id === page.id
-            ? { ...item, ...updatedPage, sections: item.sections }
-            : item
-        ),
-      }));
-
-      setSaveMessage("Page renamed successfully");
-    } catch (error) {
-      console.error("Rename page error:", error);
-      setSaveMessage(error.message || "Failed to rename page");
-    } finally {
-      setIsPageActionInProgress(false);
-    }
-  };
-
-  const deletePage = async (page) => {
-    if (isPageActionInProgress || isSaving || isPublishing) return;
-
-    if (draftWebsite.pages.length <= 1) {
-      setSaveMessage("A website must have at least one page");
+    if (sortedPages.length <= 1) {
+      setPageActionError("You cannot delete the last page.");
       return;
     }
 
     const confirmed = window.confirm(
-      `Delete "${page.name}" and all its sections? This cannot be undone.`
+      `Delete "${activePage.name}"? This permanently deletes its saved page data.`
     );
+
     if (!confirmed) return;
 
-    try {
-      setIsPageActionInProgress(true);
-      setSaveMessage("Deleting page...");
-
-      const hasUnsavedChanges =
-        generateFingerprint(latestDraftWebsiteRef.current) !==
-          lastSavedFingerprint.current ||
-        isWebsiteDirty ||
-        dirtyPageIds.length > 0 ||
-        dirtySectionIds.length > 0;
-
-      if (hasUnsavedChanges) {
-        const saved = await saveChanges();
-        if (!saved) throw new Error("Save your current changes before deleting a page.");
-      }
-
-      const result = await deleteWebsitePageAction(page.id);
-      if (!result.success) throw new Error(result.message);
-
-      const remainingPages = draftWebsite.pages.filter(
-        (item) => item.id !== page.id
+    void runPageAction(async () => {
+      await requestPageAction(
+        `/websites/pages/${encodeURIComponent(activePage.id)}`,
+        "DELETE"
       );
 
-      setDraftWebsite((current) => ({
-        ...current,
-        pages: current.pages.filter((item) => item.id !== page.id),
-      }));
+      const remainingPages = sortedPages.filter(
+        (page) => page.id !== activePage.id
+      );
 
-      if (selectedPageId === page.id) {
-        const nextPage = remainingPages[0];
-        setSelectedPageId(nextPage.id);
-        setSelectedSectionId(null);
-        setSelectedElement(null);
+      switchActivePage(remainingPages[0]?.id ?? "");
+      await refreshWebsite();
+    });
+  }, [activePage, website, sortedPages, requestPageAction, runPageAction, refreshWebsite, switchActivePage]);
+
+  const movePage = useCallback(
+    (direction) => {
+      if (!website || !activePage) return;
+
+      const pages = [...sortedPages];
+      const currentIndex = pages.findIndex(
+        (page) => page.id === activePage.id
+      );
+      const targetIndex = currentIndex + direction;
+
+      if (targetIndex < 0 || targetIndex >= pages.length) return;
+
+      [pages[currentIndex], pages[targetIndex]] = [
+        pages[targetIndex],
+        pages[currentIndex],
+      ];
+
+      void runPageAction(async () => {
+        await requestPageAction(
+          `/websites/${encodeURIComponent(websiteId)}/pages/reorder`,
+          "PATCH",
+          { pageIds: pages.map((page) => page.id) }
+        );
+
+        await refreshWebsite();
+      });
+    },
+    [website, activePage, sortedPages, websiteId, requestPageAction, runPageAction, refreshWebsite]
+  );
+
+  const handlePublish = useCallback(async () => {
+    if (publishLoading || !websiteId) return;
+
+    setPublishLoading(true);
+    setPageActionError("");
+    setPublishSuccess(false);
+
+    try {
+      let token = null;
+      try {
+        token = await getToken();
+      } catch {
+        token = null;
       }
 
-      setSaveMessage("Page deleted successfully");
-    } catch (error) {
-      console.error("Delete page error:", error);
-      setSaveMessage(error.message || "Failed to delete page");
+      const headers = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_URL}/websites/${encodeURIComponent(websiteId)}/publish`, {
+        method: "POST",
+        headers,
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok || !result?.success) {
+        throw new Error(
+          result?.message || `Failed to publish website (HTTP ${response.status}).`
+        );
+      }
+
+      setPublishSuccess(true);
+      await refreshWebsite();
+      setTimeout(() => setPublishSuccess(false), 6000);
+    } catch (err) {
+      setPageActionError(
+        err instanceof Error ? err.message : "Failed to publish website."
+      );
     } finally {
-      setIsPageActionInProgress(false);
+      setPublishLoading(false);
     }
-  };
+  }, [publishLoading, websiteId, getToken, refreshWebsite]);
 
-
-
-  // --------------------------------
-  // Keyboard Shortcuts (Cmd+S, Esc)
-  // --------------------------------
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
-        e.preventDefault();
-        saveChanges();
-      }
-      if (e.key === "Escape") {
-        if (isPreviewMode) {
-          setIsPreviewMode(false);
-        } else if (selectedElement) {
-          // Clear element selection first, keep section selected
-          setSelectedElement(null);
-        } else {
-          setSelectedSectionId(null);
-        }
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dirtySectionIds, dirtyPageIds, isWebsiteDirty, isPreviewMode, selectedElement, saveChanges]);
-
-  const hasUnsavedChanges = dirtySectionIds.length > 0 || dirtyPageIds.length > 0 || isWebsiteDirty;
-
-  // --------------------------------
-  // Unsaved Navigation Protection
-  // --------------------------------
-  useEffect(() => {
-    const handleBeforeUnload = (event) => {
-      if (!hasUnsavedChanges) return;
-      event.preventDefault();
-      event.returnValue = "";
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [hasUnsavedChanges]);
-
-  // Viewport Container Widths
-  const getViewportWidth = () => {
-    switch (viewportMode) {
-      case "mobile":
-        return "max-w-[390px] shadow-2xl rounded-[32px] border-[8px] border-neutral-800 my-8 overflow-hidden";
-      case "tablet":
-        return "max-w-[768px] shadow-2xl rounded-2xl border-4 border-neutral-800 my-8 overflow-hidden";
-      case "desktop":
-      default:
-        return "w-full max-w-7xl shadow-sm rounded-none border border-neutral-200";
-    }
-  };
-
-  const themeVars = React.useMemo(() => {
-    const colors = draftWebsite.theme?.colors || DEFAULT_THEME.colors;
-    return {
-      "--color-primary": colors.primary,
-      "--color-secondary": colors.secondary,
-      "--color-accent": colors.accent,
-      "--color-background": colors.background,
-      "--color-surface": colors.surface,
-      "--color-text": colors.text,
-      "--color-muted-text": colors.mutedText,
-      "--color-border": colors.border,
-      "--color-success": colors.success,
-      "--color-warning": colors.warning,
-      "--color-error": colors.error,
-    };
-  }, [draftWebsite.theme]);
+  const exitToWebsites = useCallback(() => {
+    router.push("/websites");
+  }, [router]);
 
   return (
-    <div className="flex h-screen flex-col bg-neutral-100 font-sans antialiased text-neutral-900 overflow-hidden select-none">
-      {/* =========================================================
-          WordPress Gutenberg / Webflow Top App Bar
-      ========================================================= */}
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-neutral-200/90 bg-neutral-900 px-4 text-white z-50">
-        {/* Left Section: Back, Wordmark, Page Selector */}
-        <div className="flex items-center gap-3">
-          {/* WordPress / Home Logo Button */}
-          <Link
-            href="/templates"
-            title="Back to Templates"
-            onClick={(e) => {
-              if (hasUnsavedChanges) {
-                if (!window.confirm("You have unsaved changes. Leave without saving?")) {
-                  e.preventDefault();
-                }
-              }
-            }}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-200 hover:text-white transition-colors"
+    <main className="flex h-dvh min-h-0 flex-col overflow-hidden bg-[#f5f6fa] text-gray-950">
+      <header
+        className={`template-editor-header ${
+          headersHidden ? "is-hidden" : ""
+        }`}
+      >
+        <div className="flex min-w-0 items-center gap-3">
+          <button
+            type="button"
+            onClick={exitToWebsites}
+            aria-label="Back to websites"
+            title="Back to websites"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-gray-200 text-gray-600 transition hover:bg-gray-50 hover:text-gray-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-          </Link>
+            <BackIcon />
+          </button>
 
-          <div className="h-5 w-[1px] bg-neutral-800" />
-
-          {/* Website Name & Badge */}
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-white tracking-tight truncate max-w-[140px] sm:max-w-xs">
-                {website.name}
-              </span>
-              <span className={`hidden sm:inline-block rounded px-1.5 py-0.5 text-[10px] font-mono uppercase ${publishInfo.isPublished ? "bg-emerald-900/50 text-emerald-400" : "bg-neutral-800 text-neutral-400"}`}>
-                {publishInfo.isPublished ? "Published" : "Draft"}
-              </span>
-            </div>
-            {publishInfo.isPublished && (
-              <div className="flex items-center gap-2 text-[10px] text-neutral-400">
-                <span>{new Date(publishInfo.publishedAt).toLocaleString()}</span>
-                {publishInfo.publicUrl && (
-                  <a href={publishInfo.publicUrl} target="_blank" rel="noreferrer" className="text-blue-400 hover:text-blue-300">
-                    View Live ↗
-                  </a>
-                )}
-              </div>
-            )}
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 text-sm font-bold text-white shadow-sm">
+            W
           </div>
 
-          <div className="h-5 w-[1px] bg-neutral-800 hidden sm:block" />
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="truncate text-sm font-bold text-gray-950">
+                {website.name}
+              </p>
+              {website.isPublished ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  Live
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                  Draft
+                </span>
+              )}
+            </div>
+            <p className="mt-0.5 text-[11px] text-gray-500">
+              Website Studio <span className="mx-1">/</span> Visual editor
+            </p>
+          </div>
+        </div>
 
-          {/* Page Selector Dropdown */}
-          <div className="relative hidden sm:flex items-center">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <label className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2">
+            <span className="text-xs font-medium text-gray-500">Page</span>
+
             <select
-              value={selectedPageId}
-              onChange={(e) => {
-                setSelectedPageId(e.target.value);
-                setSelectedSectionId(null);
-                setSelectedElement(null);
-              }}
-              className="appearance-none rounded-lg bg-neutral-800 px-3 py-1.5 pr-8 text-xs font-medium text-neutral-200 hover:bg-neutral-750 focus:outline-none cursor-pointer"
+              value={activePageId}
+              onChange={(event) => switchActivePage(event.target.value)}
+              disabled={pageActionLoading}
+              className="max-w-[180px] bg-transparent text-sm font-semibold text-gray-800 outline-none disabled:opacity-50"
+              aria-label="Select page to edit"
             >
-              {draftWebsite.pages.map((page) => (
+              {sortedPages.map((page) => (
                 <option key={page.id} value={page.id}>
-                  Page: {page.name}
+                  {page.name}
                 </option>
               ))}
             </select>
-            <div className="pointer-events-none absolute right-2 text-neutral-400">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </div>
-        </div>
+          </label>
 
-        {/* Center Section: Responsive Device Switcher */}
-        <div className="flex items-center gap-1 bg-neutral-800/80 p-1 rounded-lg border border-neutral-750">
           <button
             type="button"
-            onClick={() => setViewportMode("desktop")}
-            title="Desktop View (100%)"
-            className={`flex h-7 px-2.5 items-center gap-1.5 rounded-md text-xs font-medium transition-all ${viewportMode === "desktop"
-                ? "bg-neutral-900 text-white shadow-xs"
-                : "text-neutral-400 hover:text-white"
-              }`}
+            onClick={createPage}
+            disabled={pageActionLoading}
+            className="rounded-xl bg-violet-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-            <span className="hidden md:inline">Desktop</span>
+            {pageActionLoading ? "Working..." : "+ Add page"}
           </button>
 
           <button
             type="button"
-            onClick={() => setViewportMode("tablet")}
-            title="Tablet View (768px)"
-            className={`flex h-7 px-2.5 items-center gap-1.5 rounded-md text-xs font-medium transition-all ${viewportMode === "tablet"
-                ? "bg-neutral-900 text-white shadow-xs"
-                : "text-neutral-400 hover:text-white"
-              }`}
+            onClick={renamePage}
+            disabled={pageActionLoading || !activePage}
+            className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-            </svg>
-            <span className="hidden md:inline">Tablet</span>
+            Rename
           </button>
 
           <button
             type="button"
-            onClick={() => setViewportMode("mobile")}
-            title="Mobile View (390px)"
-            className={`flex h-7 px-2.5 items-center gap-1.5 rounded-md text-xs font-medium transition-all ${viewportMode === "mobile"
-                ? "bg-neutral-900 text-white shadow-xs"
-                : "text-neutral-400 hover:text-white"
-              }`}
+            onClick={duplicatePage}
+            disabled={pageActionLoading || !activePage}
+            className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-            </svg>
-            <span className="hidden md:inline">Mobile</span>
-          </button>
-        </div>
-
-        {/* Right Section: Status, Preview, Save / Publish */}
-        <div className="flex items-center gap-2.5">
-          {/* Unsaved / Saved Status */}
-          <div className="hidden lg:flex items-center gap-1.5 text-xs">
-            {isSaving ? (
-              <span className="text-neutral-400 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
-                Saving...
-              </span>
-            ) : hasUnsavedChanges ? (
-              <span className="text-amber-400 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-400" />
-                Unsaved changes
-              </span>
-            ) : (
-              <span className="text-emerald-400 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                {saveMessage || "All changes saved"}
-              </span>
-            )}
-          </div>
-
-          <div className="h-5 w-[1px] bg-neutral-800 hidden lg:block" />
-
-          {/* Sidebar toggles */}
-          <button
-            type="button"
-            onClick={() => setShowLeftSidebar(!showLeftSidebar)}
-            title="Toggle Layers Sidebar"
-            className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${showLeftSidebar ? "bg-neutral-800 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-800"
-              }`}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h8m-8 6h16" />
-            </svg>
+            Duplicate
           </button>
 
           <button
             type="button"
-            onClick={() => setShowRightSidebar(!showRightSidebar)}
-            title="Toggle Inspector Sidebar"
-            className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${showRightSidebar ? "bg-neutral-800 text-white" : "text-neutral-400 hover:text-white hover:bg-neutral-800"
-              }`}
+            onClick={() => movePage(-1)}
+            disabled={
+              pageActionLoading ||
+              !activePage ||
+              sortedPages[0]?.id === activePage.id
+            }
+            title="Move page up"
+            aria-label="Move page up"
+            className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-            </svg>
+            ↑
           </button>
 
-          {/* Preview Toggle */}
           <button
             type="button"
-            onClick={() => {
-              setIsPreviewMode(!isPreviewMode);
-              if (!isPreviewMode) {
-                setSelectedElement(null);
-                setSelectedSectionId(null);
-              }
-            }}
-            className="flex items-center gap-1.5 rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-neutral-700 hover:text-white transition-colors"
+            onClick={() => movePage(1)}
+            disabled={
+              pageActionLoading ||
+              !activePage ||
+              sortedPages.at(-1)?.id === activePage.id
+            }
+            title="Move page down"
+            aria-label="Move page down"
+            className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-            <span className="hidden sm:inline">Preview</span>
+            ↓
           </button>
 
-          {/* WordPress Blue Save Action */}
           <button
             type="button"
-            onClick={saveChanges}
-            disabled={isSaving || isPublishing}
-            className="flex items-center gap-1.5 rounded-lg bg-neutral-800 px-4 py-1.5 text-xs font-semibold text-neutral-200 shadow-xs transition hover:bg-neutral-700 active:scale-98 disabled:opacity-60 disabled:cursor-not-allowed border border-neutral-700"
+            onClick={deletePage}
+            disabled={
+              pageActionLoading ||
+              !activePage ||
+              sortedPages.length <= 1
+            }
+            className="rounded-xl border border-red-200 bg-white px-3 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isSaving ? (
-              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-            ) : (
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-              </svg>
-            )}
-            <span>{isSaving ? "Saving..." : "Save Draft"}</span>
+            Delete
           </button>
-          
-          {/* Publish Action */}
+
+          <div className="mx-1 h-5 w-px bg-gray-200" />
+
+          {/* View Live / Preview */}
+          <a
+            href={
+              activePage?.slug && activePage.slug !== "home"
+                ? `/${website.slug}/${activePage.slug}`
+                : `/${website.slug}`
+            }
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Preview published website in a new tab"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+          >
+            <span>Preview</span>
+            <ExternalIcon />
+          </a>
+
+          {/* Publish Website Button */}
           <button
             type="button"
-            onClick={publishChanges}
-            disabled={isSaving || isPublishing}
-            className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-blue-500 active:scale-98 disabled:opacity-60 disabled:cursor-not-allowed"
+            onClick={handlePublish}
+            disabled={publishLoading}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:from-emerald-700 hover:to-teal-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isPublishing ? (
-              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-            ) : (
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>
-            )}
-            <span>{isPublishing ? "Publishing..." : "Publish"}</span>
+            <RocketIcon />
+            <span>{publishLoading ? "Publishing…" : "Publish Website"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={exitToWebsites}
+            className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600"
+          >
+            Exit
           </button>
         </div>
       </header>
 
-      {/* =========================================================
-          Builder Workspace Body
-      ========================================================= */}
-      <div className="flex min-h-0 flex-1 relative">
-        {/* ==============================
-            Left Sidebar: Navigator / Layers & Pages
-        ============================== */}
-        {!isPreviewMode && showLeftSidebar && (
-          <aside className="relative w-72 shrink-0 border-r border-neutral-200 bg-white flex flex-col shadow-xs z-30">
-            {/* Sidebar Tab Switcher */}
-            <div className="flex border-b border-neutral-200 bg-neutral-50/50 p-2 gap-1">
-              <button
-                type="button"
-                onClick={() => setLeftTab("layers")}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold transition-all ${leftTab === "layers"
-                    ? "bg-white text-neutral-900 shadow-xs border border-neutral-200"
-                    : "text-neutral-500 hover:text-neutral-900"
-                  }`}
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                <span>Outline</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setLeftTab("pages")}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold transition-all ${leftTab === "pages"
-                    ? "bg-white text-neutral-900 shadow-xs border border-neutral-200"
-                    : "text-neutral-500 hover:text-neutral-900"
-                  }`}
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <span>Pages ({draftWebsite.pages.length})</span>
-              </button>
-            </div>
-
-            {/* Tab 1: Section Layers (WordPress Document Outline) */}
-            {leftTab === "layers" && (
-              <div className="flex-1 overflow-y-auto p-3 space-y-1">
-                {hasPuckDocument && (
-                  <div className="mb-3 space-y-1">
-                    <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-neutral-400 flex items-center justify-between">
-                      <span>Template Blocks</span>
-                      <span className="font-mono text-neutral-500">{selectedPage.editorData.content.length}</span>
-                    </div>
-                    {selectedPage.editorData.content.map((block, idx) => (
-                      <div
-                        key={block.props?.id || idx}
-                        className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium bg-neutral-50 border border-neutral-200/60 text-neutral-700 hover:bg-neutral-100 transition-colors"
-                      >
-                        <div className="flex items-center gap-2 truncate">
-                          <span className="text-[10px] font-mono text-neutral-400 w-4">
-                            {String(idx + 1).padStart(2, "0")}
-                          </span>
-                          <span className="font-semibold text-neutral-800 truncate">{block.type}</span>
-                          {block.props?.heading && (
-                            <span className="text-neutral-400 truncate max-w-[80px] text-[11px]">
-                              · {block.props.heading}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-neutral-200/70 text-neutral-600 shrink-0">
-                          Template
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-neutral-400 flex items-center justify-between">
-                  <span>{hasPuckDocument ? "Custom Sections" : "Sections on Canvas"}</span>
-                  <span className="font-mono text-neutral-500">{selectedPage?.sections?.length || 0}</span>
-                </div>
-
-                <button
-  type="button"
-  onClick={() => setShowSectionLibrary(true)}
-  className="mb-3 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-neutral-300 bg-neutral-50 px-3 py-2.5 text-xs font-semibold text-neutral-600 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
->
-  <svg
-    className="h-4 w-4"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="2"
-      d="M12 5v14M5 12h14"
-    />
-  </svg>
-
-  Add Section
-</button>
-
-                {selectedPage?.sections?.map((section, idx) => {
-                  const isSelected = section.id === selectedSectionId;
-                  return (
-                    <div
-                      key={section.id}
-                      onClick={() => handleSectionSelect(section.id)}
-                      className={`group flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-all ${isSelected
-                          ? "bg-blue-50 border border-blue-200 text-blue-900 shadow-xs"
-                          : "text-neutral-700 hover:bg-neutral-100"
-                        }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <span className="text-[10px] font-mono text-neutral-400 w-4">
-                          {String(idx + 1).padStart(2, '0')}
-                        </span>
-                        <span className="capitalize font-semibold">{section.type}</span>
-                        {section.content?.heading && (
-                          <span className="text-neutral-400 truncate max-w-[90px] text-[11px]">
-                            · {section.content.heading}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Move controls in outline */}
-                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          type="button"
-                          disabled={idx === 0}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            moveSection(section.id, "up");
-                          }}
-                          className="p-1 rounded hover:bg-neutral-200 text-neutral-600 disabled:opacity-20"
-                          title="Move Up"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 15l7-7 7 7" />
-                          </svg>
-                        </button>
-                        <button
-                          type="button"
-                          disabled={idx === (selectedPage?.sections?.length || 0) - 1}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            moveSection(section.id, "down");
-                          }}
-                          className="p-1 rounded hover:bg-neutral-200 text-neutral-600 disabled:opacity-20"
-                          title="Move Down"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-
-                        <button
-  type="button"
-  onClick={(e) => {
-    e.stopPropagation();
-    handleDeleteSection(section.id);
-  }}
-  className="p-1 rounded hover:bg-red-100 text-red-500"
-  title="Delete Section"
->
-  <svg
-    className="w-3 h-3"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="2"
-      d="M6 7h12M9 7V5h6v2m2 0v12a1 1 0 01-1 1H8a1 1 0 01-1-1V7h10z"
-    />
-  </svg>
-</button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Tab 2: Pages List */}
-            
-  {/* Tab 2: Pages List */}
-  {leftTab === "pages" && (
-    <div className="flex-1 overflow-y-auto p-3 space-y-2">
-      <div className="flex items-center justify-between px-2 py-1">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">
-          Site Hierarchy
-        </span>
-
-        <button
-          type="button"
-          onClick={createPage}
-          disabled={isPageActionInProgress || isSaving || isPublishing}
-          className="rounded-md bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
+      {publishSuccess && (
+        <div
+          role="status"
+          className="mx-4 mt-3 flex shrink-0 items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
         >
-          + Add Page
-        </button>
-      </div>
-
-      {draftWebsite.pages.map((page) => {
-        const isSelected = page.id === selectedPageId;
-
-        return (
-          <div
-            key={page.id}
-            className={`rounded-lg border ${
-              isSelected
-                ? "border-neutral-800 bg-neutral-900 text-white"
-                : "border-neutral-200 bg-white text-neutral-700"
-            }`}
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">🎉 Website published successfully!</span>
+            <span>Your website is live at</span>
+            <a
+              href={`/${website.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold underline hover:text-emerald-950"
+            >
+              /{website.slug}
+            </a>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPublishSuccess(false)}
+            className="shrink-0 font-semibold hover:underline"
+            aria-label="Dismiss message"
           >
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedPageId(page.id);
-                setSelectedSectionId(null);
-                setSelectedElement(null);
-              }}
-              className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left text-xs font-semibold"
-            >
-              <span className="truncate">{page.name}</span>
-              <span className="shrink-0 text-[10px] font-mono opacity-60">
-                /{page.slug || "home"}
-              </span>
-            </button>
-
-            <div className="flex gap-2 px-3 pb-2">
-              <button
-                type="button"
-                onClick={() => renamePage(page)}
-                disabled={isPageActionInProgress || isSaving || isPublishing}
-                className="text-[11px] font-medium text-blue-500 hover:underline disabled:opacity-50"
-              >
-                Rename
-              </button>
-
-              <button
-                type="button"
-                onClick={() => deletePage(page)}
-                disabled={
-                  draftWebsite.pages.length <= 1 ||
-                  isPageActionInProgress ||
-                  isSaving ||
-                  isPublishing
-                }
-                className="text-[11px] font-medium text-red-500 hover:underline disabled:opacity-40"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        );
-      })}
-
-      {isPageActionInProgress && (
-        <p className="px-2 py-1 text-xs text-neutral-500">
-          Updating pages...
-        </p>
+            Dismiss
+          </button>
+        </div>
       )}
-    </div>
-  )}
 
+      {pageActionError && (
+        <div
+          role="alert"
+          className="mx-4 mt-3 flex shrink-0 items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          <span>{pageActionError}</span>
+          <button
+            type="button"
+            onClick={() => setPageActionError("")}
+            className="shrink-0 font-semibold hover:underline"
+            aria-label="Dismiss error"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
-            {showSectionLibrary && (
-              <SectionLibrary
-                onClose={() => setShowSectionLibrary(false)}
-                onSelect={handleAddSection}
-              />
-            )}
-          </aside>
-        )}
-
-        {/* ==============================
-            Center Canvas
-        ============================== */}
-        <main className="min-w-0 flex-1 overflow-auto bg-neutral-100/90 flex flex-col items-center relative select-text">
-          {/* Viewport Info Bar in Canvas */}
-          <div className="w-full flex items-center justify-between px-6 py-2 border-b border-neutral-200/60 bg-white/50 text-[11px] font-mono text-neutral-500 shrink-0">
-            <div>
-              <span>Editing: </span>
-              <strong className="text-neutral-900 font-semibold">{selectedPage?.name}</strong>
-              <span className="mx-2 text-neutral-300">·</span>
-              <span>Route: /{selectedPage?.slug || 'home'}</span>
-            </div>
-            <div>
-              <span>Device Canvas: </span>
-              <strong className="text-neutral-900 capitalize font-semibold">{viewportMode}</strong>
-            </div>
+      <section
+        className="min-h-0 min-w-0 flex-1 overflow-hidden"
+        aria-label="Website page editor"
+      >
+        {!activePageId ? (
+          <div className="flex h-full items-center justify-center p-6">
+            <p className="text-sm text-gray-500">
+              Select a page to start editing.
+            </p>
           </div>
-
-          {/* Actual Canvas Container */}
-          <div className="w-full flex-1 p-4 md:p-8 flex justify-center items-start">
-            <div 
-              className={`transition-all duration-300 bg-white shadow-xl ${getViewportWidth()}`}
-              style={themeVars}
-            >
-              {/* Optional Global Layout Header */}
-              {globalLayout?.header?.enabled && (
-                <header
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 16,
-                    flexWrap: "wrap",
-                    padding: "16px 24px",
-                    backgroundColor: globalLayout.header.backgroundColor || "#ffffff",
-                    color: globalLayout.header.textColor || "#111827",
-                    borderBottom: "1px solid #e5e7eb",
-                  }}
-                >
-                  {globalLayout.header.logoUrl ? (
-                    <img
-                      src={globalLayout.header.logoUrl}
-                      alt={globalLayout.header.logoText || "Brand"}
-                      style={{ maxWidth: 160, maxHeight: 48, objectFit: "contain" }}
-                    />
-                  ) : (
-                    <strong>{globalLayout.header.logoText || "Brand"}</strong>
-                  )}
-
-                  <nav style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                    {(globalLayout.header.links || []).map((link, index) => (
-                      <span
-                        key={`${link.href}-${index}`}
-                        style={{
-                          color: globalLayout.header.textColor || "#111827",
-                          fontSize: 14,
-                          fontWeight: 500,
-                        }}
-                      >
-                        {link.label}
-                      </span>
-                    ))}
-                  </nav>
-                </header>
-              )}
-
-              {/* Puck Template Content */}
-              {hasPuckDocument && (
-                <div className="puck-document-canvas">
-                  <PuckPublicRenderer data={selectedPage.editorData} />
-                </div>
-              )}
-
-              {/* Legacy / Custom Sections */}
-              {hasLegacySections && (
-                <DndContext
-                  id="website-builder-dnd"
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleDragEnd}
-                >
-                  <SortableContext
-                    items={selectedPage?.sections.map((section) => section.id) || []}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    {selectedPage?.sections.map((section, idx) => (
-                      <SortableSection
-                        key={section.id}
-                        section={section}
-                        isSelected={section.id === selectedSectionId && !isPreviewMode}
-                        isPreviewMode={isPreviewMode}
-                        onSelect={() => handleSectionSelect(section.id)}
-                        onElementSelect={handleElementSelect}
-                        selectedElement={
-                          selectedElement?.sectionId === section.id
-                            ? selectedElement
-                            : null
-                        }
-                        onMoveUp={() => moveSection(section.id, "up")}
-                        onMoveDown={() => moveSection(section.id, "down")}
-                        isFirst={idx === 0}
-                        isLast={idx === (selectedPage?.sections.length || 0) - 1}
-                      />
-                    ))}
-                  </SortableContext>
-                </DndContext>
-              )}
-
-              {/* Empty Page State */}
-              {!hasPuckDocument && !hasLegacySections && (
-                <div className="py-24 text-center px-4">
-                  <div className="w-12 h-12 rounded-full bg-neutral-100 text-neutral-400 flex items-center justify-center mx-auto mb-3">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 4v16m8-8H4" />
-                    </svg>
-                  </div>
-                  <h3 className="text-sm font-semibold text-neutral-900">Page is empty</h3>
-                  <p className="text-xs text-neutral-500 mt-1 max-w-xs mx-auto">
-                    Click &quot;Add Section&quot; in the left sidebar to add components to this page.
-                  </p>
-                </div>
-              )}
-
-              {/* Optional Global Layout Footer */}
-              {globalLayout?.footer?.enabled && (
-                <footer
-                  style={{
-                    padding: "24px",
-                    backgroundColor: globalLayout.footer.backgroundColor || "#111827",
-                    color: globalLayout.footer.textColor || "#ffffff",
-                  }}
-                >
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <p style={{ margin: 0, fontSize: 14 }}>
-                      {globalLayout.footer.copyrightText || "© All rights reserved."}
-                    </p>
-                    <nav style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                      {(globalLayout.footer.links || []).map((link, index) => (
-                        <span
-                          key={`${link.href}-${index}`}
-                          style={{
-                            color: globalLayout.footer.textColor || "#ffffff",
-                            fontSize: 14,
-                          }}
-                        >
-                          {link.label}
-                        </span>
-                      ))}
-                    </nav>
-                  </div>
-                </footer>
-              )}
-            </div>
+        ) : (
+          <div className="h-full min-h-0 min-w-0 overflow-hidden">
+            <PuckEditorClient
+              key={`puck-web-${website.id}-${activePageId}`}
+              websiteId={website.id}
+              pageId={activePageId}
+              pages={sortedPages}
+              templateName={website.name}
+              getToken={getToken}
+              headersHidden={headersHidden}
+              onHeaderVisibilityChange={setHeadersHidden}
+            />
           </div>
-
-          {/* Floating Exit Preview Pill if in Preview Mode */}
-          {isPreviewMode && (
-            <div className="fixed bottom-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
-              <button
-                type="button"
-                onClick={() => setIsPreviewMode(false)}
-                className="flex items-center gap-2 rounded-full bg-neutral-900/95 text-white px-5 py-2.5 text-xs font-semibold shadow-2xl backdrop-blur-md border border-neutral-700 hover:bg-neutral-800 transition-all hover:scale-105 cursor-pointer"
-              >
-                <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                <span>Exit Preview Mode (Esc)</span>
-              </button>
-            </div>
-          )}
-        </main>
-
-        {/* ==============================
-            Right Inspector: Block & Page Properties
-        ============================== */}
-        {!isPreviewMode && showRightSidebar && (
-          <BuilderProperties
-            website={draftWebsite}
-            onThemeChange={handleThemeChange}
-            selectedSection={selectedSection}
-            selectedElement={selectedElement}
-            onChange={updateSection}
-            selectedPage={selectedPage}
-            onClose={() => {
-              setSelectedSectionId(null);
-              setSelectedElement(null);
-            }}
-            onClearElement={() => setSelectedElement(null)}
-            onElementSelect={handleElementSelect}
-
-            websiteId={draftWebsite.id}
-            pages={draftWebsite.pages || []}
-            onPageCreated={(page) => {
-            setDraftWebsite((current) => ({
-            ...current,
-            pages: [...(current.pages || []), page],
-            }));
-            }}
-          />
         )}
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

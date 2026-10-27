@@ -48,7 +48,7 @@ export const actionComponents = {
       color: colorField("Text color"),
       gradientFrom: colorField("Gradient color 1 (From)"),
       gradientTo: colorField("Gradient color 2 (To)"),
-      icon: selectField("Leading / Trailing Icon", ["none", ...ICON_PRESETS]),
+      icon: selectField("Leading / Trailing Icon", ICON_PRESETS),
       iconPosition: selectField("Icon position", [
         { label: "Left", value: "left" },
         { label: "Right", value: "right" },
@@ -93,6 +93,12 @@ export const actionComponents = {
       alignment: "left",
       marginTop: "8px",
       marginBottom: "16px",
+      responsive: {
+        mobile: {
+          fullWidth: true,
+          fontSize: 14,
+        },
+      },
       ...animationDefaults,
     },
     render: ({
@@ -267,6 +273,12 @@ export const actionComponents = {
       gap: 16,
       marginTop: "16px",
       marginBottom: "24px",
+      responsive: {
+        mobile: {
+          direction: "column",
+          fullWidth: true,
+        },
+      },
       ...animationDefaults,
     },
     render: ({
@@ -414,6 +426,7 @@ export const actionComponents = {
       fontWeight: "600",
       textDecoration: "none",
       ...commonDesignDefaults,
+      responsive: {},
       ...animationDefaults,
     },
     render: ({

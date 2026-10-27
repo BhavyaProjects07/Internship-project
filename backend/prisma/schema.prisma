@@ -68,6 +68,9 @@ model TemplatePage {
    // Canonical Puck document for editing this template page.
   editorData Json?
 
+  // Dedicated page-level responsive configuration.
+  responsive Json?
+
   template Template          @relation(fields: [templateId], references: [id], onDelete: Cascade)
   sections TemplateSection[]
 
@@ -117,6 +120,9 @@ model WebsitePage {
 
    // Canonical Puck document for editing this template page.
   editorData Json?
+
+  // Dedicated page-level responsive configuration.
+  responsive Json?
 
   website  Website          @relation(fields: [websiteId], references: [id], onDelete: Cascade)
   sections WebsiteSection[]

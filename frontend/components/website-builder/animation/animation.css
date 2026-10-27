@@ -294,3 +294,53 @@
     opacity: 1 !important;
   }
 }
+
+/* ==========================================================================
+   Page-Level Responsive Layout System (Container Queries & Media Queries)
+   ========================================================================== */
+
+.website-page-root {
+  contain: layout style;
+}
+
+.website-page-container {
+  transition: max-width 0.2s ease, padding 0.2s ease, font-size 0.2s ease;
+}
+
+/* Container Queries for Visual Studio Canvas Preview */
+@container studio-preview (max-width: 960px) {
+  .website-page-container {
+    max-width: var(--page-max-width-tablet) !important;
+    padding-inline: var(--page-padding-x-tablet) !important;
+    padding-block: var(--page-padding-y-tablet) !important;
+    font-size: var(--page-font-size-tablet) !important;
+  }
+}
+
+@container studio-preview (max-width: 480px) {
+  .website-page-container {
+    max-width: var(--page-max-width-mobile) !important;
+    padding-inline: var(--page-padding-x-mobile) !important;
+    padding-block: var(--page-padding-y-mobile) !important;
+    font-size: var(--page-font-size-mobile) !important;
+  }
+}
+
+/* Standard Media Queries for Direct / Public Viewports */
+@media (max-width: 960px) {
+  .website-page-container {
+    max-width: var(--page-max-width-tablet);
+    padding-inline: var(--page-padding-x-tablet);
+    padding-block: var(--page-padding-y-tablet);
+    font-size: var(--page-font-size-tablet);
+  }
+}
+
+@media (max-width: 480px) {
+  .website-page-container {
+    max-width: var(--page-max-width-mobile);
+    padding-inline: var(--page-padding-x-mobile);
+    padding-block: var(--page-padding-y-mobile);
+    font-size: var(--page-font-size-mobile);
+  }
+}
