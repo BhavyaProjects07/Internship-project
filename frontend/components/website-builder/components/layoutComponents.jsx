@@ -276,6 +276,16 @@ export const layoutComponents = {
           ],
         },
         {
+          key: "width",
+          label: "Width (e.g. 100%, 800px)",
+          type: "text",
+        },
+        {
+          key: "maxWidth",
+          label: "Max width (e.g. 100%, 1200px)",
+          type: "text",
+        },
+        {
           key: "gap",
           label: "Item spacing gap (px)",
           type: "number",
@@ -291,6 +301,18 @@ export const layoutComponents = {
         {
           key: "paddingBottom",
           label: "Padding bottom",
+          type: "select",
+          options: SPACING_OPTIONS,
+        },
+        {
+          key: "paddingLeft",
+          label: "Padding left",
+          type: "select",
+          options: SPACING_OPTIONS,
+        },
+        {
+          key: "paddingRight",
+          label: "Padding right",
           type: "select",
           options: SPACING_OPTIONS,
         },
@@ -358,9 +380,13 @@ export const layoutComponents = {
         responsive,
         variableMap: {
           display: "--puck-display",
+          width: "--puck-width",
+          maxWidth: "--puck-max-width",
           gap: "--puck-gap",
           paddingTop: "--puck-padding-top",
           paddingBottom: "--puck-padding-bottom",
+          paddingLeft: "--puck-padding-left",
+          paddingRight: "--puck-padding-right",
         },
       });
 

@@ -467,8 +467,12 @@ export const responsiveField = (arg1 = [], arg2 = "Responsive overrides") => {
 };
 
 function ResponsiveSettingsInput({ settings = [], value = {}, onChange }) {
-  const [device, setDevice] = useState("mobile");
+  const [device, setDevice] = useState("desktop");
   const safeSettings = Array.isArray(settings) ? settings : [];
+
+  const desktopOverridesCount = Object.keys(value?.desktop || {}).filter(
+    (k) => value.desktop[k] !== undefined && value.desktop[k] !== null && value.desktop[k] !== ""
+  ).length;
 
   const tabletOverridesCount = Object.keys(value?.tablet || {}).filter(
     (k) => value.tablet[k] !== undefined && value.tablet[k] !== null && value.tablet[k] !== ""
@@ -479,16 +483,12 @@ function ResponsiveSettingsInput({ settings = [], value = {}, onChange }) {
   ).length;
 
   const deviceOptions = [
-    { id: "desktop", label: "Desktop", count: 0 },
+    { id: "desktop", label: "Desktop", count: desktopOverridesCount },
     { id: "tablet", label: "Tablet", count: tabletOverridesCount },
     { id: "mobile", label: "Mobile", count: mobileOverridesCount },
   ];
 
   const updateValue = (key, nextValue) => {
-    if (device === "desktop") {
-      return;
-    }
-
     const currentDeviceValues = { ...(value?.[device] || {}) };
 
     if (nextValue === "" || nextValue === null || nextValue === undefined) {
@@ -513,6 +513,31 @@ function ResponsiveSettingsInput({ settings = [], value = {}, onChange }) {
     const nextValue = { ...value };
     delete nextValue[device];
     onChange(nextValue);
+  };
+
+  const getInheritedPlaceholder = (settingKey) => {
+    if (device === "desktop") {
+      return "Inherit base setting";
+    }
+    if (device === "tablet") {
+      const dVal = value?.desktop?.[settingKey];
+      if (dVal !== undefined && dVal !== null && dVal !== "") {
+        return `Inherit desktop (${dVal})`;
+      }
+      return "Inherit desktop setting";
+    }
+    if (device === "mobile") {
+      const tVal = value?.tablet?.[settingKey];
+      if (tVal !== undefined && tVal !== null && tVal !== "") {
+        return `Inherit tablet (${tVal})`;
+      }
+      const dVal = value?.desktop?.[settingKey];
+      if (dVal !== undefined && dVal !== null && dVal !== "") {
+        return `Inherit desktop (${dVal})`;
+      }
+      return "Inherit desktop setting";
+    }
+    return "Inherit setting";
   };
 
   const inputStyle = {
@@ -586,20 +611,20 @@ function ResponsiveSettingsInput({ settings = [], value = {}, onChange }) {
       {device === "desktop" && (
         <div
           style={{
-            padding: 10,
+            padding: "8px 10px",
             borderRadius: 7,
             background: "#f8fafc",
             color: "#475569",
-            fontSize: 12,
-            lineHeight: 1.5,
+            fontSize: 11,
+            lineHeight: 1.4,
             border: "1px solid #e2e8f0",
           }}
         >
-          Desktop uses the component&apos;s base settings in the Inspector. Switch to <strong>Tablet</strong> or <strong>Mobile</strong> above to customize overrides for smaller screens.
+          Desktop uses the component&apos;s base settings by default. Set overrides here for explicit desktop breakpoint configuration.
         </div>
       )}
 
-      {device !== "desktop" && safeSettings.length === 0 && (
+      {safeSettings.length === 0 && (
         <div
           style={{
             padding: 10,
@@ -615,130 +640,117 @@ function ResponsiveSettingsInput({ settings = [], value = {}, onChange }) {
         </div>
       )}
 
-      {device !== "desktop" &&
-        safeSettings.map((setting) => {
-          const settingKey = setting.key || setting.name;
-          if (!settingKey) return null;
+      {safeSettings.map((setting) => {
+        const settingKey = setting.key || setting.name;
+        if (!settingKey) return null;
 
-          const currentValue = value?.[device]?.[settingKey] ?? "";
-          const isOverridden = currentValue !== "";
+        const currentValue = value?.[device]?.[settingKey] ?? "";
+        const isOverridden = currentValue !== "";
+        const placeholder = getInheritedPlaceholder(settingKey);
 
-          return (
-            <label
-              key={settingKey}
-              style={{
-                display: "grid",
-                gap: 5,
-                color: "#334155",
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span>{setting.label || settingKey}</span>
-                {isOverridden && (
-                  <span style={{ fontSize: 10, color: "#4f46e5", fontWeight: 700 }}>
-                    Customized
-                  </span>
-                )}
-              </div>
-
-              {setting.type === "select" ? (
-                <select
-                  value={String(currentValue)}
-                  onChange={(event) =>
-                    updateValue(settingKey, event.target.value)
-                  }
-                  style={{
-                    ...inputStyle,
-                    borderColor: isOverridden ? "#818cf8" : "#cbd5e1",
-                    backgroundColor: isOverridden ? "#fbfbfe" : "#ffffff",
-                  }}
-                >
-                  <option value="">
-                    {device === "mobile" && value?.tablet?.[settingKey] !== undefined
-                      ? `Inherit tablet (${value.tablet[settingKey]})`
-                      : "Inherit desktop setting"}
-                  </option>
-                  {(Array.isArray(setting.options) ? normalizeOptions(setting.options) : []).map((option) => (
-                    <option
-                      key={`resp-opt-${String(option.value)}`}
-                      value={String(option.value)}
-                    >
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              ) : setting.type === "text" ? (
-                <input
-                  type="text"
-                  value={currentValue}
-                  placeholder={
-                    device === "mobile" && value?.tablet?.[settingKey] !== undefined
-                      ? `Inherit tablet (${value.tablet[settingKey]})`
-                      : "Inherit desktop setting"
-                  }
-                  onChange={(event) =>
-                    updateValue(settingKey, event.target.value)
-                  }
-                  style={{
-                    ...inputStyle,
-                    borderColor: isOverridden ? "#818cf8" : "#cbd5e1",
-                  }}
-                />
-              ) : (
-                <input
-                  type="number"
-                  min={setting.min}
-                  max={setting.max}
-                  step={setting.step ?? 1}
-                  value={currentValue}
-                  placeholder={
-                    device === "mobile" && value?.tablet?.[settingKey] !== undefined
-                      ? `Inherit tablet (${value.tablet[settingKey]})`
-                      : "Inherit desktop setting"
-                  }
-                  onChange={(event) => {
-                    const raw = event.target.value;
-                    updateValue(
-                      settingKey,
-                      raw === "" ? "" : Number(raw)
-                    );
-                  }}
-                  style={{
-                    ...inputStyle,
-                    borderColor: isOverridden ? "#818cf8" : "#cbd5e1",
-                  }}
-                />
-              )}
-            </label>
-          );
-        })}
-
-      {device !== "desktop" && (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 4 }}>
-          <button
-            type="button"
-            onClick={clearDeviceOverrides}
+        return (
+          <label
+            key={settingKey}
             style={{
-              padding: "6px 10px",
-              border: "1px solid #cbd5e1",
-              borderRadius: 6,
-              background: "#fff",
-              color: "#64748b",
-              fontSize: 11,
-              fontWeight: 500,
-              cursor: "pointer",
+              display: "grid",
+              gap: 5,
+              color: "#334155",
+              fontSize: 12,
+              fontWeight: 600,
             }}
           >
-            Reset {device} overrides
-          </button>
-          <span style={{ color: "#94a3b8", fontSize: 10 }}>
-            Inherits automatically
-          </span>
-        </div>
-      )}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span>{setting.label || settingKey}</span>
+              {isOverridden && (
+                <span style={{ fontSize: 10, color: "#4f46e5", fontWeight: 700 }}>
+                  Customized
+                </span>
+              )}
+            </div>
+
+            {setting.type === "select" ? (
+              <select
+                value={String(currentValue)}
+                onChange={(event) =>
+                  updateValue(settingKey, event.target.value)
+                }
+                style={{
+                  ...inputStyle,
+                  borderColor: isOverridden ? "#818cf8" : "#cbd5e1",
+                  backgroundColor: isOverridden ? "#fbfbfe" : "#ffffff",
+                }}
+              >
+                <option value="">
+                  {placeholder}
+                </option>
+                {(Array.isArray(setting.options) ? normalizeOptions(setting.options) : []).map((option) => (
+                  <option
+                    key={`resp-opt-${String(option.value)}`}
+                    value={String(option.value)}
+                  >
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            ) : setting.type === "text" ? (
+              <input
+                type="text"
+                value={currentValue}
+                placeholder={placeholder}
+                onChange={(event) =>
+                  updateValue(settingKey, event.target.value)
+                }
+                style={{
+                  ...inputStyle,
+                  borderColor: isOverridden ? "#818cf8" : "#cbd5e1",
+                }}
+              />
+            ) : (
+              <input
+                type="number"
+                min={setting.min}
+                max={setting.max}
+                step={setting.step ?? 1}
+                value={currentValue}
+                placeholder={placeholder}
+                onChange={(event) => {
+                  const raw = event.target.value;
+                  updateValue(
+                    settingKey,
+                    raw === "" ? "" : Number(raw)
+                  );
+                }}
+                style={{
+                  ...inputStyle,
+                  borderColor: isOverridden ? "#818cf8" : "#cbd5e1",
+                }}
+              />
+            )}
+          </label>
+        );
+      })}
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 4 }}>
+        <button
+          type="button"
+          onClick={clearDeviceOverrides}
+          style={{
+            padding: "6px 10px",
+            border: "1px solid #cbd5e1",
+            borderRadius: 6,
+            background: "#fff",
+            color: "#64748b",
+            fontSize: 11,
+            fontWeight: 500,
+            cursor: "pointer",
+          }}
+        >
+          Reset {device} overrides
+        </button>
+        <span style={{ color: "#94a3b8", fontSize: 10 }}>
+          {device === "desktop" ? "Falls back to base setting" : "Inherits automatically"}
+        </span>
+      </div>
     </div>
   );
 }
-

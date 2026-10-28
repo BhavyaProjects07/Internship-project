@@ -492,6 +492,7 @@ const getUserWebsites = async (
         templateId: true,
         createdAt: true,
         updatedAt: true,
+        publishedData: true,
         theme: true,
         isPublished: true,
         publishedAt: true,
@@ -1451,6 +1452,7 @@ const saveWebsiteDraft = async (
       select: {
         id: true,
         updatedAt: true,
+        publishedData: true,
       },
     });
 
@@ -1551,6 +1553,7 @@ const publishWebsite = async (websiteId, userId, customSlug = null) => {
         isPublished: true,
         publishedAt: true,
         updatedAt: true,
+        publishedData: true,
       },
     });
   });

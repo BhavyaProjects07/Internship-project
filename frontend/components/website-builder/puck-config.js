@@ -162,6 +162,81 @@ export const puckConfig = {
       const tabletFontSize = tablet.baseFontSize || "15px";
       const mobileFontSize = mobile.baseFontSize || "14px";
 
+      const pageResponsiveCss = `
+        .website-page-container {
+          max-width: var(--page-max-width, ${desktopMaxWidth});
+          padding-inline: var(--page-padding-x, ${desktopPaddingX});
+          padding-block: var(--page-padding-y, ${desktopPaddingY});
+          font-size: var(--page-font-size, ${desktopFontSize});
+        }
+        @media (min-width: 1024px) {
+          .website-page-container {
+            --page-max-width: ${desktopMaxWidth};
+            --page-padding-x: ${desktopPaddingX};
+            --page-padding-y: ${desktopPaddingY};
+            --page-font-size: ${desktopFontSize};
+          }
+        }
+        @media (min-width: 768px) and (max-width: 1023px) {
+          .website-page-container {
+            --page-max-width: ${tabletMaxWidth};
+            --page-padding-x: ${tabletPaddingX};
+            --page-padding-y: ${tabletPaddingY};
+            --page-font-size: ${tabletFontSize};
+          }
+        }
+        @media (max-width: 767px) {
+          .website-page-container {
+            --page-max-width: ${mobileMaxWidth};
+            --page-padding-x: ${mobilePaddingX};
+            --page-padding-y: ${mobilePaddingY};
+            --page-font-size: ${mobileFontSize};
+          }
+        }
+        .studio-preview-desktop .website-page-container {
+          --page-max-width: ${desktopMaxWidth};
+          --page-padding-x: ${desktopPaddingX};
+          --page-padding-y: ${desktopPaddingY};
+          --page-font-size: ${desktopFontSize};
+        }
+        .studio-preview-tablet .website-page-container {
+          --page-max-width: ${tabletMaxWidth};
+          --page-padding-x: ${tabletPaddingX};
+          --page-padding-y: ${tabletPaddingY};
+          --page-font-size: ${tabletFontSize};
+        }
+        .studio-preview-mobile .website-page-container {
+          --page-max-width: ${mobileMaxWidth};
+          --page-padding-x: ${mobilePaddingX};
+          --page-padding-y: ${mobilePaddingY};
+          --page-font-size: ${mobileFontSize};
+        }
+        @container studio-preview (min-width: 1024px) {
+          .website-page-container {
+            --page-max-width: ${desktopMaxWidth};
+            --page-padding-x: ${desktopPaddingX};
+            --page-padding-y: ${desktopPaddingY};
+            --page-font-size: ${desktopFontSize};
+          }
+        }
+        @container studio-preview (min-width: 768px) and (max-width: 1023px) {
+          .website-page-container {
+            --page-max-width: ${tabletMaxWidth};
+            --page-padding-x: ${tabletPaddingX};
+            --page-padding-y: ${tabletPaddingY};
+            --page-font-size: ${tabletFontSize};
+          }
+        }
+        @container studio-preview (max-width: 767px) {
+          .website-page-container {
+            --page-max-width: ${mobileMaxWidth};
+            --page-padding-x: ${mobilePaddingX};
+            --page-padding-y: ${mobilePaddingY};
+            --page-font-size: ${mobileFontSize};
+          }
+        }
+      `;
+
       return (
         <div
           className="website-page-root"
@@ -188,17 +263,18 @@ export const puckConfig = {
             "--page-font-size-mobile": mobileFontSize,
           }}
         >
+          <style dangerouslySetInnerHTML={{ __html: pageResponsiveCss }} />
           <div
             className="website-page-container"
             style={{
               boxSizing: "border-box",
               width: "100%",
-              maxWidth: desktopMaxWidth,
+              maxWidth: `var(--page-max-width, ${desktopMaxWidth})`,
               minWidth: 0,
               marginInline: "auto",
-              paddingInline: desktopPaddingX,
-              paddingBlock: desktopPaddingY,
-              fontSize: desktopFontSize,
+              paddingInline: `var(--page-padding-x, ${desktopPaddingX})`,
+              paddingBlock: `var(--page-padding-y, ${desktopPaddingY})`,
+              fontSize: `var(--page-font-size, ${desktopFontSize})`,
             }}
           >
             {children}

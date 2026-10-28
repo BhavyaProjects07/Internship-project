@@ -35,8 +35,13 @@ export const formComponents = {
         { label: "No", value: false },
       ]),
       responsive: responsiveField("Responsive overrides", [
+        { name: "width", label: "Form width (e.g. 100%, 600px)", type: "text" },
+        { name: "maxWidth", label: "Max width (e.g. 100%, 700px)", type: "text" },
+        { name: "gap", label: "Field spacing gap (px)", type: "number", min: 4, max: 48 },
         { name: "paddingY", label: "Vertical padding (px)", type: "number", min: 16, max: 80 },
         { name: "paddingX", label: "Horizontal padding (px)", type: "number", min: 12, max: 60 },
+        { name: "marginTop", label: "Top margin (px)", type: "text" },
+        { name: "marginBottom", label: "Bottom margin (px)", type: "text" },
       ]),
       ...spacingFields,
       ...animationFields,
@@ -92,6 +97,11 @@ export const formComponents = {
         variableMap: {
           paddingY: "--puck-padding-y",
           paddingX: "--puck-padding-x",
+          gap: "--puck-gap",
+          width: "--puck-width",
+          maxWidth: "--puck-max-width",
+          marginTop: "--puck-margin-top",
+          marginBottom: "--puck-margin-bottom",
         },
       });
 
@@ -153,11 +163,12 @@ export const formComponents = {
               border: "1px solid #e2e8f0",
               boxShadow: "0 10px 25px -5px rgba(0,0,0,0.05)",
               display: "grid",
-              gap: 16,
-              marginTop,
-              marginBottom,
+              gap: "var(--puck-gap, 16px)",
+              marginTop: marginTop ? `var(--puck-margin-top, ${marginTop})` : "var(--puck-margin-top, 0px)",
+              marginBottom: marginBottom ? `var(--puck-margin-bottom, ${marginBottom})` : "var(--puck-margin-bottom, 0px)",
               boxSizing: "border-box",
-              width: "100%",
+              width: "var(--puck-width, 100%)",
+              maxWidth: "var(--puck-max-width, 100%)",
             }}
           >
             {heading && (
@@ -305,8 +316,13 @@ export const formComponents = {
       guarantee: textField("Privacy guarantee footnote"),
       accentColor: colorField("Button color"),
       responsive: responsiveField("Responsive overrides", [
+        { name: "width", label: "Form width (e.g. 100%, 600px)", type: "text" },
+        { name: "maxWidth", label: "Max width (e.g. 100%, 700px)", type: "text" },
+        { name: "gap", label: "Field spacing gap (px)", type: "number", min: 4, max: 48 },
         { name: "paddingY", label: "Vertical padding (px)", type: "number", min: 16, max: 80 },
         { name: "paddingX", label: "Horizontal padding (px)", type: "number", min: 12, max: 60 },
+        { name: "marginTop", label: "Top margin (px)", type: "text" },
+        { name: "marginBottom", label: "Bottom margin (px)", type: "text" },
       ]),
       ...spacingFields,
       ...animationFields,

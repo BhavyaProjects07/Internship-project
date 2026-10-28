@@ -65,10 +65,10 @@ export function buildBoxStyle(props = {}) {
 
   const resolvedWidth =
     typeof width === "number" && width > 0
-      ? `${width}px`
+      ? `var(--puck-width, ${width}px)`
       : width
       ? `var(--puck-width, ${width})`
-      : "100%";
+      : "var(--puck-width, 100%)";
 
   const hasBorderWidth =
     (typeof borderWidth === "number" && borderWidth > 0) ||

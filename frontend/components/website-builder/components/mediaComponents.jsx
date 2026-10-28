@@ -21,6 +21,7 @@ import {
   HOVER_EFFECT_OPTIONS,
   RADIUS_OPTIONS,
   SHADOW_PRESETS,
+  SPACING_OPTIONS,
 } from "../tokens/index.js";
 import { RenderIcon, ICON_PRESETS } from "./icons.jsx";
 
@@ -54,6 +55,16 @@ export const mediaComponents = {
       hoverEffect: selectField("Hover micro-animation", HOVER_EFFECT_OPTIONS),
       responsive: responsiveField("Responsive overrides", [
         {
+          name: "width",
+          label: "Width (e.g. 100%, 80%, 400px)",
+          type: "text",
+        },
+        {
+          name: "maxWidth",
+          label: "Max Width (e.g. 100%, 600px, none)",
+          type: "text",
+        },
+        {
           name: "aspectRatio",
           label: "Aspect ratio",
           type: "select",
@@ -77,6 +88,16 @@ export const mediaComponents = {
             { label: "Fill", value: "fill" },
           ],
         },
+        {
+          name: "textAlign",
+          label: "Alignment",
+          type: "select",
+          options: ALIGNMENT_OPTIONS,
+        },
+        { name: "marginTop", label: "Top margin", type: "select", options: SPACING_OPTIONS },
+        { name: "marginBottom", label: "Bottom margin", type: "select", options: SPACING_OPTIONS },
+        { name: "paddingX", label: "Horizontal padding", type: "select", options: SPACING_OPTIONS },
+        { name: "paddingY", label: "Vertical padding", type: "select", options: SPACING_OPTIONS },
       ]),
       ...spacingFields,
       ...animationFields,
@@ -119,9 +140,14 @@ export const mediaComponents = {
       const { className: respClass, css: respCss } = buildResponsiveStyles({
         responsive,
         variableMap: {
+          width: "--puck-width",
+          maxWidth: "--puck-max-width",
           height: "--puck-image-height",
           aspectRatio: "--puck-aspect-ratio",
           objectFit: "--puck-object-fit",
+          textAlign: "--puck-text-align",
+          marginTop: "--puck-margin-top",
+          marginBottom: "--puck-margin-bottom",
         },
       });
 
@@ -150,7 +176,9 @@ export const mediaComponents = {
               boxShadow: boxShadow === "none" ? undefined : boxShadow,
               aspectRatio: aspectRatio === "auto" ? "var(--puck-aspect-ratio, auto)" : `var(--puck-aspect-ratio, ${aspectRatio})`,
               height: height > 0 ? `var(--puck-image-height, ${height}px)` : "var(--puck-image-height, auto)",
-              width: "100%",
+              width: "var(--puck-width, 100%)",
+              maxWidth: "var(--puck-max-width, 100%)",
+              display: "inline-block",
             }}
           >
             <img

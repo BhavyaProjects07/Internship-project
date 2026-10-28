@@ -12,7 +12,10 @@ import {
   radioField,
   colorField,
   imageField,
+  responsiveField,
 } from "../fields/helpers.js";
+import { buildResponsiveStyles } from "../layout/responsiveStyles.js";
+import { SPACING_OPTIONS } from "../tokens/index.js";
 import { buildBoxStyle, getHoverClass } from "../layout/styleBuilders.js";
 import { RenderIcon, ICON_PRESETS } from "./icons.jsx";
 
@@ -44,6 +47,14 @@ export const contentComponents = {
       primaryButtonColor: colorField("Primary button text color"),
       secondaryButtonText: textField("Secondary link text (Optional)"),
       secondaryButtonUrl: textField("Secondary link URL"),
+      responsive: responsiveField("Responsive overrides", [
+        { name: "width", label: "Width (e.g. 100%, 400px)", type: "text" },
+        { name: "maxWidth", label: "Max width (e.g. 100%, 600px)", type: "text" },
+        { name: "paddingY", label: "Vertical padding (px)", type: "number", min: 0, max: 120 },
+        { name: "paddingX", label: "Horizontal padding (px)", type: "number", min: 0, max: 120 },
+        { name: "marginTop", label: "Top margin", type: "select", options: SPACING_OPTIONS },
+        { name: "marginBottom", label: "Bottom margin", type: "select", options: SPACING_OPTIONS },
+      ]),
       ...boxStyleFields,
       ...spacingFields,
       ...animationFields,
@@ -79,6 +90,7 @@ export const contentComponents = {
     },
     render: ({
       content: Content,
+      responsive,
       imageUrl,
       imageHeight = 220,
       imageFit = "cover",
@@ -104,7 +116,9 @@ export const contentComponents = {
       animDelay,
       animEasing,
       ...props
-    }) => (
+    }) => {
+      const { className: respClass, css: respCss } = buildResponsiveStyles({ responsive });
+      return (
       <AnimationWrapper
         as="article"
         trigger={animTrigger}
@@ -113,13 +127,14 @@ export const contentComponents = {
         duration={animDuration}
         delay={animDelay}
         easing={animEasing}
-        className={getHoverClass(hoverEffect)}
+        className={`${getHoverClass(hoverEffect)} ${respClass}`.trim()}
         style={{
           ...buildBoxStyle(props),
           overflow: "hidden",
           boxSizing: "border-box",
         }}
       >
+        {respCss && <style dangerouslySetInnerHTML={{ __html: respCss }} />}
         {imageUrl && (
           <div style={{ width: "100%", height: `${imageHeight}px`, overflow: "hidden" }}>
             <img
@@ -215,7 +230,8 @@ export const contentComponents = {
           </div>
         </div>
       </AnimationWrapper>
-    ),
+      );
+    },
   },
 
   // ------------------------------------------------------------------------

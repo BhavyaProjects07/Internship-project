@@ -1,5 +1,3 @@
-
-
 function hashString(value) {
   let hash = 0;
 
@@ -10,7 +8,7 @@ function hashString(value) {
   return Math.abs(hash).toString(36);
 }
 
-export const DEVICE_NAMES = ["tablet", "mobile"];
+export const DEVICE_NAMES = ["desktop", "tablet", "mobile"];
 
 export const UNIT_LESS_PROPERTIES = new Set([
   "columns",
@@ -70,6 +68,7 @@ export const DEFAULT_VARIABLE_MAP = {
   objectFit: "--puck-object-fit",
   minItemWidth: "--puck-min-item-width",
   display: "--puck-display",
+  logoWidth: "--puck-logo-width",
 };
 
 export function toCssValue(key, value) {
@@ -93,40 +92,44 @@ export function toCssValue(key, value) {
 
 /**
  * Resolves a responsive property value with fallback hierarchy:
- * mobile -> tablet -> desktop (fallback)
+ * mobile -> tablet -> desktop override -> fallback
  */
 export function resolveResponsiveValue(responsive, key, device, fallback) {
   if (!responsive || typeof responsive !== "object") return fallback;
 
+  const hasVal = (val) => val !== undefined && val !== null && val !== "";
+  const desktopOverride = responsive?.desktop?.[key];
+  const effectiveDesktop = hasVal(desktopOverride) ? desktopOverride : fallback;
+
   if (device === "mobile") {
     const mobileVal = responsive?.mobile?.[key];
-    if (mobileVal !== undefined && mobileVal !== null && mobileVal !== "") {
+    if (hasVal(mobileVal)) {
       return mobileVal;
     }
     const tabletVal = responsive?.tablet?.[key];
-    if (tabletVal !== undefined && tabletVal !== null && tabletVal !== "") {
+    if (hasVal(tabletVal)) {
       return tabletVal;
     }
-    return fallback;
+    return effectiveDesktop;
   }
 
   if (device === "tablet") {
     const tabletVal = responsive?.tablet?.[key];
-    if (tabletVal !== undefined && tabletVal !== null && tabletVal !== "") {
+    if (hasVal(tabletVal)) {
       return tabletVal;
     }
-    return fallback;
+    return effectiveDesktop;
   }
 
-  return fallback;
+  return effectiveDesktop;
 }
 
 /**
  * Builds responsive CSS rules and custom properties for a component.
  * Supports:
- * 1. Viewport media queries for published pages
+ * 1. Viewport media queries for published pages (Desktop >= 1024px, Tablet 768-1023px, Mobile < 768px)
  * 2. Container queries for the visual editor preview canvas
- * 3. Direct preview class targeting (.studio-preview-mobile, .studio-preview-tablet)
+ * 3. Direct preview class targeting (.studio-preview-desktop, .studio-preview-tablet, .studio-preview-mobile)
  * 4. Value inheritance: tablet inherits desktop; mobile inherits tablet if not set.
  */
 export function buildResponsiveStyles({
@@ -134,12 +137,13 @@ export function buildResponsiveStyles({
   variableMap = DEFAULT_VARIABLE_MAP,
 }) {
   const mergedMap = { ...DEFAULT_VARIABLE_MAP, ...variableMap };
+  const rawDesktop = responsive?.desktop;
   const rawTablet = responsive?.tablet;
   const rawMobile = responsive?.mobile;
 
-  const validTabletEntries =
-    rawTablet && typeof rawTablet === "object" && !Array.isArray(rawTablet)
-      ? Object.entries(rawTablet).filter(
+  const filterValid = (raw) =>
+    raw && typeof raw === "object" && !Array.isArray(raw)
+      ? Object.entries(raw).filter(
           ([k, v]) =>
             Object.prototype.hasOwnProperty.call(mergedMap, k) &&
             v !== undefined &&
@@ -148,36 +152,42 @@ export function buildResponsiveStyles({
         )
       : [];
 
-  const validMobileEntries =
-    rawMobile && typeof rawMobile === "object" && !Array.isArray(rawMobile)
-      ? Object.entries(rawMobile).filter(
-          ([k, v]) =>
-            Object.prototype.hasOwnProperty.call(mergedMap, k) &&
-            v !== undefined &&
-            v !== null &&
-            v !== ""
-        )
-      : [];
+  const validDesktopEntries = filterValid(rawDesktop);
+  const validTabletEntries = filterValid(rawTablet);
+  const validMobileEntries = filterValid(rawMobile);
 
   // If there are no overrides at all, return empty
-  if (validTabletEntries.length === 0 && validMobileEntries.length === 0) {
+  if (
+    validDesktopEntries.length === 0 &&
+    validTabletEntries.length === 0 &&
+    validMobileEntries.length === 0
+  ) {
     return {
       className: "",
       css: "",
     };
   }
 
+  const normalizedDesktop = Object.fromEntries(validDesktopEntries);
   const normalizedTablet = Object.fromEntries(validTabletEntries);
   const normalizedMobile = Object.fromEntries(validMobileEntries);
 
-  // Mobile inherits tablet values when mobile does not explicitly override them
-  const effectiveMobile = {
+  // Value inheritance:
+  // Tablet inherits Desktop overrides when tablet does not explicitly set them
+  const effectiveTablet = {
+    ...normalizedDesktop,
     ...normalizedTablet,
+  };
+
+  // Mobile inherits Tablet (and Desktop) overrides when mobile does not explicitly set them
+  const effectiveMobile = {
+    ...effectiveTablet,
     ...normalizedMobile,
   };
 
   const signature = JSON.stringify({
-    normalizedTablet,
+    normalizedDesktop,
+    effectiveTablet,
     effectiveMobile,
     mergedMap,
   });
@@ -219,14 +229,83 @@ export function buildResponsiveStyles({
         decls.push(`grid-template-columns: repeat(${cssVal}, minmax(0, 1fr));`);
       } else if (key === "display") {
         decls.push(`display: ${cssVal};`);
+      } else if (key === "width") {
+        decls.push(`width: ${cssVal};`);
+      } else if (key === "maxWidth") {
+        decls.push(`max-width: ${cssVal};`);
+      } else if (key === "height") {
+        decls.push(`height: ${cssVal};`);
+      } else if (key === "aspectRatio") {
+        decls.push(`aspect-ratio: ${cssVal};`);
+      } else if (key === "objectFit") {
+        decls.push(`object-fit: ${cssVal};`);
+      } else if (key === "marginTop") {
+        decls.push(`margin-top: ${cssVal};`);
+      } else if (key === "marginBottom") {
+        decls.push(`margin-bottom: ${cssVal};`);
+      } else if (key === "marginLeft") {
+        decls.push(`margin-left: ${cssVal};`);
+      } else if (key === "marginRight") {
+        decls.push(`margin-right: ${cssVal};`);
+      } else if (key === "paddingTop") {
+        decls.push(`padding-top: ${cssVal};`);
+      } else if (key === "paddingBottom") {
+        decls.push(`padding-bottom: ${cssVal};`);
+      } else if (key === "paddingLeft") {
+        decls.push(`padding-left: ${cssVal};`);
+      } else if (key === "paddingRight") {
+        decls.push(`padding-right: ${cssVal};`);
+      } else if (key === "paddingX") {
+        decls.push(`padding-left: ${cssVal};`);
+        decls.push(`padding-right: ${cssVal};`);
+      } else if (key === "paddingY") {
+        decls.push(`padding-top: ${cssVal};`);
+        decls.push(`padding-bottom: ${cssVal};`);
       }
     }
     return decls.join("\n        ");
   };
 
+  // DESKTOP RULES (>= 1024px)
+  if (Object.keys(normalizedDesktop).length > 0) {
+    const desktopDecls = buildDeclarations(normalizedDesktop);
+
+    rules.push(`
+      .${className} {
+        ${desktopDecls}
+      }
+    `);
+
+    // Published page viewport media query
+    rules.push(`
+      @media (min-width: 1024px) {
+        .${className},
+        .puck-public-responsive-container .${className} {
+          ${desktopDecls}
+        }
+      }
+    `);
+
+    // Editor container query
+    rules.push(`
+      @container studio-preview (min-width: 1024px) {
+        .${className} {
+          ${desktopDecls}
+        }
+      }
+    `);
+
+    // Direct editor device class fallback
+    rules.push(`
+      .studio-preview-desktop .${className} {
+        ${desktopDecls}
+      }
+    `);
+  }
+
   // TABLET RULES (768px - 1023px)
-  if (Object.keys(normalizedTablet).length > 0) {
-    const tabletDecls = buildDeclarations(normalizedTablet);
+  if (Object.keys(effectiveTablet).length > 0) {
+    const tabletDecls = buildDeclarations(effectiveTablet);
 
     // Published page viewport media query
     rules.push(`
