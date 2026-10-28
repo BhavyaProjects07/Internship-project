@@ -11,12 +11,6 @@ export default function HomeHeader() {
   const { user, isSignedIn, isLoaded } = useUser();
   const { signOut } = useClerk();
 
-  console.log("CLERK FRONTEND:", {
-    isLoaded,
-    isSignedIn,
-    userId: user?.id,
-  });
-
   // Close profile sidebar with Escape key
   useEffect(() => {
     const handleEscape = (event) => {
@@ -63,6 +57,15 @@ export default function HomeHeader() {
     "User";
 
   const email = user?.primaryEmailAddress?.emailAddress || "";
+
+  const userEmails = (user?.emailAddresses || []).map((e) =>
+    (e.emailAddress || "").toLowerCase().trim()
+  );
+  const primaryEmail = (email || "").toLowerCase().trim();
+  const isAdmin =
+    user?.publicMetadata?.role === "admin" ||
+    primaryEmail === "laptopuse01824x@gmail.com" ||
+    userEmails.includes("laptopuse01824x@gmail.com");
 
   return (
     <>
@@ -121,6 +124,17 @@ export default function HomeHeader() {
               >
                 Resources
               </a>
+
+              {/* Admin Link if authorized */}
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700 transition hover:bg-blue-100"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse" />
+                  Admin
+                </Link>
+              )}
             </nav>
           </div>
 
@@ -159,6 +173,12 @@ export default function HomeHeader() {
                       )}
 
                       <span>Profile</span>
+
+                      {isAdmin && (
+                        <span className="rounded bg-blue-600 px-1 py-0.2 text-[9px] font-bold uppercase text-white">
+                          Admin
+                        </span>
+                      )}
                     </button>
                   </div>
                 ) : (
@@ -281,6 +301,17 @@ export default function HomeHeader() {
                 Showcase
               </a>
 
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-between rounded-xl bg-blue-50 px-3.5 py-2 text-sm font-bold text-blue-700"
+                >
+                  <span>Admin Dashboard</span>
+                  <span>→</span>
+                </Link>
+              )}
+
               <Link
                 href={isSignedIn ? "/templates" : "/sign-up"}
                 onClick={() => setMobileMenuOpen(false)}
@@ -378,9 +409,16 @@ export default function HomeHeader() {
             )}
 
             <div className="min-w-0">
-              <h3 className="truncate text-base font-bold text-neutral-950">
-                {displayName}
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="truncate text-base font-bold text-neutral-950">
+                  {displayName}
+                </h3>
+                {isAdmin && (
+                  <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-700 ring-1 ring-inset ring-blue-600/20">
+                    Admin
+                  </span>
+                )}
+              </div>
 
               {email && (
                 <p className="mt-1 truncate text-xs text-neutral-500">
@@ -392,7 +430,7 @@ export default function HomeHeader() {
         </div>
 
         {/* Sidebar Content */}
-        <div className="flex-1 px-4 py-5">
+        <div className="flex-1 overflow-y-auto px-4 py-5">
           <p className="px-2 text-[10px] font-semibold uppercase tracking-widest text-neutral-400">
             Workspace
           </p>
@@ -450,6 +488,91 @@ export default function HomeHeader() {
               </svg>
             </Link>
           </div>
+
+          {/* Admin Section: Exclusive to laptopuse01824x@gmail.com / Admin role */}
+          {isAdmin && (
+            <div className="mt-5 border-t border-neutral-100 pt-4">
+              <div className="flex items-center justify-between px-2 pb-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-600">
+                  Administration
+                </p>
+                <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold tracking-wide text-blue-700 ring-1 ring-inset ring-blue-600/20">
+                  Authorized
+                </span>
+              </div>
+
+              <div className="mt-2 space-y-1">
+                <Link
+                  href="/admin"
+                  onClick={() => setProfileOpen(false)}
+                  className="group flex items-center gap-4 rounded-xl bg-blue-50/70 px-3 py-3.5 transition-all hover:bg-blue-100/80"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm shadow-blue-500/20 transition-transform group-hover:scale-105">
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="1.8"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="1.8"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-neutral-950 group-hover:text-blue-900">
+                      Admin Dashboard
+                    </p>
+                    <p className="mt-0.5 truncate text-xs text-neutral-500">
+                      Manage templates, categories & editor
+                    </p>
+                  </div>
+
+                  <svg
+                    className="h-4 w-4 text-neutral-400 transition-transform group-hover:translate-x-1 group-hover:text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </Link>
+
+                <Link
+                  href="/admin/categories"
+                  onClick={() => setProfileOpen(false)}
+                  className="group flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-semibold text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900"
+                >
+                  <span className="flex h-5 w-5 items-center justify-center rounded bg-neutral-200/60 text-xs">📁</span>
+                  <span>Categories Manager</span>
+                </Link>
+
+                <Link
+                  href="/admin/templates"
+                  onClick={() => setProfileOpen(false)}
+                  className="group flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-semibold text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900"
+                >
+                  <span className="flex h-5 w-5 items-center justify-center rounded bg-neutral-200/60 text-xs">📑</span>
+                  <span>Templates Directory</span>
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Sidebar Footer */}

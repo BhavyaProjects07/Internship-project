@@ -452,11 +452,12 @@ const updateWebsite = async (req, res) => {
     }
 
     const { id } = req.params;
-    const { theme, name } = req.body;
+    const { theme, name, slug } = req.body;
 
     const data = {};
     if (theme !== undefined) data.theme = theme;
     if (name !== undefined) data.name = name;
+    if (slug !== undefined) data.slug = slug;
 
     const website = await websiteService.updateWebsite(id, data, userId);
 
@@ -466,9 +467,10 @@ const updateWebsite = async (req, res) => {
     });
   } catch (error) {
     console.error("Update website error:", error);
-    res.status(500).json({
+    const status = error.statusCode || 500;
+    res.status(status).json({
       success: false,
-      message: "Failed to update website",
+      message: error.message || "Failed to update website",
     });
   }
 };
@@ -683,25 +685,26 @@ const publishWebsite = async (req, res) => {
     }
 
     const { id } = req.params;
+    const { customSlug } = req.body || {};
 
-    const website = await websiteService.publishWebsite(id, userId);
+    const website = await websiteService.publishWebsite(id, userId, customSlug);
 
     res.json({
       success: true,
       websiteId: website.id,
+      name: website.name,
       slug: website.slug,
       isPublished: website.isPublished,
       publishedAt: website.publishedAt,
-      publicUrl: `/${website.slug}`, // Safe placeholder as requested
+      publicUrl: `/${website.slug}`,
     });
   } catch (error) {
     console.error("Publish website error:", error);
-    
-    if (error.message === "Website not found or unauthorized") {
-      return res.status(404).json({ success: false, message: error.message });
-    }
-
-    res.status(500).json({ success: false, message: "Failed to publish website" });
+    const status = error.statusCode || 500;
+    res.status(status).json({
+      success: false,
+      message: error.message || "Failed to publish website",
+    });
   }
 };
 

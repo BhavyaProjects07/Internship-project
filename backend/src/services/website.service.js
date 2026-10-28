@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const prisma = require("../lib/prisma");
 
 const templateInclude = {
@@ -47,36 +48,130 @@ const httpError = (message, statusCode = 400) => {
   return error;
 };
 
+const RESERVED_SLUGS = new Set([
+  "admin",
+  "builder",
+  "templates",
+  "websites",
+  "categories",
+  "sign-in",
+  "sign-up",
+  "api",
+  "site",
+  "sites",
+  "public",
+  "dashboard",
+  "settings",
+  "auth",
+  "static",
+  "assets",
+  "favicon.ico",
+  "robots.txt",
+  "sitemap.xml",
+  "manifest.json",
+  "_next",
+  "undefined",
+  "null",
+]);
+
+const generateShortId = (length = 6) => {
+  return crypto.randomBytes(Math.ceil(length / 2)).toString("hex").slice(0, length);
+};
+
 const slugify = (value) =>
   String(value || "")
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 70) || "template";
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40) || "site";
+
+const sanitizeSlug = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+
+const makeUniqueWebsiteSlug = async (name, tx = prisma, currentWebsiteId = null) => {
+  const base = slugify(name);
+  let attempts = 0;
+
+  while (attempts < 25) {
+    const shortId = generateShortId(6);
+    const slug = `${base}-${shortId}`;
+
+    if (RESERVED_SLUGS.has(slug)) {
+      attempts++;
+      continue;
+    }
+
+    const existing = await tx.website.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
+
+    if (!existing || (currentWebsiteId && existing.id === currentWebsiteId)) {
+      return slug;
+    }
+
+    attempts++;
+  }
+
+  return `${base}-${Date.now().toString(36)}`;
+};
+
+const validateCustomSlug = async (rawSlug, currentWebsiteId = null, tx = prisma) => {
+  if (typeof rawSlug !== "string" || !rawSlug.trim()) {
+    throw httpError("Website slug cannot be empty", 400);
+  }
+
+  const slug = sanitizeSlug(rawSlug);
+
+  if (!slug || slug.length < 3) {
+    throw httpError("Website slug must be at least 3 characters long", 400);
+  }
+
+  if (slug.length > 60) {
+    throw httpError("Website slug must be at most 60 characters long", 400);
+  }
+
+  const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+  if (!slugPattern.test(slug)) {
+    throw httpError(
+      "Website slug can only contain lowercase letters, numbers, and hyphens without consecutive hyphens",
+      400
+    );
+  }
+
+  if (RESERVED_SLUGS.has(slug)) {
+    throw httpError(
+      `The slug "${slug}" is reserved for system routes. Please choose a different URL slug.`,
+      400
+    );
+  }
+
+  const existing = await tx.website.findUnique({
+    where: { slug },
+    select: { id: true },
+  });
+
+  if (existing && (!currentWebsiteId || existing.id !== currentWebsiteId)) {
+    throw httpError(
+      `The slug "${slug}" is already taken by another website. Please choose another one.`,
+      409
+    );
+  }
+
+  return slug;
+};
 
 const isPlainObject = (value) =>
   value !== null &&
   typeof value === "object" &&
   !Array.isArray(value);
 
-const makeUniqueWebsiteSlug = async (name, tx = prisma) => {
-  const base = slugify(name);
-  let slug = base;
-  let suffix = 2;
-
-  while (
-    await tx.website.findUnique({
-      where: { slug },
-      select: { id: true },
-    })
-  ) {
-    slug = `${base.slice(0, 65)}-${suffix}`;
-    suffix += 1;
-  }
-
-  return slug;
-};
 
 // ============================================================
 // TEMPLATE OPERATIONS
@@ -429,7 +524,7 @@ const getUserWebsites = async (
 const updateWebsite = async (id, data, userId) => {
   const existing = await prisma.website.findFirst({
     where: { id, userId },
-    select: { id: true },
+    select: { id: true, slug: true, isPublished: true, publishedData: true },
   });
 
   if (!existing) {
@@ -460,6 +555,18 @@ const updateWebsite = async (id, data, userId) => {
     }
 
     updateData.theme = data.theme;
+  }
+
+  if (data.slug !== undefined) {
+    const validSlug = await validateCustomSlug(data.slug, id, prisma);
+    updateData.slug = validSlug;
+
+    if (existing.isPublished && existing.publishedData && typeof existing.publishedData === "object") {
+      updateData.publishedData = {
+        ...existing.publishedData,
+        slug: validSlug,
+      };
+    }
   }
 
   return prisma.website.update({
@@ -1358,7 +1465,7 @@ const saveWebsiteDraft = async (
 // PUBLISHING
 // ============================================================
 
-const publishWebsite = async (websiteId, userId) => {
+const publishWebsite = async (websiteId, userId, customSlug = null) => {
   return prisma.$transaction(async (tx) => {
     const website = await tx.website.findFirst({
       where: {
@@ -1388,9 +1495,24 @@ const publishWebsite = async (websiteId, userId) => {
       );
     }
 
+    // Determine production-ready slug
+    let finalSlug = website.slug;
+    if (customSlug && typeof customSlug === "string" && customSlug.trim()) {
+      finalSlug = await validateCustomSlug(customSlug, website.id, tx);
+    } else {
+      // Ensure slug is clean, collision-free, non-reserved, and has a unique slug-id
+      const isReserved = RESERVED_SLUGS.has(finalSlug);
+      const isPlainGeneric = !finalSlug || finalSlug === "website-name" || finalSlug === "template" || finalSlug === "site";
+      
+      if (isReserved || isPlainGeneric) {
+        finalSlug = await makeUniqueWebsiteSlug(website.name || "site", tx, website.id);
+      }
+    }
+
     const publishedData = {
       schemaVersion: 1,
       name: website.name,
+      slug: finalSlug,
       theme: website.theme ?? null,
 
       pages: website.pages.map((page) => ({
@@ -1417,12 +1539,14 @@ const publishWebsite = async (websiteId, userId) => {
     return tx.website.update({
       where: { id: website.id },
       data: {
+        slug: finalSlug,
         isPublished: true,
         publishedAt: new Date(),
         publishedData,
       },
       select: {
         id: true,
+        name: true,
         slug: true,
         isPublished: true,
         publishedAt: true,
@@ -1433,9 +1557,15 @@ const publishWebsite = async (websiteId, userId) => {
 };
 
 const getPublishedWebsiteBySlug = async (slug) => {
+  if (!slug || typeof slug !== "string") return null;
+  const cleanSlug = slug.toLowerCase().trim();
+
   return prisma.website.findFirst({
     where: {
-      slug,
+      slug: {
+        equals: cleanSlug,
+        mode: "insensitive",
+      },
       isPublished: true,
     },
     select: {
@@ -1455,6 +1585,9 @@ const getPublishedWebsiteBySlug = async (slug) => {
 // ============================================================
 
 module.exports = {
+  RESERVED_SLUGS,
+  makeUniqueWebsiteSlug,
+  validateCustomSlug,
   // Template operations
   getAllTemplates,
   getTemplateById,

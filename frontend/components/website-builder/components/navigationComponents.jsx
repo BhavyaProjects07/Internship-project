@@ -102,20 +102,17 @@ export const navigationComponents = {
         { label: "No", value: false },
       ]),
 
-      // Drag and Drop Slots for Full Customizability
-      leftSlot: { type: "slot" },
-      navSlot: { type: "slot" },
-      rightSlot: { type: "slot" },
-
       // Brand & Logo
-      logoType: selectField("Logo Type", [
-        { label: "Brand Text", value: "text" },
-        { label: "Image Logo", value: "image" },
-        { label: "Both Image & Text", value: "both" },
+      logoType: selectField("Logo Display Mode", [
+        { label: "⚡ Auto (Show Image if set, else Brand Name) [Recommended]", value: "auto" },
+        { label: "🖼️ Image Logo Only", value: "image" },
+        { label: "✨ Both Image & Brand Name", value: "both" },
+        { label: "🔤 Brand Name Text Only", value: "text_only" },
       ]),
       logoText: textField("Brand / Site Name"),
-      logoUrl: imageField("Logo Image URL (Optional)"),
-      logoWidth: numberField("Logo width (px)", 20, 320),
+      logoUrl: imageField("Logo Image URL (or upload image)"),
+      logoHeight: numberField("Logo Height (px)", 16, 120, 2),
+      logoWidth: numberField("Logo Max Width (px)", 20, 400, 5),
       logoSubtitle: textField("Small brand tagline (Optional)"),
 
       // Header Mode & Layout
@@ -134,23 +131,23 @@ export const navigationComponents = {
 
       // Dimensions & Sizing (Adjustable from Right Sidebar)
       navHeight: selectField("Navbar Height Preset", [
-        { label: "Slim / Compact (52px)", value: "52px" },
-        { label: "Standard Modern (64px) [Default]", value: "64px" },
-        { label: "Spacious (76px)", value: "76px" },
-        { label: "Custom Height", value: "custom" },
+        { label: "⚡ Slim & Compact (52px)", value: "52px" },
+        { label: "⭐ Standard Modern (64px) [Default]", value: "64px" },
+        { label: "📐 Spacious (76px)", value: "76px" },
+        { label: "🛠️ Custom Height (Set below)", value: "custom" },
       ]),
-      customHeight: numberField("Custom Height (px)", 36, 160),
-      paddingY: numberField("Vertical Inner Padding (px)", 2, 40),
-      containerWidth: selectField("Navbar Max Width", [
-        { label: "Standard (1240px) [Default]", value: "1240px" },
-        { label: "Compact (1080px)", value: "1080px" },
-        { label: "Narrow (960px)", value: "960px" },
-        { label: "Wide (1440px)", value: "1440px" },
-        { label: "Full Width (100%)", value: "100%" },
-        { label: "Custom Width", value: "custom" },
+      customHeight: numberField("Custom Height (px)", 36, 160, 2),
+      paddingY: numberField("Vertical Content Spacing (px)", 0, 24, 1),
+      containerWidth: selectField("Navbar Width Preset", [
+        { label: "⭐ Standard Contained (1240px) [Default]", value: "1240px" },
+        { label: "📱 Compact Contained (1080px)", value: "1080px" },
+        { label: "🔍 Narrow Contained (960px)", value: "960px" },
+        { label: "🖥️ Wide Contained (1440px)", value: "1440px" },
+        { label: "↔️ Full Screen Width (100% Edge-to-Edge)", value: "100%" },
+        { label: "🛠️ Custom Width (Set below)", value: "custom" },
       ]),
-      customWidth: numberField("Custom Max Width (px)", 600, 1920),
-      paddingX: numberField("Horizontal Inner Padding (px)", 8, 64),
+      customWidth: numberField("Custom Max Width (px)", 600, 1920, 20),
+      paddingX: numberField("Horizontal Padding (px)", 8, 64, 4),
 
       // Custom Links (Used when menuMode === 'custom' or fallback)
       links: {
@@ -264,16 +261,17 @@ export const navigationComponents = {
       quickLinksText: "",
       autoSlugsExclude: "",
       includeHomeLink: true,
-      logoType: "text",
+      logoType: "auto",
       logoText: "STUDIO NOVA",
       logoUrl: "",
+      logoHeight: 36,
       logoWidth: 140,
       logoSubtitle: "",
       headerMode: "sticky",
       layoutStyle: "split",
       navHeight: "64px",
       customHeight: 64,
-      paddingY: 8,
+      paddingY: 4,
       containerWidth: "1240px",
       customWidth: 1240,
       paddingX: 24,
@@ -334,19 +332,17 @@ export const navigationComponents = {
       quickLinksText = "",
       autoSlugsExclude = "",
       includeHomeLink = true,
-      leftSlot: LeftSlot,
-      navSlot: NavSlot,
-      rightSlot: RightSlot,
-      logoType = "text",
+      logoType = "auto",
       logoText,
       logoUrl,
+      logoHeight = 36,
       logoWidth = 140,
       logoSubtitle,
       headerMode = "sticky",
       layoutStyle = "split",
       navHeight = "64px",
       customHeight = 64,
-      paddingY = 8,
+      paddingY = 4,
       containerWidth = "1240px",
       customWidth = 1240,
       paddingX = 24,
@@ -495,7 +491,9 @@ export const navigationComponents = {
             autoItems.push({
               id: page.id,
               label: page.name || (isHome ? "Home" : "Untitled Page"),
-              href: isHome ? "/" : `/${page.slug || page.id}`,
+              href: studio?.websiteSlug
+                ? (isHome ? `/${studio.websiteSlug}` : `/${studio.websiteSlug}/${page.slug || page.id}`)
+                : (isHome ? "/" : `/${page.slug || page.id}`),
               badge: isHome ? "" : page.badge || "",
               isHome,
               isActive,
@@ -553,17 +551,52 @@ export const navigationComponents = {
         };
       }, [drawerOpen]);
 
-      // Dimension resolution
-      let resolvedMaxWidth = "1240px";
+      // Dimension and Logo resolution
+      const hasLogoUrl = Boolean(logoUrl && typeof logoUrl === "string" && logoUrl.trim().length > 0);
+      const showImageLogo = hasLogoUrl && (
+        logoType === "image" ||
+        logoType === "both" ||
+        logoType === "auto" ||
+        !logoType ||
+        logoType === "text"
+      );
+      const showTextLogo = Boolean(
+        logoType === "both" ||
+        logoType === "text_only" ||
+        !hasLogoUrl ||
+        (logoType === "text" && !hasLogoUrl) ||
+        (logoType === "auto" && !hasLogoUrl)
+      );
+
+      // Height resolution
+      let numericHeight = 64;
+      if (navHeight === "custom" && customHeight) {
+        numericHeight = Number(customHeight);
+      } else if (navHeight === "52px") {
+        numericHeight = 52;
+      } else if (navHeight === "76px") {
+        numericHeight = 76;
+      } else if (navHeight === "64px") {
+        numericHeight = 64;
+      } else if (typeof navHeight === "string" && navHeight.endsWith("px")) {
+        numericHeight = parseInt(navHeight, 10) || 64;
+      } else if (typeof navHeight === "number") {
+        numericHeight = navHeight;
+      }
+      const finalHeightStr = `${Math.max(numericHeight, 36)}px`;
+
+      // Max width resolution
+      let finalMaxWidth = "1240px";
       if (containerWidth === "custom" && customWidth) {
-        resolvedMaxWidth = `${customWidth}px`;
+        finalMaxWidth = `${customWidth}px`;
+      } else if (containerWidth === "100%") {
+        finalMaxWidth = "100%";
       } else if (containerWidth) {
-        resolvedMaxWidth = containerWidth;
+        finalMaxWidth = containerWidth;
       }
 
-      const resolvedPadY = paddingY !== undefined && paddingY !== null ? `${paddingY}px` : (isFloating ? "6px" : "8px");
-      const resolvedPadX = paddingX !== undefined && paddingX !== null ? `${paddingX}px` : (isFloating ? "18px" : "24px");
-      const resolvedMinHeight = navHeight === "custom" && customHeight ? `${customHeight}px` : (navHeight || "64px");
+      const padYNum = Number(paddingY ?? 4);
+      const padXNum = Number(paddingX ?? 24);
 
       const displayBg = isTransparent
         ? "transparent"
@@ -647,7 +680,7 @@ export const navigationComponents = {
               right: 0,
               zIndex: 100,
               width: isFloating ? "calc(100% - 32px)" : "100%",
-              maxWidth: isFloating ? `var(--puck-nav-width, ${resolvedMaxWidth})` : "100%",
+              maxWidth: isFloating ? finalMaxWidth : "100%",
               margin: isFloating ? "0 auto" : 0,
               borderRadius: isFloating ? 16 : 0,
               boxShadow: isFloating
@@ -702,13 +735,14 @@ export const navigationComponents = {
             <div
               style={{
                 width: "100%",
-                maxWidth: `var(--puck-nav-width, ${resolvedMaxWidth})`,
+                maxWidth: finalMaxWidth,
                 margin: "0 auto",
-                minHeight: `var(--puck-nav-height, ${resolvedMinHeight})`,
-                paddingTop: `var(--puck-nav-pad-y, ${resolvedPadY})`,
-                paddingBottom: `var(--puck-nav-pad-y, ${resolvedPadY})`,
-                paddingLeft: `var(--puck-nav-pad-x, ${resolvedPadX})`,
-                paddingRight: `var(--puck-nav-pad-x, ${resolvedPadX})`,
+                height: finalHeightStr,
+                minHeight: finalHeightStr,
+                paddingTop: `${padYNum}px`,
+                paddingBottom: `${padYNum}px`,
+                paddingLeft: `${padXNum}px`,
+                paddingRight: `${padXNum}px`,
                 boxSizing: "border-box",
                 display: "flex",
                 alignItems: "center",
@@ -718,7 +752,7 @@ export const navigationComponents = {
                     : layoutStyle === "left"
                     ? "flex-start"
                     : "space-between",
-                gap: 20,
+                gap: 16,
                 minWidth: 0,
                 position: "relative",
               }}
@@ -728,7 +762,7 @@ export const navigationComponents = {
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 12,
+                  gap: 10,
                   flexShrink: 0,
                   minWidth: 0,
                 }}
@@ -741,28 +775,36 @@ export const navigationComponents = {
                     gap: 10,
                     textDecoration: "none",
                     color: displayColor,
+                    minHeight: 0,
+                    lineHeight: 1,
                   }}
                 >
-                  {(logoType === "image" || logoType === "both") && logoUrl && (
+                  {showImageLogo && (
                     <img
                       src={logoUrl}
-                      alt={logoText || "Brand"}
+                      alt={logoText || "Brand Logo"}
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
                       style={{
-                        width: `var(--puck-logo-width, ${logoWidth}px)`,
-                        maxWidth: "min(var(--puck-logo-width, 180px), 100%)",
-                        maxHeight: 34,
+                        height: `${logoHeight || 36}px`,
+                        maxHeight: `${Math.max(Number(logoHeight || 36), 20)}px`,
+                        maxWidth: `${logoWidth || 160}px`,
+                        width: "auto",
                         objectFit: "contain",
                         display: "block",
+                        flexShrink: 0,
                       }}
                     />
                   )}
-                  {(logoType === "text" || logoType === "both" || !logoUrl) && (
-                    <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                  {showTextLogo && (
+                    <div style={{ display: "flex", flexDirection: "column", minWidth: 0, justifyContent: "center" }}>
                       <span
                         style={{
                           fontSize: 18,
                           fontWeight: 800,
                           letterSpacing: -0.4,
+                          lineHeight: 1.2,
                           whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
@@ -778,6 +820,7 @@ export const navigationComponents = {
                             letterSpacing: 0.8,
                             textTransform: "uppercase",
                             opacity: 0.7,
+                            marginTop: 2,
                           }}
                         >
                           {logoSubtitle}
@@ -786,20 +829,6 @@ export const navigationComponents = {
                     </div>
                   )}
                 </Link>
-
-                {/* Left Drag & Drop Composable Slot */}
-                {LeftSlot && (
-                  <div
-                    className="puck-nav-left-slot"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      minHeight: 28,
-                    }}
-                  >
-                    <LeftSlot />
-                  </div>
-                )}
               </div>
 
               {/* DESKTOP NAVIGATION LINKS ROW */}
@@ -959,20 +988,6 @@ export const navigationComponents = {
                     </div>
                   );
                 })}
-
-                {/* Composable Navigation Slot */}
-                {NavSlot && (
-                  <div
-                    className="puck-nav-center-slot"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      marginInline: 8,
-                    }}
-                  >
-                    <NavSlot />
-                  </div>
-                )}
               </nav>
 
               {/* RIGHT ACTIONS / CTA GROUP */}
@@ -1105,20 +1120,6 @@ export const navigationComponents = {
                   </a>
                 )}
 
-                {/* Right Drag & Drop Composable Slot */}
-                {RightSlot && (
-                  <div
-                    className="puck-nav-right-slot"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      minHeight: 32,
-                    }}
-                  >
-                    <RightSlot />
-                  </div>
-                )}
-
                 {/* Mobile Hamburger Button */}
                 <button
                   type="button"
@@ -1129,7 +1130,7 @@ export const navigationComponents = {
                   style={{
                     alignItems: "center",
                     justifyContent: "center",
-                    padding: "8px 10px",
+                    padding: "6px 8px",
                     borderRadius: 8,
                     border: "1px solid #cbd5e1",
                     backgroundColor: "transparent",
@@ -1204,9 +1205,22 @@ export const navigationComponents = {
                     borderBottom: "1px solid #e2e8f0",
                   }}
                 >
-                  <span style={{ fontSize: 16, fontWeight: 800 }}>
-                    {logoText || studio?.templateName || "Navigation"}
-                  </span>
+                  {showImageLogo ? (
+                    <img
+                      src={logoUrl}
+                      alt={logoText || "Brand Logo"}
+                      style={{
+                        height: 28,
+                        maxWidth: 130,
+                        objectFit: "contain",
+                        display: "block",
+                      }}
+                    />
+                  ) : (
+                    <span style={{ fontSize: 16, fontWeight: 800 }}>
+                      {logoText || studio?.templateName || "Navigation"}
+                    </span>
+                  )}
                   <button
                     type="button"
                     onClick={() => setDrawerOpen(false)}
@@ -1783,7 +1797,9 @@ export const navigationComponents = {
           const title = p.title || p.name;
           const slug = p.slug === "home" || p.slug === "index" ? "" : p.slug;
           let href = "#";
-          if (templateId) {
+          if (studio?.websiteSlug) {
+            href = slug ? `/${studio.websiteSlug}/${slug}` : `/${studio.websiteSlug}`;
+          } else if (templateId) {
             href = slug ? `/templates/${templateId}/${slug}` : `/templates/${templateId}`;
           } else if (websiteId) {
             href = slug ? `/site/${websiteId}/${slug}` : `/site/${websiteId}`;

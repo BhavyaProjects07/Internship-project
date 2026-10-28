@@ -5,7 +5,7 @@ import PuckPublicRenderer from "@/components/website-builder/PuckPublicRenderer"
 async function getPublishedWebsite(slug) {
   try {
     const response = await fetch(
-      `${process.env.API_URL}websites/public/${slug}`,
+      `${(process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/").replace(/\/+$/, "")}/websites/public/${encodeURIComponent(slug)}`,
       { cache: 'no-store' }
     );
     if (!response.ok) {
@@ -76,6 +76,7 @@ export default async function PublicSubPage({ params }) {
           pages={pages}
           activePageId={targetPage.id}
           websiteId={website.id}
+          websiteSlug={website.slug || slug}
           templateName={website.name}
         />
       ) : (

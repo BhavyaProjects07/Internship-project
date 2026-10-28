@@ -151,6 +151,7 @@ export default function PuckEditorClient({
   pages = [],
   templateName = "",
   websiteId = "",
+  websiteSlug = "",
   getToken,
   onHeaderVisibilityChange,
 }) {
@@ -924,6 +925,7 @@ const saveGlobalLayout = useCallback(async () => {
       activePageId={pageId}
       templateId={templateId}
       websiteId={websiteId}
+      websiteSlug={websiteSlug}
       templateName={templateName}
     >
       <div className="studio-editor-grid">

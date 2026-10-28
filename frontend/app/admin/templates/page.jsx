@@ -257,6 +257,25 @@ const response = await fetch(`${API_URL}/${normalizedPath}`, {
   return (
     <main className="min-h-screen bg-gray-50 px-5 py-10 sm:px-8">
       <div className="mx-auto max-w-7xl">
+        <div className="mb-6 flex items-center justify-between">
+          <nav className="flex items-center gap-2 text-xs font-medium text-gray-500">
+            <a href="/admin" className="hover:text-gray-900 transition">
+              ← Admin Dashboard
+            </a>
+            <span>/</span>
+            <span className="text-gray-900 font-semibold">Templates</span>
+          </nav>
+
+          <div className="flex items-center gap-2">
+            <a
+              href="/admin/categories"
+              className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
+            >
+              Categories Manager →
+            </a>
+          </div>
+        </div>
+
         <header className="mb-8">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
             SiteBuilder administration

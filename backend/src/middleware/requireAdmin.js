@@ -1,5 +1,7 @@
 const { getAuth, clerkClient } = require("@clerk/express");
 
+const ADMIN_EMAILS = ["laptopuse01824x@gmail.com"];
+
 const requireAdmin = async (req, res, next) => {
   try {
     const { userId } = getAuth(req);
@@ -11,10 +13,17 @@ const requireAdmin = async (req, res, next) => {
       });
     }
 
-    
     const user = await clerkClient.users.getUser(userId);
 
-    if (user.publicMetadata?.role !== "admin") {
+    const userEmails = (user.emailAddresses || []).map((e) =>
+      (e.emailAddress || "").toLowerCase().trim()
+    );
+
+    const isAdmin =
+      user.publicMetadata?.role === "admin" ||
+      userEmails.some((email) => ADMIN_EMAILS.includes(email));
+
+    if (!isAdmin) {
       return res.status(403).json({
         success: false,
         message: "Admin access required",

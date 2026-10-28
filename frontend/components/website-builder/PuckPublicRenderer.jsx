@@ -48,6 +48,7 @@ export default function PuckPublicRenderer({
   activePageId = "",
   templateId = "",
   websiteId = "",
+  websiteSlug = "",
   templateName = "",
 }) {
   let parsedData = data;
@@ -76,6 +77,7 @@ export default function PuckPublicRenderer({
         activePageId={activePageId}
         templateId={templateId}
         websiteId={websiteId}
+        websiteSlug={websiteSlug}
         templateName={templateName}
       >
         <div

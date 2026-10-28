@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
+import HomeHeader from "@/components/home/Header";
 import WebsiteCard from "@/components/WebsiteCard";
 import { redirect } from "next/navigation";
 
@@ -34,7 +35,9 @@ export default async function WebsitesDashboard() {
   const websites = result.data || [];
 
   return (
-    <main className="min-h-screen bg-gray-50 px-6 py-12">
+    <>
+      <HomeHeader />
+      <main className="min-h-screen bg-gray-50 px-6 py-12">
       <div className="mx-auto max-w-7xl">
         <div className="mb-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
           <div>
@@ -77,5 +80,6 @@ export default async function WebsitesDashboard() {
         )}
       </div>
     </main>
+    </>
   );
 }

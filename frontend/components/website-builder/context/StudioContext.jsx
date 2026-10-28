@@ -7,6 +7,7 @@ const StudioContext = createContext({
   activePageId: "",
   templateId: "",
   websiteId: "",
+  websiteSlug: "",
   templateName: "",
 });
 
@@ -16,6 +17,7 @@ export function StudioProvider({
   activePageId = "",
   templateId = "",
   websiteId = "",
+  websiteSlug = "",
   templateName = "",
 }) {
   const value = useMemo(
@@ -24,9 +26,10 @@ export function StudioProvider({
       activePageId: activePageId || "",
       templateId: templateId || "",
       websiteId: websiteId || "",
+      websiteSlug: websiteSlug || "",
       templateName: templateName || "",
     }),
-    [pages, activePageId, templateId, websiteId, templateName]
+    [pages, activePageId, templateId, websiteId, websiteSlug, templateName]
   );
 
   return (

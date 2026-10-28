@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import TemplateCard from "@/components/TemplateCard";
+import HomeHeader from "@/components/home/Header";
 
 const API_URL = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/"
@@ -105,16 +106,21 @@ export default function TemplatesPage() {
 
   if (loading) {
     return (
+      <>
+      <HomeHeader />
       <main className="min-h-screen bg-gray-50 px-5 py-12 sm:px-8">
         <div className="mx-auto max-w-7xl">
           <p className="text-gray-600">Loading website categories…</p>
         </div>
       </main>
+    </>
     );
   }
 
   if (error) {
     return (
+      <>
+      <HomeHeader />
       <main className="min-h-screen bg-gray-50 px-5 py-12 sm:px-8">
         <div className="mx-auto max-w-3xl rounded-xl border border-red-200 bg-red-50 p-5 text-red-800">
           <h1 className="font-semibold">Unable to load website options</h1>
@@ -128,11 +134,14 @@ export default function TemplatesPage() {
           </button>
         </div>
       </main>
+    </>
     );
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 px-5 py-12 sm:px-8">
+    <>
+      <HomeHeader />
+      <main className="min-h-screen bg-gray-50 px-5 py-12 sm:px-8">
       <div className="mx-auto max-w-7xl">
         {!selectedCategory ? (
           <>
@@ -245,5 +254,6 @@ export default function TemplatesPage() {
         )}
       </div>
     </main>
+    </>
   );
 }

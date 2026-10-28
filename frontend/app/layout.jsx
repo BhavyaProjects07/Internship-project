@@ -23,10 +23,17 @@ export default function RootLayout({ children }) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased scroll-smooth`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if(typeof window!=="undefined"&&typeof Event!=="undefined"&&!Event.prototype.getModifierState){Event.prototype.getModifierState=function(){return false;};}`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col font-sans bg-white text-neutral-900 selection:bg-neutral-900 selection:text-white">
-      <ClerkProvider>
-        {children}
-      </ClerkProvider>
+        <ClerkProvider>
+          {children}
+        </ClerkProvider>
       </body>
     </html>
   );
