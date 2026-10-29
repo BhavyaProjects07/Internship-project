@@ -26,6 +26,7 @@ class PuckErrorBoundary extends Component {
   }
 
   render() {
+    
     if (this.state.hasError) {
       return (
         <div className="p-8 text-center text-red-600 bg-red-50 border border-red-200 rounded-xl my-4">

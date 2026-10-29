@@ -10,6 +10,7 @@ import {
 import { Puck, useGetPuck } from "@puckeditor/core";
 import puckConfig, { DEFAULT_PAGE_RESPONSIVE } from "./puck-config";
 import { StudioProvider } from "./context/StudioContext.jsx";
+import { hydrateDocumentWithResponsive } from "./layout/responsiveStyles.js";
 
 const API_URL = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
@@ -203,148 +204,148 @@ export default function PuckEditorClient({
 
 
 
-  
 
 
 
-const [globalLayoutLoading, setGlobalLayoutLoading] = useState(true);
-const [globalLayoutSaving, setGlobalLayoutSaving] = useState(false);
-const [globalLayoutError, setGlobalLayoutError] = useState("");
-const [globalLayoutSaved, setGlobalLayoutSaved] = useState(false);
-const [globalLayoutSection, setGlobalLayoutSection] = useState("header");
 
-const updateGlobalLayout = useCallback((section, field, value) => {
-  setGlobalLayout((current) => ({
-    ...current,
-    [section]: {
-      ...current[section],
-      [field]: value,
-    },
-  }));
-  setGlobalLayoutSaved(false);
-}, []);
+  const [globalLayoutLoading, setGlobalLayoutLoading] = useState(true);
+  const [globalLayoutSaving, setGlobalLayoutSaving] = useState(false);
+  const [globalLayoutError, setGlobalLayoutError] = useState("");
+  const [globalLayoutSaved, setGlobalLayoutSaved] = useState(false);
+  const [globalLayoutSection, setGlobalLayoutSection] = useState("header");
 
-const linksToText = (links = []) =>
-  links.map((link) => `${link.label || ""} | ${link.href || ""}`).join("\n");
+  const updateGlobalLayout = useCallback((section, field, value) => {
+    setGlobalLayout((current) => ({
+      ...current,
+      [section]: {
+        ...current[section],
+        [field]: value,
+      },
+    }));
+    setGlobalLayoutSaved(false);
+  }, []);
 
-const textToLinks = (text) =>
-  text
-    .split("\n")
-    .map((line) => {
-      const separator = line.indexOf("|");
-      if (separator < 0) return null;
+  const linksToText = (links = []) =>
+    links.map((link) => `${link.label || ""} | ${link.href || ""}`).join("\n");
 
-      const label = line.slice(0, separator).trim();
-      const href = line.slice(separator + 1).trim();
+  const textToLinks = (text) =>
+    text
+      .split("\n")
+      .map((line) => {
+        const separator = line.indexOf("|");
+        if (separator < 0) return null;
 
-      if (!label || !href) return null;
-      return { label, href };
-    })
-    .filter(Boolean);
+        const label = line.slice(0, separator).trim();
+        const href = line.slice(separator + 1).trim();
+
+        if (!label || !href) return null;
+        return { label, href };
+      })
+      .filter(Boolean);
 
 
 
-    
-useEffect(() => {
-  let cancelled = false;
 
-  async function loadGlobalLayout() {
-    if (!templateId) {
-      setGlobalLayoutLoading(false);
-      return;
-    }
+  useEffect(() => {
+    let cancelled = false;
 
-    setGlobalLayoutLoading(true);
-    setGlobalLayoutError("");
+    async function loadGlobalLayout() {
+      if (!templateId) {
+        setGlobalLayoutLoading(false);
+        return;
+      }
 
-    try {
-      let token = null;
+      setGlobalLayoutLoading(true);
+      setGlobalLayoutError("");
+
       try {
-        token = typeof getToken === "function" ? await getToken() : null;
-      } catch {
-        token = null;
-      }
-
-      if (!token && process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
-        throw new Error("Authentication token unavailable.");
-      }
-
-      const headers = {};
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
-      const response = await fetch(
-        `${API_URL}/templates/admin/${encodeURIComponent(
-          templateId
-        )}/global-layout`,
-        {
-          headers,
-          cache: "no-store",
+        let token = null;
+        try {
+          token = typeof getToken === "function" ? await getToken() : null;
+        } catch {
+          token = null;
         }
-      );
 
-      const result = await response.json().catch(() => null);
+        if (!token && process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+          throw new Error("Authentication token unavailable.");
+        }
 
-      if (!response.ok || !result?.success) {
-        throw new Error(
-          result?.message || "Unable to load global layout."
+        const headers = {};
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+
+        const response = await fetch(
+          `${API_URL}/templates/admin/${encodeURIComponent(
+            templateId
+          )}/global-layout`,
+          {
+            headers,
+            cache: "no-store",
+          }
         );
+
+        const result = await response.json().catch(() => null);
+
+        if (!response.ok || !result?.success) {
+          throw new Error(
+            result?.message || "Unable to load global layout."
+          );
+        }
+
+        const saved = result.data?.globalLayout;
+
+        if (!cancelled && saved) {
+          setGlobalLayout({
+            header: {
+              ...DEFAULT_GLOBAL_LAYOUT.header,
+              ...(saved.header || {}),
+            },
+            footer: {
+              ...DEFAULT_GLOBAL_LAYOUT.footer,
+              ...(saved.footer || {}),
+            },
+          });
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setGlobalLayoutError(
+            err instanceof Error
+              ? err.message
+              : "Unable to load global layout."
+          );
+        }
+      } finally {
+        if (!cancelled) setGlobalLayoutLoading(false);
       }
-
-      const saved = result.data?.globalLayout;
-
-      if (!cancelled && saved) {
-        setGlobalLayout({
-          header: {
-            ...DEFAULT_GLOBAL_LAYOUT.header,
-            ...(saved.header || {}),
-          },
-          footer: {
-            ...DEFAULT_GLOBAL_LAYOUT.footer,
-            ...(saved.footer || {}),
-          },
-        });
-      }
-    } catch (err) {
-      if (!cancelled) {
-        setGlobalLayoutError(
-          err instanceof Error
-            ? err.message
-            : "Unable to load global layout."
-        );
-      }
-    } finally {
-      if (!cancelled) setGlobalLayoutLoading(false);
-    }
-  }
-
-  
-
-  return () => {
-    cancelled = true;
-  };
-}, [templateId, getToken]);
-
-
-
-
- const handleCanvasScroll = useCallback(
-  (event) => {
-    const currentScroll = event.currentTarget.scrollTop;
-    const previousScroll = lastCanvasScrollRef.current;
-    const delta = currentScroll - previousScroll;
-
-    if (currentScroll <= 40 || delta < -5) {
-      onHeaderVisibilityChange(false);
-    } else if (delta > 5) {
-      onHeaderVisibilityChange(true);
     }
 
-    lastCanvasScrollRef.current = currentScroll;
-  },
-  [onHeaderVisibilityChange]
-);
+
+
+    return () => {
+      cancelled = true;
+    };
+  }, [templateId, getToken]);
+
+
+
+
+  const handleCanvasScroll = useCallback(
+    (event) => {
+      const currentScroll = event.currentTarget.scrollTop;
+      const previousScroll = lastCanvasScrollRef.current;
+      const delta = currentScroll - previousScroll;
+
+      if (currentScroll <= 40 || delta < -5) {
+        onHeaderVisibilityChange(false);
+      } else if (delta > 5) {
+        onHeaderVisibilityChange(true);
+      }
+
+      lastCanvasScrollRef.current = currentScroll;
+    },
+    [onHeaderVisibilityChange]
+  );
 
 
   useEffect(() => {
@@ -395,7 +396,7 @@ useEffect(() => {
         if (!response.ok || !result?.success) {
           throw new Error(
             result?.message ||
-              `Unable to load page document (HTTP ${response.status}).`
+            `Unable to load page document (HTTP ${response.status}).`
           );
         }
 
@@ -571,7 +572,7 @@ useEffect(() => {
         if (!response.ok || !result?.success) {
           throw new Error(
             result?.message ||
-              `Unable to save page document (HTTP ${response.status}).`
+            `Unable to save page document (HTTP ${response.status}).`
           );
         }
 
@@ -676,81 +677,81 @@ useEffect(() => {
 
 
 
-  
-const saveGlobalLayout = useCallback(async () => {
-  if (!templateId) {
-    setGlobalLayoutSaving(false);
-    return;
-  }
 
-  setGlobalLayoutSaving(true);
-  setGlobalLayoutError("");
-  setGlobalLayoutSaved(false);
+  const saveGlobalLayout = useCallback(async () => {
+    if (!templateId) {
+      setGlobalLayoutSaving(false);
+      return;
+    }
 
-  try {
-    let token = null;
+    setGlobalLayoutSaving(true);
+    setGlobalLayoutError("");
+    setGlobalLayoutSaved(false);
+
     try {
-      token = typeof getToken === "function" ? await getToken() : null;
-    } catch {
-      token = null;
-    }
-
-    if (!token && process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
-      throw new Error("Authentication token unavailable.");
-    }
-
-    const headers = {
-      "Content-Type": "application/json",
-    };
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-
-    const response = await fetch(
-      `${API_URL}/templates/admin/${encodeURIComponent(
-        templateId
-      )}/global-layout`,
-      {
-        method: "PUT",
-        headers,
-        body: JSON.stringify({ globalLayout }),
+      let token = null;
+      try {
+        token = typeof getToken === "function" ? await getToken() : null;
+      } catch {
+        token = null;
       }
-    );
 
-    const result = await response.json().catch(() => null);
+      if (!token && process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+        throw new Error("Authentication token unavailable.");
+      }
 
-    if (!response.ok || !result?.success) {
-      throw new Error(
-        result?.message || "Unable to save global layout."
+      const headers = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await fetch(
+        `${API_URL}/templates/admin/${encodeURIComponent(
+          templateId
+        )}/global-layout`,
+        {
+          method: "PUT",
+          headers,
+          body: JSON.stringify({ globalLayout }),
+        }
       );
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok || !result?.success) {
+        throw new Error(
+          result?.message || "Unable to save global layout."
+        );
+      }
+
+      const saved = result.data?.globalLayout;
+
+      if (saved) {
+        setGlobalLayout({
+          header: {
+            ...DEFAULT_GLOBAL_LAYOUT.header,
+            ...(saved.header || {}),
+          },
+          footer: {
+            ...DEFAULT_GLOBAL_LAYOUT.footer,
+            ...(saved.footer || {}),
+          },
+        });
+      }
+
+      setGlobalLayoutSaved(true);
+    } catch (err) {
+      setGlobalLayoutError(
+        err instanceof Error
+          ? err.message
+          : "Unable to save global layout."
+      );
+    } finally {
+      setGlobalLayoutSaving(false);
     }
-
-    const saved = result.data?.globalLayout;
-
-    if (saved) {
-      setGlobalLayout({
-        header: {
-          ...DEFAULT_GLOBAL_LAYOUT.header,
-          ...(saved.header || {}),
-        },
-        footer: {
-          ...DEFAULT_GLOBAL_LAYOUT.footer,
-          ...(saved.footer || {}),
-        },
-      });
-    }
-
-    setGlobalLayoutSaved(true);
-  } catch (err) {
-    setGlobalLayoutError(
-      err instanceof Error
-        ? err.message
-        : "Unable to save global layout."
-    );
-  } finally {
-    setGlobalLayoutSaving(false);
-  }
-}, [templateId, getToken]);
+  }, [templateId, getToken]);
 
 
   if (error && !data) {
@@ -784,528 +785,528 @@ const saveGlobalLayout = useCallback(async () => {
   }
 
   return (
-  <div className="studio-workspace">
-    <div className="studio-toolbar">
-      <div className="studio-toolbar-heading">
-        <div className="studio-toolbar-mark">
-          <Icon name="panel" size={18} />
+    <div className="studio-workspace">
+      <div className="studio-toolbar">
+        <div className="studio-toolbar-heading">
+          <div className="studio-toolbar-mark">
+            <Icon name="panel" size={18} />
+          </div>
+
+          <div>
+            <p className="studio-eyebrow">DESIGN WORKSPACE</p>
+            <h2>Visual editor</h2>
+          </div>
         </div>
 
-        <div>
-          <p className="studio-eyebrow">DESIGN WORKSPACE</p>
-          <h2>Visual editor</h2>
+        {/* Quick Sidebar Toggles in Toolbar */}
+        <div className="studio-toolbar-center">
+          <button
+            type="button"
+            onClick={() => setIsLeftSidebarOpen((prev) => !prev)}
+            className={`studio-panel-toggle ${isLeftSidebarOpen ? "is-active" : ""}`}
+            title={isLeftSidebarOpen ? "Collapse Left Panel (Elements & Layers)" : "Open Left Panel"}
+            aria-pressed={isLeftSidebarOpen}
+          >
+            <Icon name="sidebarLeft" size={16} />
+            <span>Elements</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsRightSidebarOpen((prev) => !prev)}
+            className={`studio-panel-toggle ${isRightSidebarOpen ? "is-active" : ""}`}
+            title={isRightSidebarOpen ? "Collapse Inspector (Properties)" : "Open Inspector"}
+            aria-pressed={isRightSidebarOpen}
+          >
+            <Icon name="sidebarRight" size={16} />
+            <span>Inspector</span>
+          </button>
         </div>
-      </div>
 
-      {/* Quick Sidebar Toggles in Toolbar */}
-      <div className="studio-toolbar-center">
-        <button
-          type="button"
-          onClick={() => setIsLeftSidebarOpen((prev) => !prev)}
-          className={`studio-panel-toggle ${isLeftSidebarOpen ? "is-active" : ""}`}
-          title={isLeftSidebarOpen ? "Collapse Left Panel (Elements & Layers)" : "Open Left Panel"}
-          aria-pressed={isLeftSidebarOpen}
+
+        <div
+          className="studio-device-preview"
+          role="group"
+          aria-label="Responsive preview device"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 4,
+            padding: 4,
+            border: "1px solid #e2e8f0",
+            borderRadius: 10,
+            background: "#f8fafc",
+          }}
         >
-          <Icon name="sidebarLeft" size={16} />
-          <span>Elements</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setIsRightSidebarOpen((prev) => !prev)}
-          className={`studio-panel-toggle ${isRightSidebarOpen ? "is-active" : ""}`}
-          title={isRightSidebarOpen ? "Collapse Inspector (Properties)" : "Open Inspector"}
-          aria-pressed={isRightSidebarOpen}
-        >
-          <Icon name="sidebarRight" size={16} />
-          <span>Inspector</span>
-        </button>
-      </div>
+          {[
+            { id: "desktop", label: "Desktop", icon: "monitor" },
+            { id: "tablet", label: "Tablet", icon: "tablet" },
+            { id: "mobile", label: "Mobile", icon: "smartphone" },
+          ].map((device) => {
+            const active = previewDevice === device.id;
 
-      
-      <div
-        className="studio-device-preview"
-        role="group"
-        aria-label="Responsive preview device"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 4,
-          padding: 4,
-          border: "1px solid #e2e8f0",
-          borderRadius: 10,
-          background: "#f8fafc",
-        }}
-      >
-        {[
-          { id: "desktop", label: "Desktop", icon: "monitor" },
-          { id: "tablet", label: "Tablet", icon: "tablet" },
-          { id: "mobile", label: "Mobile", icon: "smartphone" },
-        ].map((device) => {
-          const active = previewDevice === device.id;
+            return (
+              <button
+                key={device.id}
+                type="button"
+                onClick={() => setPreviewDevice(device.id)}
+                aria-pressed={active}
+                title={`${device.label} preview`}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  padding: "8px 10px",
+                  border: "1px solid transparent",
+                  borderRadius: 7,
+                  background: active ? "#ffffff" : "transparent",
+                  color: active ? "#0f172a" : "#64748b",
+                  boxShadow: active
+                    ? "0 1px 3px rgba(15, 23, 42, 0.12)"
+                    : "none",
+                  fontSize: 12,
+                  fontWeight: active ? 600 : 500,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <Icon name={device.icon} size={15} />
+                <span>{device.label}</span>
+              </button>
+            );
+          })}
+        </div>
 
-          return (
+
+
+        <div className="studio-toolbar-actions">
+          <StatusIndicator status={saveStatus} savedAt={savedAt} />
+
+          {saveStatus === "error" && retryDocument ? (
             <button
-              key={device.id}
               type="button"
-              onClick={() => setPreviewDevice(device.id)}
-              aria-pressed={active}
-              title={`${device.label} preview`}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-                padding: "8px 10px",
-                border: "1px solid transparent",
-                borderRadius: 7,
-                background: active ? "#ffffff" : "transparent",
-                color: active ? "#0f172a" : "#64748b",
-                boxShadow: active
-                  ? "0 1px 3px rgba(15, 23, 42, 0.12)"
-                  : "none",
-                fontSize: 12,
-                fontWeight: active ? 600 : 500,
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-              }}
+              className="studio-save-button"
+              onClick={retrySave}
+              disabled={saveStatus === "saving"}
             >
-              <Icon name={device.icon} size={15} />
-              <span>{device.label}</span>
+              Retry save
             </button>
-          );
-        })}
+          ) : (
+            <button
+              type="button"
+              className="studio-save-button"
+              onClick={saveCurrentDocument}
+              disabled={saveStatus === "saving"}
+            >
+              <Icon name="save" size={16} />
+              <span>Save changes</span>
+            </button>
+          )}
+        </div>
       </div>
 
+      {error && data && (
+        <div className="studio-error-banner" role="alert">
+          <Icon name="alert" size={17} />
+          <span>{error}</span>
 
+          {retryDocument && (
+            <button
+              type="button"
+              onClick={retrySave}
+              disabled={saveStatus === "saving"}
+            >
+              Retry
+            </button>
+          )}
+        </div>
+      )}
 
-      <div className="studio-toolbar-actions">
-        <StatusIndicator status={saveStatus} savedAt={savedAt} />
-
-        {saveStatus === "error" && retryDocument ? (
-          <button
-            type="button"
-            className="studio-save-button"
-            onClick={retrySave}
-            disabled={saveStatus === "saving"}
+      <StudioProvider
+        pages={pages}
+        activePageId={pageId}
+        templateId={templateId}
+        websiteId={websiteId}
+        websiteSlug={websiteSlug}
+        templateName={templateName}
+      >
+        <div className="studio-editor-grid">
+          <Puck
+            config={puckConfig}
+            data={data}
+            onChange={handleEditorChange}
+            onPublish={saveDocument}
+            height="100%"
+            iframe={{ enabled: false }}
           >
-            Retry save
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="studio-save-button"
-            onClick={saveCurrentDocument}
-            disabled={saveStatus === "saving"}
-          >
-            <Icon name="save" size={16} />
-            <span>Save changes</span>
-          </button>
-        )}
-      </div>
-    </div>
+            <PuckSaveBridge onRegister={registerCurrentDataGetter} />
 
-    {error && data && (
-      <div className="studio-error-banner" role="alert">
-        <Icon name="alert" size={17} />
-        <span>{error}</span>
-
-        {retryDocument && (
-          <button
-            type="button"
-            onClick={retrySave}
-            disabled={saveStatus === "saving"}
-          >
-            Retry
-          </button>
-        )}
-      </div>
-    )}
-
-    <StudioProvider
-      pages={pages}
-      activePageId={pageId}
-      templateId={templateId}
-      websiteId={websiteId}
-      websiteSlug={websiteSlug}
-      templateName={templateName}
-    >
-      <div className="studio-editor-grid">
-        <Puck
-    config={puckConfig}
-    data={data}
-    onChange={handleEditorChange}
-    onPublish={saveDocument}
-    height="100%"
-    iframe={{ enabled: false }}
-  >
-        <PuckSaveBridge onRegister={registerCurrentDataGetter} />
-
-        <div className="studio-composition">
-          {isLeftSidebarOpen && (
-            <aside className="studio-sidebar">
-              <div className="studio-sidebar-header">
-                <div className="studio-sidebar-tabs">
-                  <button
-                    type="button"
-                    className={
-                      activeSidebarTab === "elements"
-                        ? "studio-sidebar-tab is-active"
-                        : "studio-sidebar-tab"
-                    }
-                    aria-pressed={activeSidebarTab === "elements"}
-                    onClick={() => setActiveSidebarTab("elements")}
-                  >
-                    <Icon name="blocks" size={16} />
-                    Elements
-                  </button>
-
-                  <button
-                    type="button"
-                    className={
-                      activeSidebarTab === "layers"
-                        ? "studio-sidebar-tab is-active"
-                        : "studio-sidebar-tab"
-                    }
-                    aria-pressed={activeSidebarTab === "layers"}
-                    onClick={() => setActiveSidebarTab("layers")}
-                  >
-                    <Icon name="layers" size={16} />
-                    Layers
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setIsLeftSidebarOpen(false)}
-                  title="Collapse Left Panel"
-                  className="studio-panel-close-btn"
-                  aria-label="Close Left Sidebar"
-                >
-                  <Icon name="chevronLeft" size={16} />
-                </button>
-              </div>
-
-              <div className="studio-sidebar-content">
-              
-              {activeSidebarTab === "elements" ? (
-                <>
-                  <div className="studio-panel-heading">
-                    <h3>Add elements</h3>
-                    <p>Drag components onto your page.</p>
-                  </div>
-                  <Puck.Components />
-                </>
-              ) : activeSidebarTab === "layers" ? (
-                <>
-                  <div className="studio-panel-heading">
-                    <h3>Page structure</h3>
-                    <p>Select and organize page elements.</p>
-                  </div>
-                  <Puck.Outline />
-                </>
-              ) : (
-                <div style={{ padding: 16, display: "grid", gap: 16 }}>
-                  <div className="studio-panel-heading">
-                    <h3>Global Header & Footer</h3>
-                    <p>These settings are shared across the template&apos;s pages.</p>
-                  </div>
-
-                  {globalLayoutLoading ? (
-                    <p>Loading global layout…</p>
-                  ) : (
-                    <>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <button
-                          type="button"
-                          className="studio-sidebar-tab"
-                          aria-pressed={globalLayoutSection === "header"}
-                          onClick={() => setGlobalLayoutSection("header")}
-                        >
-                          Header
-                        </button>
-                        <button
-                          type="button"
-                          className="studio-sidebar-tab"
-                          aria-pressed={globalLayoutSection === "footer"}
-                          onClick={() => setGlobalLayoutSection("footer")}
-                        >
-                          Footer
-                        </button>
-                      </div>
-
-                      {globalLayoutSection === "header" ? (
-                        <div style={{ display: "grid", gap: 12 }}>
-                          <label>
-                            <input
-                              type="checkbox"
-                              checked={globalLayout.header.enabled}
-                              onChange={(e) =>
-                                updateGlobalLayout("header", "enabled", e.target.checked)
-                              }
-                            />{" "}
-                            Show header
-                          </label>
-
-                          <label>
-                            Logo / brand text
-                            <input
-                              style={{ display: "block", width: "100%" }}
-                              value={globalLayout.header.logoText}
-                              onChange={(e) =>
-                                updateGlobalLayout("header", "logoText", e.target.value)
-                              }
-                            />
-                          </label>
-
-                          <label>
-                            Logo image URL (optional)
-                            <input
-                              style={{ display: "block", width: "100%" }}
-                              value={globalLayout.header.logoUrl}
-                              onChange={(e) =>
-                                updateGlobalLayout("header", "logoUrl", e.target.value)
-                              }
-                              placeholder="https://example.com/logo.png"
-                            />
-                          </label>
-
-                          <label>
-                            Background color
-                            <input
-                              type="color"
-                              value={globalLayout.header.backgroundColor}
-                              onChange={(e) =>
-                                updateGlobalLayout(
-                                  "header",
-                                  "backgroundColor",
-                                  e.target.value
-                                )
-                              }
-                            />
-                          </label>
-
-                          <label>
-                            Text color
-                            <input
-                              type="color"
-                              value={globalLayout.header.textColor}
-                              onChange={(e) =>
-                                updateGlobalLayout("header", "textColor", e.target.value)
-                              }
-                            />
-                          </label>
-
-                          <label>
-                            Navigation links (one per line: Label | /path)
-                            <textarea
-                              rows={5}
-                              style={{ display: "block", width: "100%" }}
-                              value={linksToText(globalLayout.header.links)}
-                              onChange={(e) =>
-                                updateGlobalLayout(
-                                  "header",
-                                  "links",
-                                  textToLinks(e.target.value)
-                                )
-                              }
-                              placeholder={"Home | /\nAbout | /about\nContact | /contact"}
-                            />
-                          </label>
-                        </div>
-                      ) : (
-                        <div style={{ display: "grid", gap: 12 }}>
-                          <label>
-                            <input
-                              type="checkbox"
-                              checked={globalLayout.footer.enabled}
-                              onChange={(e) =>
-                                updateGlobalLayout("footer", "enabled", e.target.checked)
-                              }
-                            />{" "}
-                            Show footer
-                          </label>
-
-                          <label>
-                            Background color
-                            <input
-                              type="color"
-                              value={globalLayout.footer.backgroundColor}
-                              onChange={(e) =>
-                                updateGlobalLayout(
-                                  "footer",
-                                  "backgroundColor",
-                                  e.target.value
-                                )
-                              }
-                            />
-                          </label>
-
-                          <label>
-                            Text color
-                            <input
-                              type="color"
-                              value={globalLayout.footer.textColor}
-                              onChange={(e) =>
-                                updateGlobalLayout("footer", "textColor", e.target.value)
-                              }
-                            />
-                          </label>
-
-                          <label>
-                            Copyright text
-                            <textarea
-                              rows={3}
-                              style={{ display: "block", width: "100%" }}
-                              value={globalLayout.footer.copyrightText}
-                              onChange={(e) =>
-                                updateGlobalLayout(
-                                  "footer",
-                                  "copyrightText",
-                                  e.target.value
-                                )
-                              }
-                            />
-                          </label>
-
-                          <label>
-                            Footer links (one per line: Label | /path)
-                            <textarea
-                              rows={5}
-                              style={{ display: "block", width: "100%" }}
-                              value={linksToText(globalLayout.footer.links)}
-                              onChange={(e) =>
-                                updateGlobalLayout(
-                                  "footer",
-                                  "links",
-                                  textToLinks(e.target.value)
-                                )
-                              }
-                              placeholder={"Privacy | /privacy\nTerms | /terms"}
-                            />
-                          </label>
-                        </div>
-                      )}
+            <div className="studio-composition">
+              {isLeftSidebarOpen && (
+                <aside className="studio-sidebar">
+                  <div className="studio-sidebar-header">
+                    <div className="studio-sidebar-tabs">
+                      <button
+                        type="button"
+                        className={
+                          activeSidebarTab === "elements"
+                            ? "studio-sidebar-tab is-active"
+                            : "studio-sidebar-tab"
+                        }
+                        aria-pressed={activeSidebarTab === "elements"}
+                        onClick={() => setActiveSidebarTab("elements")}
+                      >
+                        <Icon name="blocks" size={16} />
+                        Elements
+                      </button>
 
                       <button
                         type="button"
-                        className="studio-save-button"
-                        onClick={saveGlobalLayout}
-                        disabled={globalLayoutSaving}
+                        className={
+                          activeSidebarTab === "layers"
+                            ? "studio-sidebar-tab is-active"
+                            : "studio-sidebar-tab"
+                        }
+                        aria-pressed={activeSidebarTab === "layers"}
+                        onClick={() => setActiveSidebarTab("layers")}
                       >
-                        {globalLayoutSaving ? "Saving layout…" : "Save global layout"}
+                        <Icon name="layers" size={16} />
+                        Layers
                       </button>
+                    </div>
 
-                      {globalLayoutSaved && (
-                        <p role="status">Global layout saved.</p>
-                      )}
+                    <button
+                      type="button"
+                      onClick={() => setIsLeftSidebarOpen(false)}
+                      title="Collapse Left Panel"
+                      className="studio-panel-close-btn"
+                      aria-label="Close Left Sidebar"
+                    >
+                      <Icon name="chevronLeft" size={16} />
+                    </button>
+                  </div>
 
-                      {globalLayoutError && (
-                        <p role="alert" style={{ color: "#dc2626" }}>
-                          {globalLayoutError}
-                        </p>
-                      )}
-                    </>
-                  )}
-                </div>
+                  <div className="studio-sidebar-content">
+
+                    {activeSidebarTab === "elements" ? (
+                      <>
+                        <div className="studio-panel-heading">
+                          <h3>Add elements</h3>
+                          <p>Drag components onto your page.</p>
+                        </div>
+                        <Puck.Components />
+                      </>
+                    ) : activeSidebarTab === "layers" ? (
+                      <>
+                        <div className="studio-panel-heading">
+                          <h3>Page structure</h3>
+                          <p>Select and organize page elements.</p>
+                        </div>
+                        <Puck.Outline />
+                      </>
+                    ) : (
+                      <div style={{ padding: 16, display: "grid", gap: 16 }}>
+                        <div className="studio-panel-heading">
+                          <h3>Global Header & Footer</h3>
+                          <p>These settings are shared across the template&apos;s pages.</p>
+                        </div>
+
+                        {globalLayoutLoading ? (
+                          <p>Loading global layout…</p>
+                        ) : (
+                          <>
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <button
+                                type="button"
+                                className="studio-sidebar-tab"
+                                aria-pressed={globalLayoutSection === "header"}
+                                onClick={() => setGlobalLayoutSection("header")}
+                              >
+                                Header
+                              </button>
+                              <button
+                                type="button"
+                                className="studio-sidebar-tab"
+                                aria-pressed={globalLayoutSection === "footer"}
+                                onClick={() => setGlobalLayoutSection("footer")}
+                              >
+                                Footer
+                              </button>
+                            </div>
+
+                            {globalLayoutSection === "header" ? (
+                              <div style={{ display: "grid", gap: 12 }}>
+                                <label>
+                                  <input
+                                    type="checkbox"
+                                    checked={globalLayout.header.enabled}
+                                    onChange={(e) =>
+                                      updateGlobalLayout("header", "enabled", e.target.checked)
+                                    }
+                                  />{" "}
+                                  Show header
+                                </label>
+
+                                <label>
+                                  Logo / brand text
+                                  <input
+                                    style={{ display: "block", width: "100%" }}
+                                    value={globalLayout.header.logoText}
+                                    onChange={(e) =>
+                                      updateGlobalLayout("header", "logoText", e.target.value)
+                                    }
+                                  />
+                                </label>
+
+                                <label>
+                                  Logo image URL (optional)
+                                  <input
+                                    style={{ display: "block", width: "100%" }}
+                                    value={globalLayout.header.logoUrl}
+                                    onChange={(e) =>
+                                      updateGlobalLayout("header", "logoUrl", e.target.value)
+                                    }
+                                    placeholder="https://example.com/logo.png"
+                                  />
+                                </label>
+
+                                <label>
+                                  Background color
+                                  <input
+                                    type="color"
+                                    value={globalLayout.header.backgroundColor}
+                                    onChange={(e) =>
+                                      updateGlobalLayout(
+                                        "header",
+                                        "backgroundColor",
+                                        e.target.value
+                                      )
+                                    }
+                                  />
+                                </label>
+
+                                <label>
+                                  Text color
+                                  <input
+                                    type="color"
+                                    value={globalLayout.header.textColor}
+                                    onChange={(e) =>
+                                      updateGlobalLayout("header", "textColor", e.target.value)
+                                    }
+                                  />
+                                </label>
+
+                                <label>
+                                  Navigation links (one per line: Label | /path)
+                                  <textarea
+                                    rows={5}
+                                    style={{ display: "block", width: "100%" }}
+                                    value={linksToText(globalLayout.header.links)}
+                                    onChange={(e) =>
+                                      updateGlobalLayout(
+                                        "header",
+                                        "links",
+                                        textToLinks(e.target.value)
+                                      )
+                                    }
+                                    placeholder={"Home | /\nAbout | /about\nContact | /contact"}
+                                  />
+                                </label>
+                              </div>
+                            ) : (
+                              <div style={{ display: "grid", gap: 12 }}>
+                                <label>
+                                  <input
+                                    type="checkbox"
+                                    checked={globalLayout.footer.enabled}
+                                    onChange={(e) =>
+                                      updateGlobalLayout("footer", "enabled", e.target.checked)
+                                    }
+                                  />{" "}
+                                  Show footer
+                                </label>
+
+                                <label>
+                                  Background color
+                                  <input
+                                    type="color"
+                                    value={globalLayout.footer.backgroundColor}
+                                    onChange={(e) =>
+                                      updateGlobalLayout(
+                                        "footer",
+                                        "backgroundColor",
+                                        e.target.value
+                                      )
+                                    }
+                                  />
+                                </label>
+
+                                <label>
+                                  Text color
+                                  <input
+                                    type="color"
+                                    value={globalLayout.footer.textColor}
+                                    onChange={(e) =>
+                                      updateGlobalLayout("footer", "textColor", e.target.value)
+                                    }
+                                  />
+                                </label>
+
+                                <label>
+                                  Copyright text
+                                  <textarea
+                                    rows={3}
+                                    style={{ display: "block", width: "100%" }}
+                                    value={globalLayout.footer.copyrightText}
+                                    onChange={(e) =>
+                                      updateGlobalLayout(
+                                        "footer",
+                                        "copyrightText",
+                                        e.target.value
+                                      )
+                                    }
+                                  />
+                                </label>
+
+                                <label>
+                                  Footer links (one per line: Label | /path)
+                                  <textarea
+                                    rows={5}
+                                    style={{ display: "block", width: "100%" }}
+                                    value={linksToText(globalLayout.footer.links)}
+                                    onChange={(e) =>
+                                      updateGlobalLayout(
+                                        "footer",
+                                        "links",
+                                        textToLinks(e.target.value)
+                                      )
+                                    }
+                                    placeholder={"Privacy | /privacy\nTerms | /terms"}
+                                  />
+                                </label>
+                              </div>
+                            )}
+
+                            <button
+                              type="button"
+                              className="studio-save-button"
+                              onClick={saveGlobalLayout}
+                              disabled={globalLayoutSaving}
+                            >
+                              {globalLayoutSaving ? "Saving layout…" : "Save global layout"}
+                            </button>
+
+                            {globalLayoutSaved && (
+                              <p role="status">Global layout saved.</p>
+                            )}
+
+                            {globalLayoutError && (
+                              <p role="alert" style={{ color: "#dc2626" }}>
+                                {globalLayoutError}
+                              </p>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                  </div>
+                </aside>
               )}
 
-            </div>
-          </aside>
-          )}
+              <section className="studio-canvas-panel">
+                {!isLeftSidebarOpen && (
+                  <button
+                    type="button"
+                    onClick={() => setIsLeftSidebarOpen(true)}
+                    className="studio-floating-toggle studio-floating-toggle-left"
+                    title="Open Elements & Layers sidebar"
+                  >
+                    <Icon name="sidebarLeft" size={15} />
+                    <span>Elements</span>
+                    <Icon name="chevronRight" size={13} />
+                  </button>
+                )}
 
-          <section className="studio-canvas-panel">
-            {!isLeftSidebarOpen && (
-              <button
-                type="button"
-                onClick={() => setIsLeftSidebarOpen(true)}
-                className="studio-floating-toggle studio-floating-toggle-left"
-                title="Open Elements & Layers sidebar"
-              >
-                <Icon name="sidebarLeft" size={15} />
-                <span>Elements</span>
-                <Icon name="chevronRight" size={13} />
-              </button>
-            )}
+                {!isRightSidebarOpen && (
+                  <button
+                    type="button"
+                    onClick={() => setIsRightSidebarOpen(true)}
+                    className="studio-floating-toggle studio-floating-toggle-right"
+                    title="Open Component Inspector"
+                  >
+                    <Icon name="chevronLeft" size={13} />
+                    <span>Inspector</span>
+                    <Icon name="sidebarRight" size={15} />
+                  </button>
+                )}
 
-            {!isRightSidebarOpen && (
-              <button
-                type="button"
-                onClick={() => setIsRightSidebarOpen(true)}
-                className="studio-floating-toggle studio-floating-toggle-right"
-                title="Open Component Inspector"
-              >
-                <Icon name="chevronLeft" size={13} />
-                <span>Inspector</span>
-                <Icon name="sidebarRight" size={15} />
-              </button>
-            )}
-
-            <div
-              className="studio-canvas"
-              onScroll={handleCanvasScroll}
-            >
-            
-
-              <div
-                className={`studio-canvas-page studio-preview-${previewDevice}`}
-                style={{
-                  backgroundColor: "#ffffff",
-                  color: "#111827",
-                  width: previewWidths[previewDevice],
-                  maxWidth: "100%",
-                  minWidth: 0,
-                  minHeight: "100%",
-                  marginInline: "auto",
-                  boxSizing: "border-box",
-                  containerType: "inline-size",
-                  containerName: "studio-preview",
-                  transition: "width 180ms ease",
-                  overflowWrap: "break-word",
-                }}
-              >
-                <Puck.Preview id="website-studio-preview" />
-              </div>
+                <div
+                  className="studio-canvas"
+                  onScroll={handleCanvasScroll}
+                >
 
 
-          </div>
-
-          </section>
-
-          {isRightSidebarOpen && (
-            <aside className="studio-inspector">
-              <div className="studio-inspector-heading">
-                <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
-                  <span className="studio-inspector-icon">
-                    <Icon name="panel" size={17} />
-                  </span>
-
-                  <div style={{ minWidth: 0 }}>
-                    <h3>Inspector</h3>
-                    <p>Content and component settings</p>
+                  <div
+                    className={`studio-canvas-page studio-preview-${previewDevice}`}
+                    style={{
+                      backgroundColor: "#ffffff",
+                      color: "#111827",
+                      width: previewWidths[previewDevice],
+                      maxWidth: "100%",
+                      minWidth: 0,
+                      minHeight: "100%",
+                      marginInline: "auto",
+                      boxSizing: "border-box",
+                      containerType: "inline-size",
+                      containerName: "studio-preview",
+                      transition: "width 180ms ease",
+                      overflowWrap: "break-word",
+                    }}
+                  >
+                    <Puck.Preview id="website-studio-preview" />
                   </div>
+
+
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setIsRightSidebarOpen(false)}
-                  title="Collapse Inspector"
-                  className="studio-panel-close-btn"
-                  aria-label="Close Inspector"
-                >
-                  <Icon name="chevronRight" size={16} />
-                </button>
-              </div>
+              </section>
 
-              <div className="studio-inspector-content">
-                <Puck.Fields />
-              </div>
-            </aside>
-          )}
+              {isRightSidebarOpen && (
+                <aside className="studio-inspector">
+                  <div className="studio-inspector-heading">
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+                      <span className="studio-inspector-icon">
+                        <Icon name="panel" size={17} />
+                      </span>
+
+                      <div style={{ minWidth: 0 }}>
+                        <h3>Inspector</h3>
+                        <p>Content and component settings</p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsRightSidebarOpen(false)}
+                      title="Collapse Inspector"
+                      className="studio-panel-close-btn"
+                      aria-label="Close Inspector"
+                    >
+                      <Icon name="chevronRight" size={16} />
+                    </button>
+                  </div>
+
+                  <div className="studio-inspector-content">
+                    <Puck.Fields />
+                  </div>
+                </aside>
+              )}
+            </div>
+          </Puck>
         </div>
-      </Puck>
+      </StudioProvider>
     </div>
-  </StudioProvider>
-  </div>
-);
+  );
 }

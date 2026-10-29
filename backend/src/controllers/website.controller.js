@@ -26,18 +26,26 @@ if (!authState.userId) {
 
     const { templateId, name } = req.body;
 
-    if (!templateId || !name) {
+    if (!name || typeof name !== "string" || !name.trim()) {
       return res.status(400).json({
         success: false,
-        message: "templateId and name are required",
+        message: "Website name is required",
       });
     }
 
-    const website = await websiteService.createWebsiteFromTemplate({
-      templateId,
-      name,
-      userId: authState.userId,
-    });
+    let website;
+    if (templateId && templateId !== "scratch") {
+      website = await websiteService.createWebsiteFromTemplate({
+        templateId,
+        name: name.trim(),
+        userId: authState.userId,
+      });
+    } else {
+      website = await websiteService.createWebsiteFromScratch({
+        name: name.trim(),
+        userId: authState.userId,
+      });
+    }
 
     res.status(201).json({
       success: true,

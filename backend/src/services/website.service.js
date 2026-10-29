@@ -454,6 +454,54 @@ const createWebsiteFromTemplate = async ({
 
 };
 
+const createWebsiteFromScratch = async ({ name, userId }) => {
+  if (!userId || typeof name !== "string" || !name.trim()) {
+    throw httpError("name and userId are required");
+  }
+
+  return prisma.$transaction(
+    async (tx) => {
+      const slug = await makeUniqueWebsiteSlug(name.trim(), tx);
+
+      return tx.website.create({
+        data: {
+          name: name.trim(),
+          slug,
+          userId,
+          templateId: null,
+          pages: {
+            create: [
+              {
+                name: "Home",
+                slug: "home",
+                order: 0,
+                responsive: {
+                  ...DEFAULT_PAGE_RESPONSIVE,
+                  components: [],
+                },
+                editorData: {
+                  content: [],
+                  root: {
+                    props: {
+                      title: "Home",
+                      responsive: DEFAULT_PAGE_RESPONSIVE,
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        },
+        include: websiteInclude,
+      });
+    },
+    {
+      maxWait: 10000,
+      timeout: 15000,
+    }
+  );
+};
+
 const getWebsiteById = async (id, userId) => {
   return prisma.website.findFirst({
     where: {
@@ -1603,6 +1651,7 @@ module.exports = {
 
   // Website operations
   createWebsiteFromTemplate,
+  createWebsiteFromScratch,
   createWebsitePage,
   updateWebsitePage,
   deleteWebsitePage,
