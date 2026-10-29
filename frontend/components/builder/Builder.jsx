@@ -107,6 +107,22 @@ function GlobeIcon({ className = "h-4 w-4" }) {
   );
 }
 
+function EditIcon({ className = "h-3.5 w-3.5" }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+    </svg>
+  );
+}
+
+function TrashIcon({ className = "h-3.5 w-3.5" }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+    </svg>
+  );
+}
+
 export default function Builder({ website: initialWebsite }) {
   const router = useRouter();
   const { getToken } = useAuth();
@@ -556,58 +572,52 @@ export default function Builder({ website: initialWebsite }) {
           headersHidden ? "is-hidden" : ""
         }`}
       >
-        <div className="flex min-w-0 items-center gap-3">
+        {/* Left: Back + Website Title + Live/Draft Status */}
+        <div className="flex min-w-0 items-center gap-2.5 shrink-0">
           <button
             type="button"
             onClick={exitToWebsites}
             aria-label="Back to websites"
             title="Back to websites"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-gray-200 text-gray-600 transition hover:bg-gray-50 hover:text-gray-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200/90 bg-white text-gray-600 transition hover:bg-gray-100 hover:text-gray-950 focus-visible:outline-2 focus-visible:outline-indigo-600"
           >
             <BackIcon />
           </button>
 
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 text-sm font-bold text-white shadow-sm">
-            W
-          </div>
+          <div className="h-4 w-px bg-gray-200 shrink-0" />
 
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="truncate text-sm font-bold text-gray-950">
-                {website.name}
-              </p>
-              {website.isPublished ? (
-                <button
-                  type="button"
-                  onClick={() => setIsPublishModalOpen(true)}
-                  title="Click to view live site details"
-                  className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200 transition hover:bg-emerald-100 cursor-pointer"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Live
-                </button>
-              ) : (
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700 border border-amber-200">
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                  Draft
-                </span>
-              )}
-            </div>
-            <p className="mt-0.5 text-[11px] text-gray-500">
-              Website Studio <span className="mx-1">/</span> Visual editor
-            </p>
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="truncate text-xs font-bold text-gray-900 max-w-[130px] sm:max-w-[200px]" title={website.name}>
+              {website.name}
+            </span>
+            {website.isPublished ? (
+              <button
+                type="button"
+                onClick={() => setIsPublishModalOpen(true)}
+                title="View live website link"
+                className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition cursor-pointer shrink-0"
+              >
+                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live
+              </button>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 border border-amber-200 shrink-0">
+                <span className="size-1.5 rounded-full bg-amber-500" />
+                Draft
+              </span>
+            )}
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <label className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2">
-            <span className="text-xs font-medium text-gray-500">Page</span>
-
+        {/* Center: Integrated Page Switcher & Manager */}
+        <div className="flex items-center rounded-lg border border-gray-200 bg-white p-0.5 shadow-2xs">
+          <div className="flex items-center gap-1.5 px-2 py-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Page</span>
             <select
               value={activePageId}
               onChange={(event) => switchActivePage(event.target.value)}
               disabled={pageActionLoading}
-              className="max-w-[180px] bg-transparent text-sm font-semibold text-gray-800 outline-none disabled:opacity-50"
+              className="bg-transparent text-xs font-semibold text-gray-800 outline-none cursor-pointer max-w-[100px] sm:max-w-[140px] truncate"
               aria-label="Select page to edit"
             >
               {sortedPages.map((page) => (
@@ -616,125 +626,115 @@ export default function Builder({ website: initialWebsite }) {
                 </option>
               ))}
             </select>
-          </label>
+          </div>
+
+          <div className="h-3.5 w-px bg-gray-200" />
 
           <button
             type="button"
             onClick={createPage}
             disabled={pageActionLoading}
-            className="rounded-xl bg-violet-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
+            title="Add a new page"
+            className="flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 transition disabled:opacity-40"
           >
-            {pageActionLoading ? "Working..." : "+ Add page"}
+            <span className="text-sm leading-none font-bold">+</span>
+            <span className="hidden sm:inline">Page</span>
           </button>
 
           <button
             type="button"
             onClick={renamePage}
             disabled={pageActionLoading || !activePage}
-            className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            title="Rename page"
+            className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition disabled:opacity-40"
           >
-            Rename
+            <EditIcon className="size-3.5" />
           </button>
 
           <button
             type="button"
             onClick={duplicatePage}
             disabled={pageActionLoading || !activePage}
-            className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            title="Duplicate page"
+            className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition disabled:opacity-40"
           >
-            Duplicate
+            <CopyIcon className="size-3.5" />
           </button>
 
           <button
             type="button"
             onClick={() => movePage(-1)}
-            disabled={
-              pageActionLoading ||
-              !activePage ||
-              sortedPages[0]?.id === activePage.id
-            }
+            disabled={pageActionLoading || !activePage || sortedPages[0]?.id === activePage.id}
             title="Move page up"
-            className="rounded-xl border border-gray-200 bg-white px-2.5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition disabled:opacity-20"
           >
-            ↑
+            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
+            </svg>
           </button>
 
           <button
             type="button"
             onClick={() => movePage(1)}
-            disabled={
-              pageActionLoading ||
-              !activePage ||
-              sortedPages[sortedPages.length - 1]?.id === activePage.id
-            }
+            disabled={pageActionLoading || !activePage || sortedPages[sortedPages.length - 1]?.id === activePage.id}
             title="Move page down"
-            className="rounded-xl border border-gray-200 bg-white px-2.5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition disabled:opacity-20"
           >
-            ↓
+            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            </svg>
           </button>
 
           <button
             type="button"
             onClick={deletePage}
-            disabled={
-              pageActionLoading ||
-              !activePage ||
-              sortedPages.length <= 1
-            }
-            className="rounded-xl border border-red-200 bg-white px-3 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={pageActionLoading || !activePage || sortedPages.length <= 1}
+            title="Delete page"
+            className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 transition disabled:opacity-20"
           >
-            Delete
+            <TrashIcon className="size-3.5" />
           </button>
+        </div>
 
-          <div className="mx-1 h-5 w-px bg-gray-200" />
-
-          {/* View Live / Preview */}
+        {/* Right: Live Preview & Publish */}
+        <div className="flex items-center gap-2 shrink-0">
           {website.isPublished ? (
             <a
               href={currentPreviewUrl}
               target="_blank"
               rel="noopener noreferrer"
               title="Open public website in a new tab"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 transition"
             >
               <span>Visit Live</span>
-              <ExternalIcon />
+              <ExternalIcon className="size-3" />
             </a>
           ) : (
             <button
               type="button"
               onClick={handlePublish}
               title="Publish website to generate live URL"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 transition"
             >
               <span>Preview</span>
-              <ExternalIcon />
+              <ExternalIcon className="size-3" />
             </button>
           )}
 
-          {/* Publish Website Button */}
           <button
             type="button"
             onClick={handlePublish}
             disabled={publishLoading}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:from-emerald-700 hover:to-teal-700 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 transition disabled:opacity-50 cursor-pointer"
           >
             <RocketIcon />
             <span>
               {publishLoading
                 ? "Publishing…"
                 : website.isPublished
-                ? "Update / Publish"
+                ? "Update"
                 : "Publish Website"}
             </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={exitToWebsites}
-            className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600"
-          >
-            Exit
           </button>
         </div>
       </header>

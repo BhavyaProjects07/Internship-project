@@ -787,55 +787,43 @@ export default function PuckEditorClient({
   return (
     <div className="studio-workspace">
       <div className="studio-toolbar">
-        <div className="studio-toolbar-heading">
-          <div className="studio-toolbar-mark">
-            <Icon name="panel" size={18} />
-          </div>
-
-          <div>
-            <p className="studio-eyebrow">DESIGN WORKSPACE</p>
-            <h2>Visual editor</h2>
-          </div>
-        </div>
-
-        {/* Quick Sidebar Toggles in Toolbar */}
-        <div className="studio-toolbar-center">
+        {/* Left: Quick Panel Toggles */}
+        <div className="studio-toolbar-left" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <button
             type="button"
             onClick={() => setIsLeftSidebarOpen((prev) => !prev)}
             className={`studio-panel-toggle ${isLeftSidebarOpen ? "is-active" : ""}`}
-            title={isLeftSidebarOpen ? "Collapse Left Panel (Elements & Layers)" : "Open Left Panel"}
+            title={isLeftSidebarOpen ? "Collapse Left Panel (Elements)" : "Open Left Panel (Elements)"}
             aria-pressed={isLeftSidebarOpen}
           >
-            <Icon name="sidebarLeft" size={16} />
+            <Icon name="sidebarLeft" size={14} />
             <span>Elements</span>
           </button>
           <button
             type="button"
             onClick={() => setIsRightSidebarOpen((prev) => !prev)}
             className={`studio-panel-toggle ${isRightSidebarOpen ? "is-active" : ""}`}
-            title={isRightSidebarOpen ? "Collapse Inspector (Properties)" : "Open Inspector"}
+            title={isRightSidebarOpen ? "Collapse Inspector" : "Open Inspector"}
             aria-pressed={isRightSidebarOpen}
           >
-            <Icon name="sidebarRight" size={16} />
+            <Icon name="sidebarRight" size={14} />
             <span>Inspector</span>
           </button>
         </div>
 
-
+        {/* Center: Device Switcher */}
         <div
           className="studio-device-preview"
           role="group"
           aria-label="Responsive preview device"
           style={{
-            display: "flex",
+            display: "inline-flex",
             alignItems: "center",
-            justifyContent: "center",
-            gap: 4,
-            padding: 4,
+            gap: 2,
+            padding: "2px 3px",
             border: "1px solid #e2e8f0",
-            borderRadius: 10,
-            background: "#f8fafc",
+            borderRadius: 8,
+            background: "#f1f5f9",
           }}
         >
           {[
@@ -856,31 +844,31 @@ export default function PuckEditorClient({
                   display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 6,
-                  padding: "8px 10px",
+                  gap: 5,
+                  padding: "5px 10px",
                   border: "1px solid transparent",
-                  borderRadius: 7,
+                  borderRadius: 6,
                   background: active ? "#ffffff" : "transparent",
                   color: active ? "#0f172a" : "#64748b",
                   boxShadow: active
-                    ? "0 1px 3px rgba(15, 23, 42, 0.12)"
+                    ? "0 1px 2px rgba(15, 23, 42, 0.08)"
                     : "none",
                   fontSize: 12,
                   fontWeight: active ? 600 : 500,
                   cursor: "pointer",
                   whiteSpace: "nowrap",
+                  transition: "all 0.15s ease",
                 }}
               >
-                <Icon name={device.icon} size={15} />
+                <Icon name={device.icon} size={13} />
                 <span>{device.label}</span>
               </button>
             );
           })}
         </div>
 
-
-
-        <div className="studio-toolbar-actions">
+        {/* Right: Status Indicator and Save Button */}
+        <div className="studio-toolbar-actions" style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <StatusIndicator status={saveStatus} savedAt={savedAt} />
 
           {saveStatus === "error" && retryDocument ? (
@@ -898,8 +886,17 @@ export default function PuckEditorClient({
               className="studio-save-button"
               onClick={saveCurrentDocument}
               disabled={saveStatus === "saving"}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "6px 14px",
+                fontSize: 12,
+                fontWeight: 600,
+                borderRadius: 8,
+              }}
             >
-              <Icon name="save" size={16} />
+              <Icon name="save" size={14} />
               <span>Save changes</span>
             </button>
           )}

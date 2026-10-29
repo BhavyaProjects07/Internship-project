@@ -90,6 +90,31 @@ function BackIcon() {
   );
 }
 
+function EditIcon({ className = "h-3.5 w-3.5" }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+    </svg>
+  );
+}
+
+function TrashIcon({ className = "h-3.5 w-3.5" }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+    </svg>
+  );
+}
+
+function CopyIcon({ className = "h-3.5 w-3.5" }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8">
+      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+    </svg>
+  );
+}
+
 export default function TemplateEditorPage() {
   const params = useParams();
   const id = Array.isArray(params?.id) ? params.id[0] : params?.id;
@@ -516,40 +541,39 @@ return (
         headersHidden ? "is-hidden" : ""
       }`}
     >
-      <div className="flex min-w-0 items-center gap-3">
+      {/* Left: Back + Template Title */}
+      <div className="flex min-w-0 items-center gap-2.5 shrink-0">
         <button
           type="button"
           onClick={exitToTemplates}
           aria-label="Back to templates"
           title="Back to templates"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-gray-200 text-gray-600 transition hover:bg-gray-50 hover:text-gray-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200/90 bg-white text-gray-600 transition hover:bg-gray-100 hover:text-gray-950 focus-visible:outline-2 focus-visible:outline-indigo-600"
         >
           <BackIcon />
         </button>
 
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-600 text-sm font-bold text-white">
-          S
-        </div>
+        <div className="h-4 w-px bg-gray-200 shrink-0" />
 
-        <div className="min-w-0">
-          <p className="truncate text-sm font-bold text-gray-950">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-xs font-bold text-gray-900 max-w-[140px] sm:max-w-[200px]" title={template.name}>
             {template.name}
-          </p>
-          <p className="mt-0.5 text-[11px] text-gray-500">
-            Website Studio <span className="mx-1">/</span> Visual editor
-          </p>
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700 border border-violet-200 shrink-0">
+            Template
+          </span>
         </div>
       </div>
 
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <label className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2">
-          <span className="text-xs font-medium text-gray-500">Page</span>
-
+      {/* Center: Integrated Page Switcher & Manager */}
+      <div className="flex items-center rounded-lg border border-gray-200 bg-white p-0.5 shadow-2xs">
+        <div className="flex items-center gap-1.5 px-2.5 py-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Page</span>
           <select
             value={activePageId}
             onChange={(event) => switchActivePage(event.target.value)}
             disabled={pageActionLoading}
-            className="max-w-[180px] bg-transparent text-sm font-semibold text-gray-800 outline-none disabled:opacity-50"
+            className="bg-transparent text-xs font-semibold text-gray-800 outline-none cursor-pointer max-w-[100px] sm:max-w-[140px] truncate"
             aria-label="Select page to edit"
           >
             {template.pages
@@ -561,33 +585,39 @@ return (
                 </option>
               ))}
           </select>
-        </label>
+        </div>
+
+        <div className="h-3.5 w-px bg-gray-200" />
 
         <button
           type="button"
           onClick={createPage}
           disabled={pageActionLoading}
-          className="rounded-xl bg-violet-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
+          title="Add a new page"
+          className="flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 transition disabled:opacity-40"
         >
-          {pageActionLoading ? "Working..." : "+ Add page"}
+          <span className="text-sm leading-none font-bold">+</span>
+          <span className="hidden sm:inline">Page</span>
         </button>
 
         <button
           type="button"
           onClick={renamePage}
           disabled={pageActionLoading || !activePage}
-          className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          title="Rename page"
+          className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition disabled:opacity-40"
         >
-          Rename
+          <EditIcon className="size-3.5" />
         </button>
 
         <button
           type="button"
           onClick={duplicatePage}
           disabled={pageActionLoading || !activePage}
-          className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          title="Duplicate page"
+          className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition disabled:opacity-40"
         >
-          Duplicate
+          <CopyIcon className="size-3.5" />
         </button>
 
         <button
@@ -603,9 +633,11 @@ return (
           }
           title="Move page up"
           aria-label="Move page up"
-          className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition disabled:opacity-20"
         >
-          ↑
+          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
+          </svg>
         </button>
 
         <button
@@ -621,9 +653,11 @@ return (
           }
           title="Move page down"
           aria-label="Move page down"
-          className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition disabled:opacity-20"
         >
-          ↓
+          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+          </svg>
         </button>
 
         <button
@@ -634,19 +668,23 @@ return (
             !activePage ||
             template.pages.length <= 1
           }
-          className="rounded-xl border border-red-200 bg-white px-3 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+          title="Delete page"
+          className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 transition disabled:opacity-20"
         >
-          Delete
+          <TrashIcon className="size-3.5" />
         </button>
+      </div>
 
-        <span className="hidden rounded-full bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 sm:inline-flex">
-          Puck editor
+      {/* Right: Exit Action */}
+      <div className="flex items-center gap-2 shrink-0">
+        <span className="hidden rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 sm:inline-flex border border-emerald-200">
+          Admin Puck Studio
         </span>
 
         <button
           type="button"
           onClick={exitToTemplates}
-          className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600"
+          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 transition"
         >
           Exit
         </button>
