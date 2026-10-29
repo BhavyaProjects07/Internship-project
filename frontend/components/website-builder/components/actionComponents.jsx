@@ -426,7 +426,6 @@ export const actionComponents = {
       fontWeight: "600",
       textDecoration: "none",
       ...commonDesignDefaults,
-      responsive: {},
       ...animationDefaults,
     },
     render: ({

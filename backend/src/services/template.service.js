@@ -1,5 +1,6 @@
 
 const prisma = require("../lib/prisma");
+const { buildUnifiedResponsiveModel, stripComponentResponsiveness } = require("../lib/responsiveModel");
 
 const templateInclude = {
   websiteCategory: true,
@@ -438,23 +439,23 @@ const savePageEditorData = async (templateId, pageId, document, explicitResponsi
   }
 
   // Extract page-level responsive settings from explicit argument or document root
-  const pageResponsive =
-    explicitResponsive && typeof explicitResponsive === "object"
-      ? explicitResponsive
-      : document.root?.props?.responsive &&
-        typeof document.root.props.responsive === "object"
-      ? document.root.props.responsive
-      : (page.responsive || DEFAULT_PAGE_RESPONSIVE);
+  const pageResponsive = buildUnifiedResponsiveModel(
+    explicitResponsive,
+    document,
+    page.responsive
+  );
+
+  const cleanDocument = stripComponentResponsiveness(document);
 
   // Synchronize document root props
-  if (document.root && document.root.props) {
-    document.root.props.responsive = pageResponsive;
+  if (cleanDocument.root && cleanDocument.root.props) {
+    cleanDocument.root.props.responsive = pageResponsive;
   }
 
   return prisma.templatePage.update({
     where: { id: pageId },
     data: {
-      editorData: document,
+      editorData: cleanDocument,
       responsive: pageResponsive,
     },
     select: {

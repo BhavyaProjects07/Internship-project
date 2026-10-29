@@ -4,6 +4,7 @@
 import React, { Component } from "react";
 import { Render } from "@puckeditor/core";
 import puckConfig from "./puck-config";
+import { hydrateDocumentWithResponsive } from "./layout/responsiveStyles.js";
 import { StudioProvider } from "./context/StudioContext.jsx";
 
 class PuckErrorBoundary extends Component {
@@ -89,10 +90,12 @@ export default function PuckPublicRenderer({
             containerName: "studio-preview",
           }}
         >
-          <Render
-            config={puckConfig}
-            data={parsedData}
-          />
+          {(() => {
+            const activePage = (Array.isArray(pages) ? pages : []).find((p) => p.id === activePageId) || (Array.isArray(pages) ? pages[0] : null);
+            const responsiveModel = activePage?.responsive || parsedData.root?.props?.responsive;
+            const hydratedData = hydrateDocumentWithResponsive(parsedData, responsiveModel);
+            return <Render config={puckConfig} data={hydratedData} />;
+          })()}
         </div>
       </StudioProvider>
     </PuckErrorBoundary>

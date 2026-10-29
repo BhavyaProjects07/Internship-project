@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const prisma = require("../lib/prisma");
+const { buildUnifiedResponsiveModel, stripComponentResponsiveness } = require("../lib/responsiveModel");
 
 const templateInclude = {
   websiteCategory: true,
@@ -815,22 +816,22 @@ const saveWebsitePageEditorData = async (
     throw httpError("Page not found in this website or unauthorized", 404);
   }
 
-  const pageResponsive =
-    explicitResponsive && typeof explicitResponsive === "object"
-      ? explicitResponsive
-      : document.root?.props?.responsive &&
-        typeof document.root.props.responsive === "object"
-      ? document.root.props.responsive
-      : (page.responsive || DEFAULT_PAGE_RESPONSIVE);
+  const pageResponsive = buildUnifiedResponsiveModel(
+    explicitResponsive,
+    document,
+    page.responsive
+  );
 
-  if (document.root && document.root.props) {
-    document.root.props.responsive = pageResponsive;
+  const cleanDocument = stripComponentResponsiveness(document);
+
+  if (cleanDocument.root && cleanDocument.root.props) {
+    cleanDocument.root.props.responsive = pageResponsive;
   }
 
   return prisma.websitePage.update({
     where: { id: pageId },
     data: {
-      editorData: document,
+      editorData: cleanDocument,
       responsive: pageResponsive,
     },
     select: {

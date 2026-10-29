@@ -407,12 +407,14 @@ useEffect(() => {
           rawDocument.root?.props?.responsive ||
           DEFAULT_PAGE_RESPONSIVE;
 
+        const hydratedDoc = hydrateDocumentWithResponsive(rawDocument, pageResponsive);
+
         const document = {
-          ...rawDocument,
+          ...hydratedDoc,
           root: {
-            ...(rawDocument.root || {}),
+            ...(hydratedDoc.root || {}),
             props: {
-              ...(rawDocument.root?.props || {}),
+              ...(hydratedDoc.root?.props || {}),
               responsive: pageResponsive,
             },
           },

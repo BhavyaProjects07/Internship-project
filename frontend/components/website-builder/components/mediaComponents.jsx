@@ -114,7 +114,6 @@ export const mediaComponents = {
       opacity: 100,
       hoverEffect: "lift-sm",
       ...commonDesignDefaults,
-      responsive: {},
       ...animationDefaults,
     },
     render: ({
@@ -286,7 +285,6 @@ export const mediaComponents = {
       borderRadius: 12,
       marginTop: "16px",
       marginBottom: "24px",
-      responsive: {},
       ...animationDefaults,
     },
     render: ({
@@ -426,7 +424,6 @@ export const mediaComponents = {
       autoplay: false,
       marginTop: "16px",
       marginBottom: "24px",
-      responsive: {},
       ...animationDefaults,
     },
     render: ({
@@ -559,7 +556,6 @@ export const mediaComponents = {
       hoverEffect: "lift-sm",
       marginTop: "8px",
       marginBottom: "16px",
-      responsive: {},
       ...animationDefaults,
     },
     render: ({
@@ -662,7 +658,6 @@ export const mediaComponents = {
       borderRadius: 16,
       marginTop: "16px",
       marginBottom: "24px",
-      responsive: {},
       ...animationDefaults,
     },
     render: ({
@@ -756,7 +751,6 @@ export const mediaComponents = {
       fontSize: 14,
       marginTop: "16px",
       marginBottom: "24px",
-      responsive: {},
       ...animationDefaults,
     },
     render: ({

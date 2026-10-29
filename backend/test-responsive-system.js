@@ -768,6 +768,93 @@ async function runTestSuite() {
     });
   });
 
+  await asyncTest("Database Verification 9: Page responsive column stores unified model with page layout and components list", async () => {
+    const mockUserId = "test_unified_user_" + Date.now();
+    const site = await prisma.website.create({
+      data: {
+        name: "Unified Responsive Test Site",
+        slug: "unified-resp-" + Date.now(),
+        userId: mockUserId,
+        pages: {
+          create: [
+            {
+              name: "Home",
+              slug: "home",
+              order: 1,
+            },
+          ],
+        },
+      },
+      include: { pages: true },
+    });
+
+    const pageId = site.pages[0].id;
+    const testDoc = {
+      content: [
+        {
+          type: "Heading",
+          props: {
+            id: "heading-u1",
+            text: "Unified Title",
+            responsive: {
+              desktop: { fontSize: 36 },
+              tablet: { fontSize: 28 },
+              mobile: { fontSize: 20 },
+            },
+          },
+        },
+        {
+          type: "Image",
+          props: {
+            id: "image-u1",
+            src: "https://example.com/pic.png",
+            responsive: {
+              desktop: { width: "80%" },
+              mobile: { width: "100%" },
+            },
+          },
+        },
+      ],
+      root: {
+        props: {
+          responsive: {
+            desktop: { maxWidth: "1280px", paddingX: "24px" },
+            tablet: { maxWidth: "768px", paddingX: "20px" },
+            mobile: { maxWidth: "100%", paddingX: "16px" },
+          },
+        },
+      },
+    };
+
+    await websiteService.saveWebsitePageEditorData(site.id, pageId, testDoc, null, mockUserId);
+
+    const updatedPage = await prisma.websitePage.findUnique({
+      where: { id: pageId },
+      select: { responsive: true, editorData: true },
+    });
+
+    assert.ok(updatedPage.responsive, "Page responsive column must not be null");
+    assert.strictEqual(updatedPage.responsive.desktop.maxWidth, "1280px");
+    assert.strictEqual(updatedPage.responsive.tablet.maxWidth, "768px");
+    assert.strictEqual(updatedPage.responsive.mobile.maxWidth, "100%");
+    assert.ok(Array.isArray(updatedPage.responsive.components), "components list must be present in responsive column");
+    assert.strictEqual(updatedPage.responsive.components.length, 2, "Both components must be indexed");
+
+    const comp1 = updatedPage.responsive.components.find((c) => c.id === "heading-u1");
+    assert.ok(comp1, "Heading component must be in responsive.components");
+    assert.strictEqual(comp1.responsive.desktop.fontSize, 36);
+    assert.strictEqual(comp1.responsive.mobile.fontSize, 20);
+
+    const comp2 = updatedPage.responsive.components.find((c) => c.id === "image-u1");
+    assert.ok(comp2, "Image component must be in responsive.components");
+    assert.strictEqual(comp2.responsive.desktop.width, "80%");
+    assert.strictEqual(comp2.responsive.mobile.width, "100%");
+
+    // Clean up
+    await prisma.websitePage.deleteMany({ where: { websiteId: site.id } });
+    await prisma.website.delete({ where: { id: site.id } });
+  });
+
   // --------------------------------------------------------------------------
   // Summary
   // --------------------------------------------------------------------------

@@ -1260,7 +1260,6 @@ export const marketingComponents = {
       hoverEffect: "lift-md",
       marginTop: "16px",
       marginBottom: "24px",
-      responsive: {},
       ...animationDefaults,
     },
     render: ({
@@ -1456,7 +1455,6 @@ export const marketingComponents = {
       ],
       marginTop: "24px",
       marginBottom: "32px",
-      responsive: {},
       ...animationDefaults,
     },
     render: ({
@@ -2309,7 +2307,6 @@ export const marketingComponents = {
       ],
       marginTop: "20px",
       marginBottom: "28px",
-      responsive: {},
       ...animationDefaults,
     },
     render: ({

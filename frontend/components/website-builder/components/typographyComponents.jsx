@@ -249,7 +249,6 @@ export const typographyComponents = {
       lineHeight: 1.8,
       ...commonDesignDefaults,
       marginBottom: "16px",
-      responsive: {},
       ...animationDefaults,
     },
     render: ({
@@ -322,7 +321,6 @@ export const typographyComponents = {
       fontSize: 12,
       marginTop: "0px",
       marginBottom: "12px",
-      responsive: {},
       ...animationDefaults,
     },
     render: ({
@@ -423,7 +421,6 @@ export const typographyComponents = {
       quoteSize: 22,
       marginTop: "16px",
       marginBottom: "24px",
-      responsive: {},
       ...animationDefaults,
     },
     render: ({

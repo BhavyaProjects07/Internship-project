@@ -1316,7 +1316,6 @@ export const layoutComponents = {
       justify: "flex-start",
       align: "center",
       gap: 16,
-      responsive: {},
       ...commonDesignDefaults,
       ...animationDefaults,
     },
@@ -1482,7 +1481,7 @@ export const layoutComponents = {
         },
       ]),
     },
-    defaultProps: { height: 48, responsive: {} },
+    defaultProps: { height: 48, },
     render: ({ height, responsive }) => {
       const { className: respClass, css: respCss } = buildResponsiveStyles({
         responsive,

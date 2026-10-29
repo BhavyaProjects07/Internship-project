@@ -370,3 +370,94 @@ export function buildResponsiveStyles({
     css: rules.join("\n"),
   };
 }
+
+
+/**
+ * Checks if a component's responsive object actually contains non-empty overrides.
+ */
+export function hasResponsiveOverrides(resp) {
+  if (!resp || typeof resp !== "object") return false;
+  return ["desktop", "tablet", "mobile"].some((device) => {
+    const val = resp[device];
+    return val && typeof val === "object" && Object.keys(val).length > 0;
+  });
+}
+
+/**
+ * Hydrates a clean Puck document by attaching component responsive settings
+ * from the unified `responsive.components` array.
+ */
+export function hydrateDocumentWithResponsive(document, responsiveModel) {
+  if (!document || typeof document !== "object") return document;
+  const hydratedDoc = JSON.parse(JSON.stringify(document));
+  const compMap = new Map();
+
+  if (responsiveModel && Array.isArray(responsiveModel.components)) {
+    for (const c of responsiveModel.components) {
+      if (c && c.id && c.responsive && hasResponsiveOverrides(c.responsive)) {
+        compMap.set(c.id, c.responsive);
+      }
+    }
+  }
+
+  function hydrate(nodes) {
+    if (!Array.isArray(nodes)) return;
+    for (const node of nodes) {
+      if (!node || typeof node !== "object") continue;
+      const compId = node.props?.id || node.id;
+      if (compId && compMap.has(compId)) {
+        node.props = node.props || {};
+        node.props.responsive = compMap.get(compId);
+      } else if (node.props && node.props.responsive) {
+        if (!hasResponsiveOverrides(node.props.responsive)) {
+          delete node.props.responsive;
+        }
+      }
+
+      if (node.props) {
+        for (const val of Object.values(node.props)) {
+          if (Array.isArray(val)) hydrate(val);
+        }
+      }
+    }
+  }
+
+  if (Array.isArray(hydratedDoc.content)) hydrate(hydratedDoc.content);
+  if (hydratedDoc.zones && typeof hydratedDoc.zones === "object") {
+    for (const zoneList of Object.values(hydratedDoc.zones)) {
+      if (Array.isArray(zoneList)) hydrate(zoneList);
+    }
+  }
+
+  return hydratedDoc;
+}
+
+/**
+ * Strips `props.responsive` from all components in a Puck document.
+ */
+export function stripComponentResponsiveness(document) {
+  if (!document || typeof document !== "object") return document;
+  const cleanDoc = JSON.parse(JSON.stringify(document));
+
+  function cleanNodes(nodes) {
+    if (!Array.isArray(nodes)) return;
+    for (const node of nodes) {
+      if (!node || typeof node !== "object") continue;
+      if (node.props) {
+        delete node.props.responsive;
+        for (const val of Object.values(node.props)) {
+          if (Array.isArray(val)) cleanNodes(val);
+        }
+      }
+    }
+  }
+
+  if (Array.isArray(cleanDoc.content)) cleanNodes(cleanDoc.content);
+  if (cleanDoc.zones && typeof cleanDoc.zones === "object") {
+    for (const zoneList of Object.values(cleanDoc.zones)) {
+      if (Array.isArray(zoneList)) cleanNodes(zoneList);
+    }
+  }
+
+  return cleanDoc;
+}

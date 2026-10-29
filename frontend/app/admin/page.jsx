@@ -52,7 +52,10 @@ export default function AdminDashboardPage() {
 
       const [templatesRes, categoriesRes] = await Promise.all([
         fetch(`${API_URL}/templates/admin`, { headers, cache: "no-store" }),
-        fetch(`${API_URL}/categories/admin?includeInactive=true`, { headers, cache: "no-store" }),
+        fetch(`${API_URL}/categories?includeInactive=true`, {
+          headers,
+          cache: "no-store",
+})
       ]);
 
       if (!templatesRes.ok) {
