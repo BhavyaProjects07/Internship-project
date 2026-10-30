@@ -11,6 +11,7 @@ import { Puck, useGetPuck } from "@puckeditor/core";
 import puckConfig, { DEFAULT_PAGE_RESPONSIVE } from "./puck-config";
 import { StudioProvider } from "./context/StudioContext.jsx";
 import { hydrateDocumentWithResponsive } from "./layout/responsiveStyles.js";
+import TemplateJsonModal from "./modals/TemplateJsonModal.jsx";
 
 const API_URL = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
@@ -87,6 +88,12 @@ function Icon({ name, size = 18 }) {
     chevronLeft: <path d="m15 18-6-6 6-6" />,
     chevronRight: <path d="m9 18 6-6-6-6" />,
     x: <path d="M18 6 6 18M6 6l12 12" />,
+    code: (
+      <>
+        <polyline points="16 18 22 12 16 6" />
+        <polyline points="8 6 2 12 8 18" />
+      </>
+    ),
   };
 
   return <svg {...common}>{paths[name] || paths.blocks}</svg>;
@@ -164,6 +171,8 @@ export default function PuckEditorClient({
   const [activeSidebarTab, setActiveSidebarTab] = useState("elements");
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
+  const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
+  const [editorSessionKey, setEditorSessionKey] = useState(0);
 
   const lastCanvasScrollRef = useRef(0);
   const saveLockRef = useRef(false);
@@ -510,6 +519,21 @@ export default function PuckEditorClient({
     }
   }, []);
 
+  const handleApplyJson = useCallback((newDocument, newResponsive) => {
+    if (!newDocument) return;
+
+    const serialized = JSON.stringify(newDocument);
+    latestEditorSerializedRef.current = serialized;
+    latestEditorDataRef.current = newDocument;
+    dirtyRef.current = true;
+
+    setData(newDocument);
+    setEditorSessionKey((prev) => prev + 1);
+    setSaveStatus("dirty");
+    setError("");
+    setRetryDocument(null);
+  }, []);
+
   const saveDocument = useCallback(
     async (document) => {
       if (!document) {
@@ -809,6 +833,18 @@ export default function PuckEditorClient({
             <Icon name="sidebarRight" size={14} />
             <span>Inspector</span>
           </button>
+
+          <div style={{ width: 1, height: 16, background: "#e2e8f0", margin: "0 2px" }} />
+
+          <button
+            type="button"
+            onClick={() => setIsJsonModalOpen(true)}
+            className="studio-panel-toggle"
+            title="Import or Export Template JSON"
+          >
+            <Icon name="code" size={14} />
+            <span>JSON</span>
+          </button>
         </div>
 
         {/* Center: Device Switcher */}
@@ -930,6 +966,7 @@ export default function PuckEditorClient({
       >
         <div className="studio-editor-grid">
           <Puck
+            key={`puck-instance-${editorSessionKey}`}
             config={puckConfig}
             data={data}
             onChange={handleEditorChange}
@@ -1304,6 +1341,20 @@ export default function PuckEditorClient({
           </Puck>
         </div>
       </StudioProvider>
+
+      {/* Template JSON Modal (Import & Export) */}
+      <TemplateJsonModal
+        isOpen={isJsonModalOpen}
+        onClose={() => setIsJsonModalOpen(false)}
+        currentDocument={getCurrentPuckDataRef.current?.() || latestEditorDataRef.current || data}
+        pageMetadata={{
+          pageName: pages.find((p) => p.id === pageId)?.name || "Page",
+          websiteName: templateName,
+          slug: websiteSlug || pages.find((p) => p.id === pageId)?.slug || "page",
+        }}
+        onApplyJson={handleApplyJson}
+        registeredComponentTypes={Object.keys(puckConfig.components || {})}
+      />
     </div>
   );
 }
